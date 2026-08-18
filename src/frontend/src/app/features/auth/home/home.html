@@ -1,0 +1,25 @@
+<section class="home">
+  <h1>Welcome</h1>
+
+  @switch (meState()) {
+    @case ('ok') {
+      <p class="home__identity">Signed in as {{ email() }}</p>
+      <p class="home__user-id">User ID: {{ userId() }}</p>
+      <p><a routerLink="/platforms">Platforms</a></p>
+      <p><a routerLink="/video-games">Video games</a></p>
+      <p><a routerLink="/board-games">Board games</a></p>
+    }
+    @case ('expired') {
+      <p class="home__expired">Session expired. Please sign in again.</p>
+      <a routerLink="/login">Sign in again</a>
+    }
+    @case ('error') {
+      <p class="home__error">Unable to load your profile. Please try again.</p>
+    }
+    @default {
+      <p>Loading…</p>
+    }
+  }
+
+  <button type="button" (click)="onLogout()" [disabled]="signingOut()">Log out</button>
+</section>

@@ -1,0 +1,1 @@
+export type AcquisitionStatus = 'Owned' | 'Wishlist' | 'Interested';

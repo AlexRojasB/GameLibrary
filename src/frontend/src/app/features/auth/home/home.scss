@@ -1,0 +1,19 @@
+.home {
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+
+  &__identity,
+  &__user-id {
+    overflow-wrap: anywhere;
+  }
+
+  &__expired,
+  &__error {
+    color: #b3261e;
+  }
+
+  button {
+    margin-top: 1rem;
+  }
+}

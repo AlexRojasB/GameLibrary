@@ -1,0 +1,87 @@
+<form [formGroup]="form" (ngSubmit)="submit()" class="board-game-form">
+  <label for="board-game-form-name">Name</label>
+  <input id="board-game-form-name" type="text" formControlName="name" maxlength="100" required />
+  @if (form.controls.name.touched && form.controls.name.errors) {
+    @if (form.controls.name.hasError('required')) {
+      <p class="board-game-form__error" role="alert">Board game name is required.</p>
+    } @else if (form.controls.name.hasError('maxlength')) {
+      <p class="board-game-form__error" role="alert">Board game name must be at most 100 characters.</p>
+    }
+  }
+
+  <label for="board-game-form-minimum">Minimum players</label>
+  <input id="board-game-form-minimum" type="number" formControlName="minimumPlayers" min="1" />
+  @if (form.controls.minimumPlayers.errors) {
+    <p class="board-game-form__error" role="alert">Minimum players must be at least 1.</p>
+  }
+
+  <label for="board-game-form-maximum">Maximum players</label>
+  <input id="board-game-form-maximum" type="number" formControlName="maximumPlayers" min="1" />
+  @if (form.controls.maximumPlayers.errors) {
+    <p class="board-game-form__error" role="alert">Maximum players must be at least the minimum players.</p>
+  }
+
+  <label for="board-game-form-duration">Approximate duration (minutes)</label>
+  <input
+    id="board-game-form-duration"
+    type="number"
+    formControlName="approximateDuration"
+    min="1"
+    placeholder="e.g. 30, 60, 120"
+  />
+  @if (form.controls.approximateDuration.errors) {
+    <p class="board-game-form__error" role="alert">Duration must be a positive number of minutes.</p>
+  }
+
+  <label for="board-game-form-interaction">Interaction type</label>
+  <select id="board-game-form-interaction" formControlName="interactionType">
+    <option [ngValue]="null">None</option>
+    @for (type of interactionTypes; track type) {
+      <option [ngValue]="type">{{ type }}</option>
+    }
+  </select>
+
+  <label for="board-game-form-acquisition">Acquisition status</label>
+  <select id="board-game-form-acquisition" formControlName="acquisitionStatus">
+    @for (status of acquisitionStatuses; track status) {
+      <option [ngValue]="status">{{ status }}</option>
+    }
+  </select>
+
+  <label for="board-game-form-rating">Rating</label>
+  <select id="board-game-form-rating" formControlName="rating">
+    <option [ngValue]="null">Not rated</option>
+    <option [ngValue]="1">1</option>
+    <option [ngValue]="2">2</option>
+    <option [ngValue]="3">3</option>
+    <option [ngValue]="4">4</option>
+    <option [ngValue]="5">5</option>
+  </select>
+  @if (form.controls.rating.errors) {
+    <p class="board-game-form__error" role="alert">Rating must be between 1 and 5.</p>
+  }
+
+  <label for="board-game-form-notes">Notes</label>
+  <textarea id="board-game-form-notes" formControlName="notes" maxlength="5000"></textarea>
+  @if (form.controls.notes.errors) {
+    <p class="board-game-form__error" role="alert">Notes must be at most 5000 characters.</p>
+  }
+
+  <label for="board-game-form-cover">Cover image URL</label>
+  <input id="board-game-form-cover" type="url" formControlName="coverImageUrl" maxlength="2048" placeholder="https://…" />
+  @if (form.controls.coverImageUrl.errors) {
+    <p class="board-game-form__error" role="alert">Cover image URL is invalid.</p>
+  }
+
+  @if (validationError()) {
+    <p class="board-game-form__error" role="alert">{{ validationError() }}</p>
+  }
+  @if (serverError()) {
+    <p class="board-game-form__error" role="alert">{{ serverError() }}</p>
+  }
+
+  <div class="board-game-form__actions">
+    <button type="submit">{{ submitLabel() }}</button>
+    <button type="button" (click)="cancelled.emit()">Cancel</button>
+  </div>
+</form>

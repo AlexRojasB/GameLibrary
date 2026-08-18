@@ -1,0 +1,23 @@
+.auth-form {
+  max-width: 24rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  input {
+    margin-bottom: 0.75rem;
+  }
+
+  &__error {
+    color: #b3261e;
+  }
+
+  &__notice {
+    color: #1f6e2a;
+  }
+}

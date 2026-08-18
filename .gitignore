@@ -1,0 +1,32 @@
+# .NET
+bin/
+obj/
+.vs/
+*.user
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+tmp/
+out-tsc/
+
+# Local configuration and secrets
+appsettings.Development.json
+.env
+.env.*
+!.env.example
+supabase/.temp/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test results
+TestResults/
+coverage/

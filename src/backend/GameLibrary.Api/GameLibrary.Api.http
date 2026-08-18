@@ -1,0 +1,6 @@
+@GameLibrary.Api_HostAddress = http://localhost:5218
+
+GET {{GameLibrary.Api_HostAddress}}/health
+Accept: application/json
+
+###

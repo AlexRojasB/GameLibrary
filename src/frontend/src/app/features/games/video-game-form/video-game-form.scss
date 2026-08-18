@@ -1,0 +1,30 @@
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 28rem;
+}
+
+.game-form__group {
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.game-form__error {
+  color: #b3261e;
+  margin: 0;
+}
+
+.game-form__note {
+  color: #444;
+  margin: 0;
+}
+
+.game-form__actions {
+  display: flex;
+  gap: 0.5rem;
+}

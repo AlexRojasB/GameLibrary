@@ -1,0 +1,21 @@
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <label for="platform-form-name">Name</label>
+  <input id="platform-form-name" type="text" formControlName="name" maxlength="100" required />
+
+  @if (name.invalid && (name.touched || name.dirty)) {
+    @if (name.hasError('required')) {
+      <p class="platform-form__error" role="alert">Platform name is required.</p>
+    } @else if (name.hasError('maxlength')) {
+      <p class="platform-form__error" role="alert">Platform name must be at most 100 characters.</p>
+    }
+  }
+
+  @if (serverError()) {
+    <p class="platform-form__error" role="alert">{{ serverError() }}</p>
+  }
+
+  <div class="platform-form__actions">
+    <button type="submit">{{ submitLabel() }}</button>
+    <button type="button" (click)="cancelled.emit()">Cancel</button>
+  </div>
+</form>

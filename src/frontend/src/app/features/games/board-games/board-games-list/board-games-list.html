@@ -1,0 +1,56 @@
+<section class="board-games">
+  <header class="board-games__header">
+    <h1>Board games</h1>
+    <a routerLink="/">Back to home</a>
+  </header>
+
+  @if (loading()) {
+    <p class="board-games__status">Loading…</p>
+  } @else if (loadError()) {
+    <p class="board-games__error" role="alert">Unable to load your board games.</p>
+    <button type="button" (click)="load()">Try again</button>
+  } @else if (boardGames().length === 0) {
+    <p class="board-games__status">No board games yet.</p>
+    <button type="button" (click)="openCreate()">Add your first board game</button>
+  } @else {
+    <ul class="board-games__list">
+      @for (game of boardGames(); track game.id) {
+        <li class="board-games__item">
+          <div class="board-games__item-info">
+            <strong>{{ game.name }}</strong>
+            <span>{{ playerRange(game) }}</span>
+            @if (game.approximateDuration !== null) {
+              <span>{{ game.approximateDuration }} min</span>
+            }
+            @if (game.interactionType !== null) {
+              <span>{{ game.interactionType }}</span>
+            }
+            <span>{{ game.acquisitionStatus }}</span>
+            @if (game.rating !== null) {
+              <span>Rating: {{ game.rating }}</span>
+            }
+          </div>
+          <div class="board-games__item-actions">
+            <button type="button" (click)="openEdit(game)">Edit</button>
+            <button type="button" (click)="onDelete(game)">Delete</button>
+          </div>
+        </li>
+      }
+    </ul>
+    <button type="button" (click)="openCreate()">Add board game</button>
+  }
+
+  @if (notice()) {
+    <p class="board-games__notice" role="status">{{ notice() }}</p>
+  }
+
+  @if (formOpen()) {
+    <app-board-game-form
+      [game]="editingGame()"
+      [submitLabel]="editingGame() !== null ? 'Save' : 'Create'"
+      [serverError]="formError()"
+      (submitted)="onSubmit($event)"
+      (cancelled)="closeForm()"
+    />
+  }
+</section>

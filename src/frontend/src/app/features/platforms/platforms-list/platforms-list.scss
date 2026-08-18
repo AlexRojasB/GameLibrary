@@ -1,0 +1,32 @@
+.platforms {
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+
+  &__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  &__list {
+    list-style: none;
+    padding: 0;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+  }
+
+  &__error {
+    color: #b3261e;
+  }
+
+  &__notice {
+    color: #1f6e2a;
+  }
+}

@@ -1,0 +1,16 @@
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 28rem;
+}
+
+.board-game-form__error {
+  color: #b3261e;
+  margin: 0;
+}
+
+.board-game-form__actions {
+  display: flex;
+  gap: 0.5rem;
+}

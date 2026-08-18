@@ -1,0 +1,16 @@
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 24rem;
+}
+
+.platform-form__error {
+  color: #b3261e;
+  margin: 0;
+}
+
+.platform-form__actions {
+  display: flex;
+  gap: 0.5rem;
+}

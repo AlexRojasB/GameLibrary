@@ -1,0 +1,37 @@
+.board-games__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.board-games__item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+}
+
+.board-games__item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.board-games__item-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.board-games__error {
+  color: #b3261e;
+}
+
+.board-games__notice {
+  color: #006a4e;
+}

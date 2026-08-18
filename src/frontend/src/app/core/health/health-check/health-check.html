@@ -1,0 +1,15 @@
+<section class="health-check">
+  <h1>Game Library</h1>
+  <p class="health-check__label">Backend status</p>
+  @switch (state()) {
+    @case ('ok') {
+      <p class="health-check__status health-check__status--ok">API healthy ({{ detail() }})</p>
+    }
+    @case ('error') {
+      <p class="health-check__status health-check__status--error">API unreachable ({{ detail() }})</p>
+    }
+    @default {
+      <p class="health-check__status">Checking API…</p>
+    }
+  }
+</section>

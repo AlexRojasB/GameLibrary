@@ -1,0 +1,22 @@
+.health-check {
+  max-width: 40rem;
+  margin: 3rem auto;
+  padding: 0 1rem;
+  font-family: system-ui, sans-serif;
+
+  &__label {
+    color: #555;
+  }
+
+  &__status {
+    font-weight: 600;
+
+    &--ok {
+      color: #1a7f37;
+    }
+
+    &--error {
+      color: #cf222e;
+    }
+  }
+}
