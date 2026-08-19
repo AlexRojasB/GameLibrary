@@ -4,7 +4,7 @@ Personal game library web application. Angular PWA frontend, ASP.NET Core Web AP
 
 ## Status
 
-Feature 005 (BoardGame Management) is implemented. Authenticated users can view, create, update, and delete personal board games (`BoardGame` type only) through a protected Angular `/board-games` view and the `BoardGamesController` API, backed by the `AddBoardGameManagement` EF migration (player counts, approximate duration, and interaction type on the existing `games` table, with relational CHECK constraints as backstops). Features 001–004 are preserved, including the VideoGame acquisition-transition and platform-delete-protection rules, and BoardGame/VideoGame cross-type isolation. The Random Picker remains out of scope.
+Feature 006 (Library Browse / Search / Filter / Sort) is implemented. Authenticated users can browse VideoGames and BoardGames together through the protected Angular `/library` view and the read-only `GET /library` API. Search, filters, and sorting are backend-authoritative over the existing schema; no migration or persistence change was introduced. Features 001–005 are preserved, including platform management, VideoGame/BoardGame CRUD, domain invariants, and cross-user isolation. The Random Picker remains out of scope.
 
 ## Documentation
 
@@ -166,7 +166,7 @@ The default `src/environments/environment.ts` uses empty placeholders for `supab
 
 The `SUPABASE_CLIENT` injection token (registered in `app.config.ts`) creates the client from these values. `core/auth/` holds the auth infrastructure: `AuthService` (signal-based state, session restoration via `getSession()` + `onAuthStateChange`, normalized errors), the route guards, and the API token interceptor. The interceptor attaches `Authorization: Bearer <access-token>` only to requests whose origin matches the configured API base URL (an `API_BASE_URL` injection token defaulting to `environment.apiBaseUrl`), and only when a session exists.
 
-Routes: `''` (protected home — shows the signed-in identity and the `GET /auth/me` result, plus logout), `login` and `register` (guest-only), `health` (anonymous, retained from Feature 001), `platforms` (protected, Feature 003), `video-games` (protected, Feature 004), and `board-games` (protected, Feature 005).
+Routes: `''` (protected home — shows the signed-in identity and the `GET /auth/me` result, plus logout), `login` and `register` (guest-only), `health` (anonymous, retained from Feature 001), `library` (protected, Feature 006), `platforms` (protected, Feature 003), `video-games` (protected, Feature 004), and `board-games` (protected, Feature 005).
 
 ### Backend JWT configuration
 
@@ -276,7 +276,30 @@ Behavior:
 
 Schema: the `AddBoardGameManagement` migration adds nullable `minimum_players`, `maximum_players`, `approximate_duration`, and `interaction_type` columns to the existing `games` table (no new tables, no EF inheritance). Single-table CHECK constraints enforce the player-count rules, duration positivity, interaction-type whitelist, BoardGame-requires-players, and VideoGame-null-board-columns invariants. `InteractionType` is mapped via value conversion storing the enum name (`varchar(20)`).
 
-Frontend: a protected `/board-games` route (`features/games/board-games/`) lists board games with loading/error (retry)/empty/list states and a create/edit form covering Name, MinimumPlayers, MaximumPlayers, ApproximateDuration, InteractionType (None/Cooperative/Competitive — never inferred), AcquisitionStatus, Rating, Notes, and CoverImageUrl. Quick Add defaults to `Owned` and requires only name and player counts. Client validation (trim-before-length, player-count rules, duration positivity, `http(s)` cover URLs, rating range) mirrors the backend but never overrides it. A `401` from any board-game API call clears the local session and navigates to `/login`. The shared `AcquisitionStatus` type is extracted into `features/games/acquisition-status.ts` and re-exported by `video-game.ts`.
+Frontend: a protected `/board-games` route (`features/games/board-games/`) lists board games with loading/error (retry)/empty/list states and a create/edit form covering Name, MinimumPlayers, MaximumPlayers, ApproximateDuration, InteractionType (None/Cooperative/Competitive), AcquisitionStatus, Rating, Notes, and CoverImageUrl. Quick Add defaults to `Owned`, defaults new forms to `Competitive` as a frontend-only UX default, and requires only name and player counts. Client validation (trim-before-length, player-count rules, duration positivity, `http(s)` cover URLs, rating range) mirrors the backend but never overrides it. A `401` from any board-game API call clears the local session and navigates to `/login`. The shared `AcquisitionStatus` type is extracted into `features/games/acquisition-status.ts` and re-exported by `video-game.ts`.
+
+## Library Browse / Search / Filter / Sort (Feature 006)
+
+`GET /library` is a read-only, authenticated endpoint returning one JSON array of unified library items. The API accepts no user, owner, or library ID; ownership is always derived from the validated Supabase `sub`. A user with no Library receives `200 []`, and reads never create a `libraries` row.
+
+Query parameters:
+
+| Parameter | Values | Behavior |
+| --- | --- | --- |
+| `search` | string | Trimmed, case-insensitive literal substring on game name. `%`, `_`, and `\` are escaped and matched literally via parameterized PostgreSQL `ILIKE`. |
+| `gameType` | `VideoGame`, `BoardGame` | Omitted means both types. |
+| `acquisitionStatuses` | repeated `Owned`, `Wishlist`, `Interested` | OR within selected statuses. |
+| `platformIds` | repeated GUID | VideoGame-only; unknown/foreign well-formed IDs match nothing, not `400`. |
+| `genreIds` | repeated GUID | VideoGame-only. |
+| `gameStatuses` | repeated `Backlog`, `Playing`, `Completed`, `Abandoned`, `WantToPlay` | VideoGame-only; requires non-null status. |
+| `ratingMin` | `1`-`5` | Minimum-rating semantics; null ratings do not match. |
+| `playerCount` | integer `>= 1` | BoardGame-only range match: `minimumPlayers <= playerCount <= maximumPlayers`. |
+| `interactionTypes` | repeated `Cooperative`, `Competitive` | BoardGame-only; requires non-null interaction type. |
+| `sort` | `NameAsc`, `NameDesc`, `RatingDesc`, `RatingAsc`, `RecentlyAdded` | Default is `NameAsc`; rating sorts put null ratings last. |
+
+Filter semantics are OR within a repeated filter type and AND across different filter types. Missing optional metadata never satisfies an active filter. Multi-select wire format is repeated keys only (`?platformIds=a&platformIds=b`); comma-separated values are not parsed and return `400` when invalid for the parameter type.
+
+Frontend: the protected `/library` route renders the unified card list, loading/error retry states, empty-library and no-results states, search and all approved filters, sorting, and Clear filters. Platform and Genre names are resolved from the existing `/platforms` and `/genres` APIs. Edit actions navigate to the existing management lists (`/video-games` or `/board-games`); Feature 006 adds no deep-link edit routes and no mutation endpoints under `/library`.
 
 ## Backend
 
@@ -317,7 +340,7 @@ cd src/frontend
 ng serve
 ```
 
-Open `http://localhost:4200`. The home route is authenticated: it redirects to `/login` when signed out and otherwise shows the signed-in identity and the result of `GET /auth/me` (dev `apiBaseUrl` is `http://localhost:5218` via `src/environments/environment.development.ts`). "Platforms", "Video games", and "Board games" links on home open the protected `/platforms` (Feature 003), `/video-games` (Feature 004), and `/board-games` (Feature 005) features. `/login` and `/register` are guest-only; `/health` renders the Feature 001 health-check view anonymously.
+Open `http://localhost:4200`. The home route is authenticated: it redirects to `/login` when signed out and otherwise shows the signed-in identity and the result of `GET /auth/me` (dev `apiBaseUrl` is `http://localhost:5218` via `src/environments/environment.development.ts`). "Library", "Platforms", "Video games", and "Board games" links on home open the protected `/library` (Feature 006), `/platforms` (Feature 003), `/video-games` (Feature 004), and `/board-games` (Feature 005) features. `/login` and `/register` are guest-only; `/health` renders the Feature 001 health-check view anonymously.
 
 Production build (also verifies PWA artifacts — service worker configuration `ngsw.json` and web app manifest `manifest.webmanifest` in the `dist/` output):
 
@@ -365,7 +388,7 @@ ng build
 ## Notes
 
 - The initial migration is intentionally empty: it establishes the EF migration infrastructure and verifies connectivity, not a domain artifact. The `AddPlatformManagement` migration (Feature 003) creates the `libraries` and `platforms` tables with the unique `user_id` index, the unique `(library_id, name_normalized)` index, and the `platforms.library_id → libraries.id` foreign key (`ON DELETE RESTRICT`). The `AddVideoGameManagement` migration (Feature 004) adds `games`, `library_entries`, `genres`, `game_genres`, and `game_platforms`. The `AddBoardGameManagement` migration (Feature 005) adds the four BoardGame columns and their CHECK constraints to the existing `games` table.
-- Backend unit tests (`tests/backend/GameLibrary.Core.Tests`) cover the domain/application rules (`VideoGameRules` and `BoardGameRules`). Platform, VideoGame, and BoardGame integration tests run against real PostgreSQL via `ConnectionStrings:Test` (in the current environment, the remote Supabase project's `postgres` database) and include two-user isolation, duplicate/lifecycle behavior, acquisition transitions, cross-type safety, relational CHECK backstops, search-order behavior, and schema assertions. `DatabaseMigrationTests` asserts the `public` schema contains exactly `__EFMigrationsHistory`, `libraries`, `platforms`, `games`, `library_entries`, `genres`, `game_genres`, and `game_platforms` (order-independent).
+- Backend unit tests (`tests/backend/GameLibrary.Core.Tests`) cover the domain/application rules (`VideoGameRules`, `BoardGameRules`, and `LibraryFilterRules`). Platform, VideoGame, BoardGame, and Library integration tests run against real PostgreSQL via `ConnectionStrings:Test` (in the current environment, the remote Supabase project's `postgres` database) and include two-user isolation, duplicate/lifecycle behavior, acquisition transitions, cross-type safety, relational CHECK backstops, literal search semantics, library filter/sort behavior, and schema assertions. `DatabaseMigrationTests` asserts the `public` schema contains exactly `__EFMigrationsHistory`, `libraries`, `platforms`, `games`, `library_entries`, `genres`, `game_genres`, and `game_platforms` (order-independent).
 - Angular's service worker is active in production builds only; local `ng serve` verification of the PWA relies on `ng build` output.
 - No secrets are committed. Local secret-bearing files (`appsettings.Development.json`, `.env`, `.env.*`) are gitignored; committed configuration contains placeholders only.
 - Authentication adds `@supabase/supabase-js` and `Microsoft.AspNetCore.Authentication.JwtBearer`; the Angular initial-bundle budget warning was raised from 500 kB to 700 kB to accommodate `supabase-js` (the error budget stays 1 MB).

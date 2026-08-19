@@ -187,7 +187,7 @@ describe('BoardGamesList', () => {
       minimumPlayers: 3,
       maximumPlayers: 4,
       approximateDuration: null,
-      interactionType: null,
+      interactionType: 'Competitive',
       acquisitionStatus: 'Owned',
       rating: null,
       notes: null,

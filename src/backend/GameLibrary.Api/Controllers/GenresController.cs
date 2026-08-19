@@ -34,7 +34,9 @@ public class GenresController : ControllerBase
         }
 
         var genres = await _db.Genres
-            .OrderBy(g => g.Name)
+            .OrderBy(g => g.Name.ToLower())
+            .ThenBy(g => g.Name != g.Name.ToLower())
+            .ThenBy(g => g.Name)
             .Select(g => new GenreResponse(g.Id, g.Name))
             .ToListAsync(ct);
 
