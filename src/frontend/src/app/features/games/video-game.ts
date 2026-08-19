@@ -16,6 +16,8 @@ export interface VideoGame {
   rating: number | null;
   notes: string | null;
   createdAt: string;
+  minimumPlayers: number | null;
+  maximumPlayers: number | null;
 }
 
 export interface VideoGameInput {
@@ -28,4 +30,6 @@ export interface VideoGameInput {
   progressPercentage: number | null;
   rating: number | null;
   notes: string | null;
+  minimumPlayers: number | null;
+  maximumPlayers: number | null;
 }

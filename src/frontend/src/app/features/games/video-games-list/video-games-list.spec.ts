@@ -27,6 +27,8 @@ const ownedGame: VideoGame = {
   rating: 5,
   notes: 'Roguelike',
   createdAt: '2026-08-17T00:00:00Z',
+  minimumPlayers: 1,
+  maximumPlayers: 2,
 };
 
 @Component({ template: '' })
@@ -119,6 +121,7 @@ describe('VideoGamesList', () => {
     expect(text).toContain('Hades');
     expect(text).toContain('Steam');
     expect(text).toContain('Action');
+    expect(text).toContain('1-2 players');
   });
 
   it('shows an error state with a retry action on non-401 failures', async () => {
@@ -173,6 +176,8 @@ describe('VideoGamesList', () => {
       progressPercentage: null,
       rating: null,
       notes: null,
+      minimumPlayers: null,
+      maximumPlayers: null,
     });
     createReq.flush({ ...ownedGame });
     await fixture.whenStable();

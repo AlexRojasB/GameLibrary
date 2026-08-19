@@ -2,7 +2,19 @@
 
 ## Status
 
-`Approved` (independent review resolved; final amendments applied)
+`Approved` (manual review amendment for Feature 007 applied)
+
+## Manual Review Amendment — 2026-08-19
+
+Feature 007 manual review made VideoGame player-count metadata optional. Feature
+006 Library must display `minimumPlayers` / `maximumPlayers` for VideoGames when
+present, using the existing unified card/read-model fields.
+
+This amendment does not add a new Library filter. The existing Feature 006
+Library `playerCount` filter remains BoardGame-specific until a future approved
+Library filtering amendment says otherwise. Implementations after VideoGame
+player counts exist must ensure the Library player-count predicate continues to
+filter BoardGames only.
 
 ## Objective
 
@@ -69,8 +81,11 @@ This specification builds on the actual repository state:
   `game_type IN ('VideoGame', 'BoardGame')`; `games` carries the BoardGame
   columns `minimum_players`, `maximum_players`, `approximate_duration`, and
   `interaction_type` with single-table CHECK constraints enforcing
-  cross-type validity (VideoGame rows keep all four `NULL`; BoardGame rows have
-  both player counts). `library_entries` carries `acquisition_status`, `rating`,
+  cross-type validity. At original Feature 006 implementation time VideoGame rows
+  kept all four values null; after the Feature 007 manual-review amendment,
+  VideoGames may use `minimum_players` and `maximum_players` while
+  `approximate_duration` and `interaction_type` remain BoardGame-only.
+  `library_entries` carries `acquisition_status`, `rating`,
   `notes`, `game_status`, and `progress_percentage` with the existing CHECK
   constraints. `Game` is the principal of the required 1:1 Game ↔ LibraryEntry
   relationship; `LibraryEntry.GamePlatforms` and `Game.GameGenres` are the
@@ -225,8 +240,10 @@ single unified JSON array. Two response shapes were compared:
 **Option A — one unified `LibraryItemResponse` with type-specific nullable
 fields.** Every item carries the common fields plus the VideoGame-only fields
 (`platformIds`, `genreIds`, `gameStatus`, `progressPercentage`) and the
-BoardGame-only fields (`minimumPlayers`, `maximumPlayers`,
-`approximateDuration`, `interactionType`). The frontend keys off `gameType`.
+game-level player-count fields (`minimumPlayers`, `maximumPlayers`) that may be
+present for BoardGames and, after the manual-review amendment, optionally for
+VideoGames, plus BoardGame-only fields (`approximateDuration`,
+`interactionType`). The frontend keys off `gameType`.
 Type-specific fields are empty arrays / `null` for the other type. This is the
 same "nullable columns with a discriminator" shape the domain model already
 uses.
@@ -255,8 +272,8 @@ LibraryItemResponse:
   genreIds: Guid[]               (VideoGame only; always [] for BoardGame items)
   gameStatus: string | null      (VideoGame only; null for BoardGame items)
   progressPercentage: int | null (VideoGame only; null for BoardGame items)
-  minimumPlayers: int | null     (BoardGame only; null for VideoGame items)
-  maximumPlayers: int | null     (BoardGame only; null for VideoGame items)
+  minimumPlayers: int | null     (required for BoardGame; optional for VideoGame)
+  maximumPlayers: int | null     (required for BoardGame; optional for VideoGame)
   approximateDuration: int | null (BoardGame only; null for VideoGame items)
   interactionType: string | null  (BoardGame only; null for VideoGame items)
 ```
@@ -372,8 +389,9 @@ elsewhere.
 - An item satisfies the filter when
   `MinimumPlayers <= playerCount <= MaximumPlayers`.
 - BoardGame rows always have both player counts present (Feature 005 guarantee).
-  VideoGame rows have `null` player counts and never satisfy an active
-  `playerCount`.
+  VideoGame rows may also have optional player counts after the Feature 007
+  manual-review amendment, but the Feature 006 Library `playerCount` filter
+  remains BoardGame-specific and excludes VideoGames.
 - `playerCount` absent means no player-count filter. Values `< 1` are a `400`.
 - Solo eligibility is represented only by `MinimumPlayers = 1`.
 
@@ -641,8 +659,9 @@ no raw SQL):
   Non-Owned entries and BoardGame entries have `game_status = null` and are
   excluded.
 - **PlayerCount:** `query.PlayerCount != null` →
-  `g.MinimumPlayers <= query.PlayerCount && g.MaximumPlayers >= query.PlayerCount`.
-  VideoGame rows have null player counts and are excluded.
+  `g.GameType == GameType.BoardGame && g.MinimumPlayers <= query.PlayerCount && g.MaximumPlayers >= query.PlayerCount`.
+  This preserves the approved Feature 006 Library scope: player-count filtering is
+  BoardGame-specific even though VideoGames may now display optional player counts.
 - **InteractionTypes:** non-empty →
   `g.InteractionType != null && query.InteractionTypes.Contains(g.InteractionType.Value)`.
   VideoGame rows have `interaction_type = null` and are excluded.
@@ -826,7 +845,8 @@ src/app/features/library/
     image or a placeholder when `coverImageUrl` is null/empty, the name, a
     type badge (`Video game` / `Board game`), AcquisitionStatus, Rating (when
     present), the VideoGame details (Platform and Genre names resolved from the
-    loaded lists, GameStatus and ProgressPercentage when present) or BoardGame
+    loaded lists, GameStatus and ProgressPercentage when present, and player range
+    when both VideoGame player-count values are present) or BoardGame
     details (player range, ApproximateDuration and InteractionType when present),
     and an Edit action.
   - Edit action: navigates to `/video-games` (for `gameType === 'VideoGame'`) or
@@ -1050,10 +1070,10 @@ matching VideoGames and BoardGames in the requested sort order. Unauthenticated 
 `401`. A user with no Library gets `[]` (no row created on read).
 
 `FR-002` — Unified read model: one `LibraryItemResponse` shape carries the common
-fields plus VideoGame-only fields (empty arrays/`null` for BoardGame items) and
-BoardGame-only fields (`null` for VideoGame items); `gameType` discriminates. EF
-entities are never exposed; no `GET /library/{id}` and no mutation endpoints on
-`/library`.
+fields plus VideoGame-only fields (empty arrays/`null` for BoardGame items),
+BoardGame-only fields, and optional VideoGame player-count fields; `gameType`
+discriminates. EF entities are never exposed; no `GET /library/{id}` and no
+mutation endpoints on `/library`.
 
 `FR-003` — Search: `search` is trimmed (culture-independently); empty/
 whitespace-only after trim = no filter; when active it filters both game types
@@ -1085,9 +1105,10 @@ BoardGames excluded when active.
 VideoGame-only; requires non-null `gameStatus`, so non-Owned entries and
 BoardGames are excluded.
 
-`FR-010` — Player count filter: `playerCount` integer `>= 1`; matches when
-`MinimumPlayers <= playerCount <= MaximumPlayers`; VideoGames excluded when
-active; values `< 1` → `400`.
+`FR-010` — Player count filter: `playerCount` integer `>= 1`; matches BoardGames
+when `MinimumPlayers <= playerCount <= MaximumPlayers`; VideoGames remain excluded
+from the Feature 006 Library player-count filter even when they have optional
+player-count metadata; values `< 1` → `400`.
 
 `FR-011` — InteractionType filter: `interactionTypes` multi-select, OR within,
 BoardGame-only; requires non-null `interactionType`, so VideoGames are excluded.
@@ -1281,7 +1302,8 @@ BoardGames excluded).
 
 `AC-010` — `playerCount=4` matches a BoardGame with
 `minimumPlayers=2, maximumPlayers=6` and not `minimumPlayers=5, maximumPlayers=8`;
-VideoGames are excluded.
+VideoGames are excluded from the Library filter even if optional player-count
+metadata is present.
 
 `AC-011` — `interactionTypes=Cooperative` returns only Cooperative BoardGames.
 

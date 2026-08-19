@@ -83,6 +83,31 @@ public class VideoGameRulesTests
         Assert.Equal("Progress must be between 0 and 100.", ex.Message);
     }
 
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData(1, 1)]
+    [InlineData(1, 4)]
+    public void Player_counts_both_null_or_valid_range_are_accepted(int? minimumPlayers, int? maximumPlayers)
+    {
+        var normalized = VideoGameRules.ValidateAndNormalizePlayerCounts(minimumPlayers, maximumPlayers);
+
+        Assert.Equal(minimumPlayers, normalized.MinimumPlayers);
+        Assert.Equal(maximumPlayers, normalized.MaximumPlayers);
+    }
+
+    [Theory]
+    [InlineData(1, null, "Minimum and maximum players must both be provided.")]
+    [InlineData(null, 4, "Minimum and maximum players must both be provided.")]
+    [InlineData(0, 4, "Minimum players must be at least 1.")]
+    [InlineData(3, 2, "Maximum players must be at least the minimum players.")]
+    public void Invalid_player_counts_are_rejected(int? minimumPlayers, int? maximumPlayers, string expected)
+    {
+        var ex = Assert.Throws<InvalidVideoGameException>(
+            () => VideoGameRules.ValidateAndNormalizePlayerCounts(minimumPlayers, maximumPlayers));
+
+        Assert.Equal(expected, ex.Message);
+    }
+
     [Fact]
     public void Notes_5000_characters_is_accepted()
     {
@@ -267,12 +292,52 @@ public class VideoGameRulesTests
     }
 
     [Fact]
-    public void Owned_preserves_status_and_progress()
+    public void Owned_preserves_non_completed_status_and_progress()
     {
         var (normalizedStatus, normalizedProgress) =
             VideoGameRules.NormalizeStatusAndProgress(AcquisitionStatus.Owned, GameStatus.Playing, 40);
         Assert.Equal(GameStatus.Playing, normalizedStatus);
         Assert.Equal(40, normalizedProgress);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(40)]
+    [InlineData(100)]
+    public void Owned_completed_normalizes_progress_to_100(int? progress)
+    {
+        var (normalizedStatus, normalizedProgress) =
+            VideoGameRules.NormalizeStatusAndProgress(AcquisitionStatus.Owned, GameStatus.Completed, progress);
+
+        Assert.Equal(GameStatus.Completed, normalizedStatus);
+        Assert.Equal(100, normalizedProgress);
+    }
+
+    [Theory]
+    [InlineData(null, 100)]
+    [InlineData(40, 100)]
+    [InlineData(100, 100)]
+    public void Leaving_completed_does_not_lower_progress(int? targetProgress, int expectedProgress)
+    {
+        var progress = VideoGameRules.PreserveProgressWhenLeavingCompleted(
+            GameStatus.Completed,
+            100,
+            GameStatus.Playing,
+            targetProgress);
+
+        Assert.Equal(expectedProgress, progress);
+    }
+
+    [Fact]
+    public void Leaving_completed_preserves_higher_progress_value()
+    {
+        var progress = VideoGameRules.PreserveProgressWhenLeavingCompleted(
+            GameStatus.Completed,
+            80,
+            GameStatus.Playing,
+            90);
+
+        Assert.Equal(90, progress);
     }
 
     [Fact]

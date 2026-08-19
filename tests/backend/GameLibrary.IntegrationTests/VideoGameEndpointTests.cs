@@ -135,6 +135,58 @@ public class VideoGameEndpointTests : IClassFixture<VideoGameTestFactory>, IAsyn
     }
 
     [Fact]
+    public async Task Create_WithOptionalPlayerCounts_PersistsAndLists()
+    {
+        var client = ClientFor(NewSub());
+        var platform = await PostPlatform(client, "Steam");
+
+        var created = await PostVideoGame(
+            client,
+            CreateBody("Game", acquisitionStatus: "Owned", platformIds: [platform.Id], minimumPlayers: 1, maximumPlayers: 2));
+
+        Assert.Equal(1, created.MinimumPlayers);
+        Assert.Equal(2, created.MaximumPlayers);
+
+        var list = await client.GetFromJsonAsync<VideoGameResponse[]>("/video-games");
+        Assert.Equal(1, list![0].MinimumPlayers);
+        Assert.Equal(2, list[0].MaximumPlayers);
+    }
+
+    [Theory]
+    [InlineData(1, null)]
+    [InlineData(null, 2)]
+    [InlineData(0, 2)]
+    [InlineData(3, 2)]
+    public async Task Create_InvalidPlayerCounts_Returns400(int? minimumPlayers, int? maximumPlayers)
+    {
+        var client = ClientFor(NewSub());
+        var platform = await PostPlatform(client, "Steam");
+
+        var response = await client.PostAsJsonAsync(
+            "/video-games",
+            CreateBody("Game", acquisitionStatus: "Owned", platformIds: [platform.Id], minimumPlayers: minimumPlayers, maximumPlayers: maximumPlayers));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(40)]
+    [InlineData(100)]
+    public async Task Create_Completed_NormalizesProgressTo100(int? progressPercentage)
+    {
+        var client = ClientFor(NewSub());
+        var platform = await PostPlatform(client, "Steam");
+
+        var created = await PostVideoGame(
+            client,
+            CreateBody("Game", acquisitionStatus: "Owned", platformIds: [platform.Id], gameStatus: "Completed", progressPercentage: progressPercentage));
+
+        Assert.Equal("Completed", created.GameStatus);
+        Assert.Equal(100, created.ProgressPercentage);
+    }
+
+    [Fact]
     public async Task FirstCreate_CreatesExactlyOneLibraryRow_SecondReusesIt()
     {
         var sub = NewSub();
@@ -794,6 +846,28 @@ public class VideoGameEndpointTests : IClassFixture<VideoGameTestFactory>, IAsyn
         Assert.Equal("New Name", list![0].Name);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData(40)]
+    [InlineData(100)]
+    public async Task Update_LeavingCompleted_DoesNotLowerProgress(int? submittedProgress)
+    {
+        var client = ClientFor(NewSub());
+        var platform = await PostPlatform(client, "Steam");
+        var game = await PostVideoGame(
+            client,
+            CreateBody("Game", acquisitionStatus: "Owned", platformIds: [platform.Id], gameStatus: "Completed", progressPercentage: null));
+
+        var response = await client.PutAsJsonAsync(
+            $"/video-games/{game.Id}",
+            CreateBody("Game", acquisitionStatus: "Owned", platformIds: [platform.Id], gameStatus: "Playing", progressPercentage: submittedProgress));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<VideoGameResponse>();
+        Assert.Equal("Playing", body!.GameStatus);
+        Assert.Equal(100, body.ProgressPercentage);
+    }
+
     [Fact]
     public async Task Update_NonexistentOrForeignId_Returns404()
     {
@@ -1066,7 +1140,9 @@ public class VideoGameEndpointTests : IClassFixture<VideoGameTestFactory>, IAsyn
         int? progressPercentage = null,
         int? rating = null,
         string? notes = null,
-        string? coverImageUrl = null) => new
+        string? coverImageUrl = null,
+        int? minimumPlayers = null,
+        int? maximumPlayers = null) => new
         {
             name,
             coverImageUrl,
@@ -1077,6 +1153,8 @@ public class VideoGameEndpointTests : IClassFixture<VideoGameTestFactory>, IAsyn
             progressPercentage,
             rating,
             notes,
+            minimumPlayers,
+            maximumPlayers,
         };
 
     private sealed record VideoGameResponse(
@@ -1090,7 +1168,9 @@ public class VideoGameEndpointTests : IClassFixture<VideoGameTestFactory>, IAsyn
         int? ProgressPercentage,
         int? Rating,
         string? Notes,
-        DateTimeOffset CreatedAt);
+        DateTimeOffset CreatedAt,
+        int? MinimumPlayers,
+        int? MaximumPlayers);
 
     private sealed record GenreResponse(Guid Id, string Name);
 

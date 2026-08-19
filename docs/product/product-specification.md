@@ -1,7 +1,21 @@
-Product Specification v0.4 --- Game Library
+Product Specification v0.5 --- Game Library
 
 Status: Approved
-Version: 0.4
+Version: 0.5
+
+Manual review amendment, 2026-08-19:
+
+Feature 007 manual product testing introduced three approved product changes
+before Feature 007 can be marked DONE:
+
+VideoGames support optional player-count metadata using the existing
+MinimumPlayers and MaximumPlayers concepts.
+
+Owned VideoGames with GameStatus = Completed must persist ProgressPercentage =
+100.
+
+The Random Picker must show visible volatile session result history, newest
+first.
 
 1. Product Vision
 
@@ -88,6 +102,10 @@ Name.
 
 Optional cover image URL.
 
+Optional minimum number of players.
+
+Optional maximum number of players.
+
 Zero or more predefined genres.
 
 Its LibraryEntry contains the user's personal information:
@@ -116,6 +134,11 @@ A user may associate multiple platforms with the same video game.
 
 Status, progress, rating and notes apply to the user's experience with
 the video game as a whole, not independently per platform.
+
+Player-count metadata, when present for a VideoGame, uses the same
+MinimumPlayers and MaximumPlayers concepts as BoardGames. Both values are
+optional for VideoGames, but if either is supplied then both are required and
+must satisfy 1 <= MinimumPlayers <= MaximumPlayers.
 
 Editing acquisition status and platforms
 
@@ -165,8 +188,13 @@ ProgressPercentage is optional and represented from 0 through 100.
 
 It is valid only for Owned VideoGame LibraryEntries.
 
-Progress does not automatically determine GameStatus, and GameStatus
-does not automatically determine progress.
+ProgressPercentage does not automatically determine GameStatus.
+
+GameStatus generally does not determine progress, except for the approved
+Completed rule: for an Owned VideoGame, GameStatus = Completed implies
+ProgressPercentage = 100 after create or update completes. A lower or null
+incoming progress value is normalized to 100. Changing away from Completed does
+not automatically lower progress.
 
 9. Platforms
 
@@ -308,7 +336,7 @@ Platform when AcquisitionStatus is Owned.
 If AcquisitionStatus is Wishlist or Interested, the game can be
 saved without a Platform.
 
-All other metadata may be completed later.
+All other metadata, including optional player counts, may be completed later.
 
 17. Quick Add --- Board Game
 
@@ -378,6 +406,11 @@ Rating means minimum rating.
 BoardGame Player count matches when
 MinimumPlayers <= requestedPlayers <= MaximumPlayers.
 
+VideoGame player-count metadata may be displayed on Library cards when present.
+This amendment does not add VideoGame player-count filtering to the Library
+screen; the existing Library player-count filter remains BoardGame-specific
+until a future approved Library filtering amendment says otherwise.
+
 Missing optional metadata does not satisfy an active filter
 requiring that metadata.
 
@@ -418,10 +451,21 @@ Genre.
 
 GameStatus.
 
+Optional scalar filters:
+
+Number of players.
+
 Multiple values within one filter use OR. Different filter types combine
 using AND.
 
 Missing metadata does not satisfy an active filter requiring it.
+
+For player count P:
+
+MinimumPlayers <= P <= MaximumPlayers.
+
+A VideoGame without player-count metadata does not satisfy an active player
+count filter.
 
 21. Board Game Random Mode
 
@@ -451,7 +495,14 @@ pool.
 
 Type-specific filters are not available.
 
-The MVP includes a common minimum-Rating filter in All mode.
+The MVP includes common minimum-Rating and player-count filters in All mode.
+
+For player count P, both VideoGames and BoardGames match using:
+
+MinimumPlayers <= P <= MaximumPlayers.
+
+Any candidate missing player-count metadata does not satisfy an active player
+count filter.
 
 No weighting by game type is applied.
 
@@ -468,6 +519,9 @@ Randomly select one remaining candidate.
 
 Display the result.
 
+On SUCCESS, add the selected result to the visible volatile result history for
+the current picker session.
+
 The MVP does not use recommendation scoring, weighting, AI, machine
 learning or historical optimization.
 
@@ -478,8 +532,14 @@ The user can request Another.
 Games already shown during the current Random Picker session do not
 appear again while unshown eligible candidates remain.
 
-The application may visually display results already shown during the
-current session.
+The application must visually display results already shown during the current
+session.
+
+Visible history is ordered newest first. Another prepends the newly selected
+result above previous results.
+
+The newest/current result receives primary/highlighted visual emphasis.
+Previous results remain visible with secondary/muted visual treatment.
 
 This history is temporary and is not persisted.
 
@@ -489,6 +549,11 @@ A session begins when the user opens the Random Picker.
 
 Changing filters does not create a new session and does not clear
 previously shown results.
+
+Changing filters does not clear the visible volatile result history.
+
+Changing mode does not clear previously shown results and does not clear the
+visible volatile result history.
 
 A game that appeared earlier remains considered shown even if filters
 later change.
@@ -509,21 +574,40 @@ shown matching games eligible again.
 
 Do not silently reset the shown-results pool.
 
-27. Deletion
+NO_CANDIDATES and ALL_ALREADY_SHOWN states must not erase visible volatile
+history. The explicit reset action clears both the shown-results pool and the
+visible volatile history.
+
+27. Feature 008 UX Input
+
+Manual Feature 007 product testing also identified a management-page UX issue
+for Feature 008. Adding a new VideoGame or BoardGame must remain easy and
+immediately accessible regardless of collection size.
+
+The current create form can become inconveniently positioned as the list grows.
+Feature 008 must evaluate the create/manage workflow and choose an appropriate
+responsive pattern, such as placing creation above the list, a modal/dialog,
+drawer, dedicated creation view, sticky/floating add action, or another design.
+
+This product requirement is recorded for Feature 008 only. This amendment does
+not choose the final interaction pattern and does not require management-page UX
+refactoring before Feature 008.
+
+28. Deletion
 
 Deleting a LibraryEntry in the MVP also deletes its associated Game
 because Game records are not shared between users or LibraryEntries.
 
 Deleting one user's game must never affect another user's library.
 
-28. PWA
+29. PWA
 
 The application is a responsive PWA for desktop, tablet and mobile
 browsers.
 
 A native mobile application is outside the MVP.
 
-29. MVP Scope
+30. MVP Scope
 
 The MVP includes:
 
@@ -567,9 +651,11 @@ Another.
 
 Temporary Random Picker history.
 
+Visible volatile Random Picker result history.
+
 Responsive PWA.
 
-30. Explicitly Outside the MVP
+31. Explicitly Outside the MVP
 
 Shared libraries.
 
@@ -595,6 +681,14 @@ Gameplay session history.
 
 Persistent Random Picker history.
 
+RandomPickerSession or PickerHistory persistence.
+
+PlaySession for picker history.
+
+Local or online multiplayer modeling.
+
+Co-op-specific player ranges.
+
 AI recommendations.
 
 Prices and purchase history.
@@ -605,7 +699,7 @@ BoardGame expansions.
 
 Native mobile applications.
 
-31. Initial Technical Direction
+32. Initial Technical Direction
 
 Subject to the Architecture Specification:
 
@@ -617,7 +711,7 @@ PostgreSQL.
 
 Simple monolithic/modular organization.
 
-32. MVP Success Criteria
+33. MVP Success Criteria
 
 The MVP is useful when a user can:
 
@@ -645,3 +739,5 @@ Receive an eligible random result.
 
 Request another result without repeating previously shown games
 during the same session when alternatives remain.
+
+See visible volatile result history for the current Random Picker session.

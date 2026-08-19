@@ -231,6 +231,11 @@ Rating is 1--5 when provided.
 
 Progress is 0--100 when provided.
 
+Owned VideoGame with GameStatus Completed normalizes ProgressPercentage to 100.
+
+VideoGame player counts are optional, but when present both MinimumPlayers and
+MaximumPlayers are required and must be valid.
+
 BoardGame player ranges must be valid.
 
 Only Owned entries participate in Random Picker.
@@ -255,8 +260,10 @@ Missing metadata does not satisfy an active filter requiring it.
 
 Rating filters use minimum-rating semantics.
 
-BoardGame player count uses:
+Player-count filtering uses:
 MinimumPlayers <= requestedPlayers <= MaximumPlayers.
+
+Missing player-count metadata does not satisfy an active player-count filter.
 
 Random Picker
 
@@ -278,13 +285,19 @@ Current filters.
 
 Current result.
 
+Visible volatile result history.
+
 Already-shown IDs.
 
 Do not persist RandomPickerSession.
 
 Changing filters does not clear shown IDs.
 
+Changing filters or mode does not clear visible result history.
+
 A previously shown game remains shown for that session.
+
+Reset shown history clears both shown IDs and visible result history.
 
 The API must preserve the conceptual distinction between:
 

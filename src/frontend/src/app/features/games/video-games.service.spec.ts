@@ -17,6 +17,8 @@ const input: VideoGameInput = {
   progressPercentage: 50,
   rating: 5,
   notes: 'Great',
+  minimumPlayers: 1,
+  maximumPlayers: 2,
 };
 
 const game: VideoGame = { id: '1', ...input, createdAt: '2026-08-17T00:00:00Z' };

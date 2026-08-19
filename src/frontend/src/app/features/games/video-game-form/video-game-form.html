@@ -75,6 +75,17 @@
     }
   }
 
+  <fieldset class="game-form__group">
+    <legend>Player count</legend>
+    <label for="game-form-minimum-players">Minimum players</label>
+    <input id="game-form-minimum-players" type="number" formControlName="minimumPlayers" min="1" />
+    <label for="game-form-maximum-players">Maximum players</label>
+    <input id="game-form-maximum-players" type="number" formControlName="maximumPlayers" min="1" />
+    @if (form.controls.minimumPlayers.errors || form.controls.maximumPlayers.errors) {
+      <p class="game-form__error" role="alert">Player counts must be provided together and maximum must be at least minimum.</p>
+    }
+  </fieldset>
+
   <label for="game-form-rating">Rating</label>
   <select id="game-form-rating" formControlName="rating">
     <option [ngValue]="null">Not rated</option>

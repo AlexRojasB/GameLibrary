@@ -96,7 +96,9 @@ public class LibraryService
 
         if (parsed.PlayerCount is not null)
         {
-            query = query.Where(g => g.MinimumPlayers <= parsed.PlayerCount && g.MaximumPlayers >= parsed.PlayerCount);
+            query = query.Where(g => g.GameType == GameType.BoardGame
+                && g.MinimumPlayers <= parsed.PlayerCount
+                && g.MaximumPlayers >= parsed.PlayerCount);
         }
 
         if (parsed.InteractionTypes.Count > 0)
@@ -105,6 +107,7 @@ public class LibraryService
         }
 
         return await ApplySort(query, parsed.Sort)
+            .AsSplitQuery()
             .Select(g => new LibraryItemView(
                 g.Id,
                 g.GameType,

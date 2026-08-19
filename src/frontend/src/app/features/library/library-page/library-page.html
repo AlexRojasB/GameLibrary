@@ -155,6 +155,9 @@
               @if (item.progressPercentage !== null) {
                 <p>Progress: {{ item.progressPercentage }}%</p>
               }
+              @if (playerRange(item)) {
+                <p>{{ playerRange(item) }}</p>
+              }
             } @else {
               <p>{{ playerRange(item) }}</p>
               @if (item.approximateDuration !== null) {

@@ -121,6 +121,16 @@ export class VideoGamesList {
     return game.genreIds.map((id) => this.genreName(id)).join(', ');
   }
 
+  protected playerRange(game: VideoGame): string {
+    if (game.minimumPlayers === null || game.maximumPlayers === null) {
+      return '';
+    }
+    if (game.minimumPlayers === 1 && game.maximumPlayers === 1) {
+      return '1 player';
+    }
+    return `${game.minimumPlayers}-${game.maximumPlayers} players`;
+  }
+
   private genreName(id: string): string {
     return this.genres().find((genre) => genre.id === id)?.name ?? 'Unknown genre';
   }

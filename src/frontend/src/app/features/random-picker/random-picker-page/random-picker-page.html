@@ -1,0 +1,180 @@
+<section class="random-picker">
+  <header class="random-picker__header">
+    <div>
+      <h1>Random Picker</h1>
+      <p>Pick an owned game from your library without repeating shown results during this session.</p>
+    </div>
+    <a routerLink="/">Back to home</a>
+  </header>
+
+  <form class="random-picker__controls">
+    <label>
+      Mode
+      <select [value]="mode()" (change)="onMode($any($event.target).value)">
+        @for (option of modes; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </label>
+
+    @if (mode() === 'All') {
+      <label>
+        Minimum rating
+        <select [value]="filters().ratingMin ?? ''" (change)="onRatingMin($any($event.target).value)">
+          <option value="">Any</option>
+          <option value="1">1+</option>
+          <option value="2">2+</option>
+          <option value="3">3+</option>
+          <option value="4">4+</option>
+          <option value="5">5+</option>
+        </select>
+      </label>
+      <label>
+        Player count
+        <input type="number" min="1" [value]="filters().playerCount ?? ''" (input)="onPlayerCount($any($event.target).value)" />
+      </label>
+    }
+
+    @if (mode() === 'VideoGames') {
+      <fieldset>
+        <legend>Video game filters</legend>
+        <label>
+          Player count
+          <input type="number" min="1" [value]="filters().playerCount ?? ''" (input)="onPlayerCount($any($event.target).value)" />
+        </label>
+        <label>
+          Platforms
+          <select multiple (change)="onPlatformIds($event)">
+            @for (platform of platforms(); track platform.id) {
+              <option [value]="platform.id" [selected]="filters().platformIds.includes(platform.id)">{{ platform.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Genres
+          <select multiple (change)="onGenreIds($event)">
+            @for (genre of genres(); track genre.id) {
+              <option [value]="genre.id" [selected]="filters().genreIds.includes(genre.id)">{{ genre.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Game status
+          <select multiple (change)="onGameStatuses($event)">
+            @for (status of gameStatuses; track status) {
+              <option [value]="status" [selected]="filters().gameStatuses.includes(status)">{{ status }}</option>
+            }
+          </select>
+        </label>
+      </fieldset>
+    }
+
+    @if (mode() === 'BoardGames') {
+      <fieldset>
+        <legend>Board game filters</legend>
+        <label>
+          Player count
+          <input type="number" min="1" [value]="filters().playerCount ?? ''" (input)="onPlayerCount($any($event.target).value)" />
+        </label>
+        <label>
+          Available duration
+          <input type="number" min="1" [value]="filters().availableDuration ?? ''" (input)="onAvailableDuration($any($event.target).value)" />
+        </label>
+        <label>
+          Interaction type
+          <select multiple (change)="onInteractionTypes($event)">
+            @for (type of interactionTypes; track type) {
+              <option [value]="type" [selected]="filters().interactionTypes.includes(type)">{{ type }}</option>
+            }
+          </select>
+        </label>
+      </fieldset>
+    }
+
+    <div class="random-picker__actions">
+      <button type="button" (click)="pick()" [disabled]="loading()">Pick a game</button>
+      @if (currentResult()) {
+        <button type="button" (click)="another()" [disabled]="loading()">Another</button>
+      }
+      <button type="button" (click)="clearFilters()">Clear filters</button>
+    </div>
+  </form>
+
+  @if (loading()) {
+    <p class="random-picker__status">Picking...</p>
+  }
+
+  @if (error()) {
+    <p class="random-picker__error" role="alert">{{ error() }}</p>
+  }
+
+  @if (currentState() === 'NO_CANDIDATES') {
+    <div class="random-picker__empty">
+      <h2>No owned games match</h2>
+      <p>No owned games match the current mode and filters. Modify or clear filters and try again.</p>
+    </div>
+  } @else if (currentState() === 'ALL_ALREADY_SHOWN') {
+    <div class="random-picker__empty">
+      <h2>All matching games already shown</h2>
+      <p>Every owned game matching the current mode and filters has already appeared in this picker session.</p>
+      <button type="button" (click)="resetShownHistory()">Reset shown history</button>
+    </div>
+  } @else if (currentResult(); as result) {
+    <article class="random-picker-card">
+      @if (result.coverImageUrl) {
+        <img class="random-picker-card__cover" [src]="result.coverImageUrl" [alt]="result.name + ' cover'" />
+      } @else {
+        <div class="random-picker-card__placeholder" aria-hidden="true">No cover</div>
+      }
+      <div class="random-picker-card__body">
+        <div class="random-picker-card__title-row">
+          <h2>{{ result.name }}</h2>
+          <span>{{ result.gameType === 'VideoGame' ? 'Video game' : 'Board game' }}</span>
+        </div>
+        @if (result.rating !== null) {
+          <p>Rating: {{ result.rating }}</p>
+        }
+        @if (result.gameType === 'VideoGame') {
+          @if (result.platformIds.length > 0) {
+            <p>Platforms: {{ platformNames(result) }}</p>
+          }
+          @if (result.genreIds.length > 0) {
+            <p>Genres: {{ genreNames(result) }}</p>
+          }
+          @if (result.gameStatus !== null) {
+            <p>Status: {{ result.gameStatus }}</p>
+          }
+          @if (result.progressPercentage !== null) {
+            <p>Progress: {{ result.progressPercentage }}%</p>
+          }
+          @if (playerRange(result)) {
+            <p>{{ playerRange(result) }}</p>
+          }
+        } @else {
+          <p>{{ playerRange(result) }}</p>
+          @if (result.approximateDuration !== null) {
+            <p>{{ result.approximateDuration }} min</p>
+          }
+          @if (result.interactionType !== null) {
+            <p>{{ result.interactionType }}</p>
+          }
+        }
+        @if (result.notes !== null) {
+          <p>Notes: {{ result.notes }}</p>
+        }
+        <button type="button" (click)="edit(result)">Edit</button>
+      </div>
+    </article>
+  }
+
+  @if (visibleHistory().length > 0) {
+    <section class="random-picker__history" aria-label="Shown history">
+      <h2>Shown this session</h2>
+      <ol>
+        @for (item of visibleHistory(); track item.libraryEntryId) {
+          <li>{{ item.name }} ({{ item.gameType === 'VideoGame' ? 'Video game' : 'Board game' }})</li>
+        }
+      </ol>
+    </section>
+  }
+</section>

@@ -2,7 +2,20 @@
 
 ## Status
 
-`Approved`
+`Approved` (manual review amendment for Feature 007 applied)
+
+## Manual Review Amendment — 2026-08-19
+
+Feature 007 manual review changed the approved meaning of
+`games.minimum_players` and `games.maximum_players`: those two columns are now
+shared game-level player-count metadata used by BoardGames and optionally by
+VideoGames. BoardGame behavior is unchanged: BoardGames still require both
+values and must satisfy `1 <= MinimumPlayers <= MaximumPlayers`.
+
+This amendment supersedes earlier Feature 005 wording that VideoGame rows must
+keep all four BoardGame columns null. After the targeted implementation,
+VideoGame rows may use `minimum_players` and `maximum_players`; only
+`approximate_duration` and `interaction_type` remain BoardGame-only.
 
 ## Objective
 
@@ -220,11 +233,12 @@ InteractionType) are **Game-level data** per the approved Domain Specification,
 so they must not be stored in `library_entries`. The decision is where to
 persist them. Two options were compared:
 
-**Option A — add nullable BoardGame-specific columns to `games`.**
+**Option A — add nullable BoardGame/player-count columns to `games`.**
 `games` gains `minimum_players`, `maximum_players`, `approximate_duration`, and
-`interaction_type`, all nullable. Single-table CHECK constraints enforce
-cross-type validity (VideoGame rows must keep all four `NULL`; BoardGame rows must
-have both player counts present). No new table, no new FK, no extra join.
+`interaction_type`, all nullable. After the manual-review amendment,
+`minimum_players` and `maximum_players` are shared player-count metadata;
+`approximate_duration` and `interaction_type` remain BoardGame-only. Single-table
+CHECK constraints enforce validity. No new table, no new FK, no extra join.
 
 **Option B — a `board_games` subtype table keyed 1:1 to `games.id`.**
 A separate table would strictly separate VideoGame and BoardGame schema, but
@@ -249,9 +263,13 @@ Rationale:
   FK, delete ordering, and a join for zero current benefit.
 - No EF inheritance is introduced under either option.
 
-The complete GameType-specific validity rule is therefore:
+The complete GameType-specific validity rule after the manual-review amendment is
+therefore:
 
-- `Game.GameType == GameType.VideoGame` ⇒ all four BoardGame columns are `NULL`.
+- `Game.GameType == GameType.VideoGame` ⇒ `MinimumPlayers` and `MaximumPlayers`
+  are optional but both-or-neither; when present they satisfy
+  `1 <= MinimumPlayers <= MaximumPlayers`; `ApproximateDuration` and
+  `InteractionType` are `NULL`.
 - `Game.GameType == GameType.BoardGame` ⇒ `MinimumPlayers` and `MaximumPlayers`
   are present; `ApproximateDuration` and `InteractionType` are optional.
 
@@ -270,8 +288,8 @@ Game-level (`games` table) additions:
 | `Name` | `string` | Required, trimmed, max 100 characters. Game names are **not** unique. |
 | `CoverImageUrl` | `string?` | Optional manual external URL. No upload/storage/resizing/CDN. |
 | `CreatedAt` | `DateTimeOffset` | Server-assigned creation timestamp. Not editable. |
-| `MinimumPlayers` | `int?` | Required for BoardGame rows; must be `>= 1`. Null for VideoGame rows. |
-| `MaximumPlayers` | `int?` | Required for BoardGame rows; must be `>= MinimumPlayers`. Null for VideoGame rows. |
+| `MinimumPlayers` | `int?` | Required for BoardGame rows; optional for VideoGame rows. When present, must be `>= 1`. |
+| `MaximumPlayers` | `int?` | Required for BoardGame rows; optional for VideoGame rows. When present, must be `>= MinimumPlayers`. |
 | `ApproximateDuration` | `int?` | Optional single value in minutes; `> 0` when provided. Null for VideoGame rows. |
 | `InteractionType` | `InteractionType?` | Optional enum; `Cooperative` / `Competitive`. Null for VideoGame rows. |
 
@@ -759,8 +777,10 @@ needed):
   `game_type = 'VideoGame' OR (minimum_players IS NOT NULL AND maximum_players IS NOT NULL)`
   (BoardGame rows must have both player counts present).
 - `ck_games_board_columns_video_null` —
-  `game_type = 'BoardGame' OR (minimum_players IS NULL AND maximum_players IS NULL AND approximate_duration IS NULL AND interaction_type IS NULL)`
-  (VideoGame rows must keep all four BoardGame columns `NULL`).
+  superseded by the manual-review amendment. The targeted Feature 007 amendment
+  implementation must replace this constraint so VideoGame rows may use
+  `minimum_players` and `maximum_players`, while still requiring
+  `approximate_duration IS NULL` and `interaction_type IS NULL` for VideoGame rows.
 
 Mapping notes for `GameLibraryDbContext.OnModelCreating` (configure inline in
 `OnModelCreating`; do not introduce `IEntityTypeConfiguration` classes):
@@ -1109,7 +1129,8 @@ PostgreSQL; use at least two users):
 - **Relational backstop (direct SQL / test DbContext):** using the test
   DbContext/SQL, attempt each invalid persisted state and assert the database
   CHECK rejects it:
-  - a VideoGame row with a non-null `minimum_players` (or any BoardGame column);
+  - a VideoGame row with exactly one player-count value present;
+  - a VideoGame row with a non-null `approximate_duration` or `interaction_type`;
   - a BoardGame row with a null `minimum_players` or `maximum_players`;
   - a row with `minimum_players < 1` or `maximum_players < minimum_players`;
   - a row with `approximate_duration <= 0`;
@@ -1246,13 +1267,16 @@ the correct FK order, leaves no orphan Game or orphan LibraryEntry, and returns
 user's Library derived from the validated JWT `sub`; the API accepts no
 user/owner/library ID from requests; another user's Game ids behave as `404`.
 
-`FR-017` — Migration and schema: the `AddBoardGameManagement` EF migration adds the
-four nullable BoardGame columns to `games` with the specified single-table CHECK
+`FR-017` — Migration and schema: the `AddBoardGameManagement` EF migration added the
+four nullable game-level columns to `games` with the specified single-table CHECK
 constraints (`minimum_players >= 1`, `maximum_players >= minimum_players`,
 `approximate_duration > 0`, `interaction_type IN ('Cooperative','Competitive')`,
-BoardGame-rows-have-both-players, and VideoGame-rows-have-all-null), maps
-`InteractionType` as a `varchar` enum-name string (no PostgreSQL enum type), and
-is committed to source control. No tables are added or removed.
+BoardGame-rows-have-both-players, and the original VideoGame-rows-have-all-null
+constraint), maps `InteractionType` as a `varchar` enum-name string (no PostgreSQL
+enum type), and is committed to source control. The Feature 007 manual-review
+amendment requires a later targeted EF migration to relax/replace the VideoGame
+all-null constraint so VideoGames may use `minimum_players`/`maximum_players` while
+duration and interaction remain BoardGame-only. No tables are added or removed.
 
 `FR-018` — Core authority: `BoardGameRules` and `BoardGameService` in
 `GameLibrary.Core` implement all validation, normalization, ownership scoping, and
@@ -1319,8 +1343,9 @@ guards plus this feature's) are pinned by integration tests.
 
 `NFR-003` — Integrity: the single-table CHECK constraints on `games` act as the
 database integrity backstop for BoardGame structural fields and GameType-specific
-validity (VideoGame rows keep all four columns `NULL`; BoardGame rows have valid
-player counts); the existing `library_entries` FKs, unique `game_id` index, and
+validity (VideoGame rows may have valid optional player counts but keep duration
+and interaction null; BoardGame rows have valid required player counts); the
+existing `library_entries` FKs, unique `game_id` index, and
 CHECK constraints are unchanged; GameStatus/Progress null for BoardGame entries is
 application-enforced (no awkward cross-table constraints/triggers).
 
@@ -1419,8 +1444,9 @@ for that user; a second create keeps it at exactly one (verified by direct datab
 query).
 
 `AC-014` — The relational backstops reject invalid persisted states: direct
-SQL/test-DbContext writes of a VideoGame row with non-null BoardGame columns, a
-BoardGame row with a null player count, `minimum_players < 1`,
+SQL/test-DbContext writes of a VideoGame row with exactly one player-count value or
+non-null duration/interaction, a BoardGame row with a null player count,
+`minimum_players < 1`,
 `maximum_players < minimum_players`, `approximate_duration <= 0`, and an
 `interaction_type` outside `('Cooperative', 'Competitive')` are each rejected by a
 CHECK constraint.
@@ -1606,7 +1632,9 @@ Version-selection policy: unchanged (stable, supported versions recorded in
 
 - **Persistence choice (Option A) is deliberate.** BoardGame structural fields are
   game-level data stored as nullable columns on `games`, with single-table CHECK
-  constraints enforcing GameType-specific validity. A `board_games` subtype table
+  constraints enforcing GameType-specific validity. After the manual-review
+  amendment, the two player-count columns are shared with VideoGames as optional
+  metadata; duration and interaction remain BoardGame-only. A `board_games` subtype table
   was considered and rejected: it adds a table, a 1:1 FK, delete-ordering
   concerns, and a join for a single four-column subtype with no current benefit.
   The application `GameType` guard remains authoritative; the CHECK constraints are

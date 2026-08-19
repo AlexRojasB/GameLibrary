@@ -27,6 +27,8 @@ const ownedGame: VideoGame = {
   rating: 5,
   notes: 'Roguelike',
   createdAt: '2026-08-17T00:00:00Z',
+  minimumPlayers: 1,
+  maximumPlayers: 2,
 };
 
 describe('VideoGameForm', () => {
@@ -89,6 +91,13 @@ describe('VideoGameForm', () => {
     fixture.detectChanges();
   }
 
+  function setNumberInput(selector: string, value: string): void {
+    const input = (fixture.nativeElement as HTMLElement).querySelector(selector) as HTMLInputElement;
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
   afterEach(() => {
     httpMock.verify();
   });
@@ -115,6 +124,8 @@ describe('VideoGameForm', () => {
         progressPercentage: null,
         rating: null,
         notes: null,
+        minimumPlayers: null,
+        maximumPlayers: null,
       },
     ]);
   });
@@ -174,6 +185,8 @@ describe('VideoGameForm', () => {
         progressPercentage: null,
         rating: null,
         notes: null,
+        minimumPlayers: null,
+        maximumPlayers: null,
       },
     ]);
   });
@@ -229,6 +242,62 @@ describe('VideoGameForm', () => {
     expect(emitted[0].progressPercentage).toBe(50);
     expect(emitted[0].rating).toBe(5);
     expect(emitted[0].notes).toBe('Roguelike');
+    expect(emitted[0].minimumPlayers).toBe(1);
+    expect(emitted[0].maximumPlayers).toBe(2);
+  });
+
+  it('submits optional player counts when both are provided', () => {
+    configure();
+    flushOptions([steam], [action]);
+    const emitted = collectSubmitted();
+
+    setName('Hades');
+    setNumberInput('#game-form-minimum-players', '1');
+    setNumberInput('#game-form-maximum-players', '2');
+    submit();
+
+    expect(emitted[0].minimumPlayers).toBe(1);
+    expect(emitted[0].maximumPlayers).toBe(2);
+  });
+
+  it('blocks submit when only one player count is provided', () => {
+    configure();
+    flushOptions([steam], [action]);
+    const emitted = collectSubmitted();
+
+    setName('Hades');
+    setNumberInput('#game-form-minimum-players', '1');
+    submit();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Minimum and maximum players must both be provided.');
+    expect(emitted).toEqual([]);
+  });
+
+  it('blocks submit when maximum players is less than minimum players', () => {
+    configure();
+    flushOptions([steam], [action]);
+    const emitted = collectSubmitted();
+
+    setName('Hades');
+    setNumberInput('#game-form-minimum-players', '3');
+    setNumberInput('#game-form-maximum-players', '2');
+    submit();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Player counts must be provided together');
+    expect(emitted).toEqual([]);
+  });
+
+  it('sets progress to 100 when game status is Completed', () => {
+    configure();
+    flushOptions([steam], [action]);
+    const emitted = collectSubmitted();
+
+    setName('Hades');
+    selectOption('#game-form-status', 'Completed');
+    submit();
+
+    expect(emitted[0].gameStatus).toBe('Completed');
+    expect(emitted[0].progressPercentage).toBe(100);
   });
 
   it('requires a name', () => {

@@ -157,6 +157,32 @@ public static class VideoGameRules
         }
     }
 
+    public static (int? MinimumPlayers, int? MaximumPlayers) ValidateAndNormalizePlayerCounts(
+        int? minimumPlayers, int? maximumPlayers)
+    {
+        if (minimumPlayers is null && maximumPlayers is null)
+        {
+            return (null, null);
+        }
+
+        if (minimumPlayers is null || maximumPlayers is null)
+        {
+            throw new InvalidVideoGameException("Minimum and maximum players must both be provided.");
+        }
+
+        if (minimumPlayers < 1)
+        {
+            throw new InvalidVideoGameException("Minimum players must be at least 1.");
+        }
+
+        if (maximumPlayers < minimumPlayers)
+        {
+            throw new InvalidVideoGameException("Maximum players must be at least the minimum players.");
+        }
+
+        return (minimumPlayers, maximumPlayers);
+    }
+
     /// <summary>
     /// Owned requires at least one Platform. Applies to the deduplicated resulting
     /// platform set of every create and update.
@@ -171,7 +197,8 @@ public static class VideoGameRules
 
     /// <summary>
     /// Any non-Owned resulting state forces GameStatus and ProgressPercentage to
-    /// <c>null</c> (the approved "clears" rule); Owned preserves the input values.
+    /// <c>null</c>. Owned + Completed normalizes progress to 100; otherwise Owned
+    /// preserves the input values.
     /// </summary>
     public static (GameStatus? GameStatus, int? ProgressPercentage) NormalizeStatusAndProgress(
         AcquisitionStatus status, GameStatus? gameStatus, int? progressPercentage)
@@ -181,7 +208,32 @@ public static class VideoGameRules
             return (null, null);
         }
 
+        if (gameStatus == GameStatus.Completed)
+        {
+            return (GameStatus.Completed, 100);
+        }
+
         return (gameStatus, progressPercentage);
+    }
+
+    public static int? PreserveProgressWhenLeavingCompleted(
+        GameStatus? currentGameStatus,
+        int? currentProgressPercentage,
+        GameStatus? targetGameStatus,
+        int? targetProgressPercentage)
+    {
+        if (currentGameStatus != GameStatus.Completed || targetGameStatus == GameStatus.Completed)
+        {
+            return targetProgressPercentage;
+        }
+
+        var completedProgress = currentProgressPercentage ?? 100;
+        if (targetProgressPercentage is null || targetProgressPercentage < completedProgress)
+        {
+            return completedProgress;
+        }
+
+        return targetProgressPercentage;
     }
 
     /// <summary>

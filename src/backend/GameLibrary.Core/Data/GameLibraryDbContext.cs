@@ -143,7 +143,10 @@ public class GameLibraryDbContext : DbContext
                     "game_type = 'VideoGame' OR (minimum_players IS NOT NULL AND maximum_players IS NOT NULL)");
                 t.HasCheckConstraint(
                     "ck_games_board_columns_video_null",
-                    "game_type = 'BoardGame' OR (minimum_players IS NULL AND maximum_players IS NULL AND approximate_duration IS NULL AND interaction_type IS NULL)");
+                    "game_type = 'BoardGame' OR (approximate_duration IS NULL AND interaction_type IS NULL)");
+                t.HasCheckConstraint(
+                    "ck_games_video_players_both_or_neither",
+                    "game_type = 'BoardGame' OR ((minimum_players IS NULL AND maximum_players IS NULL) OR (minimum_players IS NOT NULL AND maximum_players IS NOT NULL))");
             });
 
             entity.HasMany(g => g.GameGenres)
