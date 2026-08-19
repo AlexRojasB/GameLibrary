@@ -1,0 +1,173 @@
+<section class="library">
+  <header class="library__header">
+    <div>
+      <h1>Library</h1>
+      <p>Browse, search, filter, and sort all your games.</p>
+    </div>
+    <a routerLink="/">Back to home</a>
+  </header>
+
+  <form class="library__filters">
+    <label>
+      Search
+      <input
+        type="search"
+        [value]="filters().search"
+        (input)="onSearch($any($event.target).value)"
+        placeholder="Search by game name"
+      />
+    </label>
+
+    <label>
+      Game type
+      <select [value]="filters().gameType ?? ''" (change)="onGameType($any($event.target).value)">
+        <option value="">All</option>
+        <option value="VideoGame">Video games</option>
+        <option value="BoardGame">Board games</option>
+      </select>
+    </label>
+
+    <label>
+      Acquisition status
+      <select multiple (change)="onAcquisitionStatuses($event)">
+        @for (status of acquisitionStatuses; track status) {
+          <option [value]="status" [selected]="filters().acquisitionStatuses.includes(status)">{{ status }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      Minimum rating
+      <select [value]="filters().ratingMin ?? ''" (change)="onRatingMin($any($event.target).value)">
+        <option value="">Any</option>
+        <option value="1">1+</option>
+        <option value="2">2+</option>
+        <option value="3">3+</option>
+        <option value="4">4+</option>
+        <option value="5">5+</option>
+      </select>
+    </label>
+
+    @if (showVideoFilters()) {
+      <fieldset>
+        <legend>Video game filters</legend>
+        <label>
+          Platforms
+          <select multiple (change)="onPlatformIds($event)">
+            @for (platform of platforms(); track platform.id) {
+              <option [value]="platform.id" [selected]="filters().platformIds.includes(platform.id)">{{ platform.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Genres
+          <select multiple (change)="onGenreIds($event)">
+            @for (genre of genres(); track genre.id) {
+              <option [value]="genre.id" [selected]="filters().genreIds.includes(genre.id)">{{ genre.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Game status
+          <select multiple (change)="onGameStatuses($event)">
+            @for (status of gameStatuses; track status) {
+              <option [value]="status" [selected]="filters().gameStatuses.includes(status)">{{ status }}</option>
+            }
+          </select>
+        </label>
+      </fieldset>
+    }
+
+    @if (showBoardFilters()) {
+      <fieldset>
+        <legend>Board game filters</legend>
+        <label>
+          Player count
+          <input type="number" min="1" [value]="filters().playerCount ?? ''" (input)="onPlayerCount($any($event.target).value)" />
+        </label>
+        <label>
+          Interaction type
+          <select multiple (change)="onInteractionTypes($event)">
+            @for (type of interactionTypes; track type) {
+              <option [value]="type" [selected]="filters().interactionTypes.includes(type)">{{ type }}</option>
+            }
+          </select>
+        </label>
+      </fieldset>
+    }
+
+    <label>
+      Sort
+      <select [value]="sort()" (change)="onSort($any($event.target).value)">
+        @for (option of sorts; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </label>
+
+    <button type="button" (click)="clearFilters()">Clear filters</button>
+  </form>
+
+  @if (loading()) {
+    <p class="library__status">Loading...</p>
+  } @else if (error()) {
+    <p class="library__error" role="alert">{{ error() }}</p>
+    <button type="button" (click)="load()">Try again</button>
+  } @else if (items().length === 0 && !hasActiveCriteria()) {
+    <div class="library__empty">
+      <p>No games in your library yet.</p>
+      <a routerLink="/video-games">Add video games</a>
+      <a routerLink="/board-games">Add board games</a>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="library__empty">
+      <p>No games match your search and filters.</p>
+      <button type="button" (click)="clearFilters()">Clear filters</button>
+    </div>
+  } @else {
+    <ul class="library__cards">
+      @for (item of items(); track item.id) {
+        <li class="library-card">
+          @if (item.coverImageUrl) {
+            <img class="library-card__cover" [src]="item.coverImageUrl" [alt]="item.name + ' cover'" />
+          } @else {
+            <div class="library-card__placeholder" aria-hidden="true">No cover</div>
+          }
+          <div class="library-card__body">
+            <div class="library-card__title-row">
+              <h2>{{ item.name }}</h2>
+              <span>{{ item.gameType === 'VideoGame' ? 'Video game' : 'Board game' }}</span>
+            </div>
+            <p>{{ item.acquisitionStatus }}</p>
+            @if (item.rating !== null) {
+              <p>Rating: {{ item.rating }}</p>
+            }
+            @if (item.gameType === 'VideoGame') {
+              @if (item.platformIds.length > 0) {
+                <p>Platforms: {{ platformNames(item) }}</p>
+              }
+              @if (item.genreIds.length > 0) {
+                <p>Genres: {{ genreNames(item) }}</p>
+              }
+              @if (item.gameStatus !== null) {
+                <p>Status: {{ item.gameStatus }}</p>
+              }
+              @if (item.progressPercentage !== null) {
+                <p>Progress: {{ item.progressPercentage }}%</p>
+              }
+            } @else {
+              <p>{{ playerRange(item) }}</p>
+              @if (item.approximateDuration !== null) {
+                <p>{{ item.approximateDuration }} min</p>
+              }
+              @if (item.interactionType !== null) {
+                <p>{{ item.interactionType }}</p>
+              }
+            }
+            <button type="button" (click)="edit(item)">Edit</button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

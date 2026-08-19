@@ -30,7 +30,7 @@ export class BoardGameForm {
     minimumPlayers: new FormControl<number | null>(null),
     maximumPlayers: new FormControl<number | null>(null),
     approximateDuration: new FormControl<number | null>(null),
-    interactionType: new FormControl<InteractionType | null>(null),
+    interactionType: new FormControl<InteractionType | null>('Competitive'),
     acquisitionStatus: new FormControl<AcquisitionStatus>('Owned', { nonNullable: true }),
     rating: new FormControl<number | null>(null),
     notes: new FormControl<string | null>(null),

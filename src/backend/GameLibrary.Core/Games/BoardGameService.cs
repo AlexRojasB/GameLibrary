@@ -62,6 +62,7 @@ public class BoardGameService
         return await _db.Games
             .Where(g => g.GameType == GameType.BoardGame && g.LibraryEntry.Library.UserId == userId)
             .OrderBy(g => g.Name.ToLower())
+            .ThenBy(g => g.Name != g.Name.ToLower())
             .ThenBy(g => g.Name)
             .ThenBy(g => g.CreatedAt)
             .ThenBy(g => g.Id)

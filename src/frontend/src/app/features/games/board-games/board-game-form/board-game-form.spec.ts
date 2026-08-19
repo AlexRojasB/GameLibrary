@@ -68,7 +68,7 @@ describe('BoardGameForm', () => {
     fixture.detectChanges();
   }
 
-  it('quick-adds an Owned board game with name and player counts only', () => {
+  it('quick-adds an Owned board game with the approved default interaction type', () => {
     configure();
     const emitted = collectSubmitted();
 
@@ -83,7 +83,7 @@ describe('BoardGameForm', () => {
         minimumPlayers: 3,
         maximumPlayers: 4,
         approximateDuration: null,
-        interactionType: null,
+        interactionType: 'Competitive',
         acquisitionStatus: 'Owned',
         rating: null,
         notes: null,
@@ -92,7 +92,7 @@ describe('BoardGameForm', () => {
     ]);
   });
 
-  it('does not require an InteractionType or duration to save', () => {
+  it('does not require changing the default InteractionType or setting duration to save', () => {
     configure();
     const emitted = collectSubmitted();
 
@@ -102,7 +102,7 @@ describe('BoardGameForm', () => {
     submit();
 
     expect(emitted.length).toBe(1);
-    expect(emitted[0].interactionType).toBeNull();
+    expect(emitted[0].interactionType).toBe('Competitive');
     expect(emitted[0].approximateDuration).toBeNull();
   });
 
