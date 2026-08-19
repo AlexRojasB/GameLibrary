@@ -16,7 +16,9 @@ public sealed record CreateVideoGameRequest(
     string? GameStatus,
     int? ProgressPercentage,
     int? Rating,
-    string? Notes);
+    string? Notes,
+    int? MinimumPlayers,
+    int? MaximumPlayers);
 
 public sealed record UpdateVideoGameRequest(
     string? Name,
@@ -27,7 +29,9 @@ public sealed record UpdateVideoGameRequest(
     string? GameStatus,
     int? ProgressPercentage,
     int? Rating,
-    string? Notes);
+    string? Notes,
+    int? MinimumPlayers,
+    int? MaximumPlayers);
 
 public sealed record VideoGameResponse(
     Guid Id,
@@ -40,4 +44,6 @@ public sealed record VideoGameResponse(
     int? ProgressPercentage,
     int? Rating,
     string? Notes,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    int? MinimumPlayers,
+    int? MaximumPlayers);

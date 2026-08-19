@@ -1,7 +1,14 @@
-Domain Specification v0.6 --- Game Library
+Domain Specification v0.7 --- Game Library
 
 Status: Approved
-Version: 0.6
+Version: 0.7
+
+Manual review amendment, 2026-08-19:
+
+VideoGames now support optional player-count metadata using MinimumPlayers and
+MaximumPlayers. Owned VideoGames with GameStatus = Completed must persist
+ProgressPercentage = 100. RandomPickerSession now includes visible volatile
+result history, newest first.
 
 1. Purpose
 
@@ -77,6 +84,8 @@ Name.
 
 Optional CoverImageUrl.
 
+Optional MinimumPlayers and MaximumPlayers when the Game is a VideoGame.
+
 Creation timestamp.
 
 A Game is a VideoGame or BoardGame.
@@ -89,6 +98,24 @@ shared across users.
 6. VideoGame
 
 A VideoGame may have zero or more predefined Genres.
+
+A VideoGame may optionally contain player-count metadata:
+
+MinimumPlayers.
+
+MaximumPlayers.
+
+Rules:
+
+Both values are optional for VideoGames.
+
+If either value is provided, both values must be provided.
+
+When provided, 1 <= MinimumPlayers <= MaximumPlayers.
+
+No separate VideoGame-specific player-count model exists. The domain does not
+model local players, online players, co-op ranges, matchmaking, or multiplayer
+modes in the MVP.
 
 Status, progress, rating, notes, acquisition status and Platforms are
 LibraryEntry data.
@@ -174,6 +201,9 @@ Are permitted only when AcquisitionStatus is Owned.
 
 Must be null for Wishlist and Interested entries.
 
+For an Owned VideoGame, GameStatus = Completed implies ProgressPercentage =
+100 after create or update completes.
+
 Editing rules:
 
 Wishlist/Interested -> Owned requires at least one Platform.
@@ -219,7 +249,15 @@ Is optional.
 
 Must be between 0 and 100 inclusive.
 
-It does not automatically determine GameStatus and vice versa.
+It does not automatically determine GameStatus.
+
+GameStatus generally does not determine ProgressPercentage, except for the
+approved one-way Completed rule: if an Owned VideoGame has GameStatus =
+Completed, ProgressPercentage must be 100 after the operation completes. If the
+incoming progress is null or less than 100, the domain normalizes it to 100
+rather than rejecting it. Changing away from Completed does not automatically
+lower progress; Completed => ProgressPercentage == 100 does not imply
+ProgressPercentage == 100 => Completed.
 
 14. Rating
 
@@ -335,6 +373,8 @@ At least one Platform when Owned.
 
 Platform is optional for Wishlist/Interested.
 
+Player-count metadata is optional.
+
 Other metadata is optional.
 
 BoardGame
@@ -367,6 +407,11 @@ Rating means minimum rating: Rating >= requestedRating.
 BoardGame player count P matches when
 MinimumPlayers <= P <= MaximumPlayers.
 
+For any approved player-count filter on a game type or picker mode, a candidate
+matches only when both player-count values are present and MinimumPlayers <= P
+<= MaximumPlayers. Missing player-count metadata does not satisfy an active
+player-count filter.
+
 Platform, Genre, GameStatus and InteractionType support multiple
 selections.
 
@@ -397,6 +442,11 @@ BoardGame:
 Player count.
 
 InteractionType.
+
+VideoGame player-count metadata may be displayed in Library read models when
+present. The approved Feature 006 Library player-count filter remains
+BoardGame-specific; VideoGame Library player-count filtering is not added by
+this amendment.
 
 23. Library Sorting
 
@@ -438,6 +488,10 @@ Genre.
 
 GameStatus.
 
+Scalar filters:
+
+Player count.
+
 Filter semantics follow Section 20.
 
 26. BoardGame Random Picker
@@ -469,7 +523,11 @@ pool.
 
 Type-specific filters are unavailable.
 
-The MVP includes a minimum-Rating filter.
+The MVP includes minimum-Rating and player-count filters.
+
+In All mode, player count applies to both VideoGames and BoardGames using the
+same range semantics. Candidates missing player-count metadata do not satisfy
+an active player-count filter.
 
 No weighting by game type is applied.
 
@@ -499,7 +557,15 @@ It begins when the Random Picker is opened.
 It contains current mode, filters, current result and shown entries as
 needed by the UI.
 
+It also contains visible volatile result history for the current picker page
+session. The history stores returned result objects only in frontend memory and
+is ordered newest first.
+
 Changing filters does not reset the session or shown results.
+
+Changing filters does not reset visible result history.
+
+Changing mode does not reset shown results or visible result history.
 
 A previously shown game remains shown even after filters change.
 
@@ -517,6 +583,9 @@ Do not silently reset shown results.
 
 The user may explicitly make previously shown matching games eligible
 again.
+
+The explicit reset clears both shown entry IDs and visible volatile result
+history. NO_CANDIDATES and ALL_ALREADY_SHOWN do not clear visible history.
 
 31. Zero Candidates
 
@@ -585,6 +654,12 @@ Rating is an integer from 1 through 5 when provided.
 
 ProgressPercentage is 0 through 100 when provided.
 
+Owned VideoGame with GameStatus = Completed has ProgressPercentage = 100 after
+normalization.
+
+VideoGame player counts are optional, but when present both MinimumPlayers and
+MaximumPlayers are present and satisfy 1 <= MinimumPlayers <= MaximumPlayers.
+
 BoardGame MinimumPlayers is at least 1.
 
 MaximumPlayers is >= MinimumPlayers.
@@ -599,7 +674,12 @@ Only Owned entries participate in Random Picker.
 
 Random shown-result history is temporary and not persisted.
 
+Visible Random Picker result history is temporary, newest first, and not
+persisted.
+
 Changing filters does not reset shown results.
+
+Changing filters or mode does not reset visible Random Picker result history.
 
 Missing metadata does not satisfy a filter requiring it.
 

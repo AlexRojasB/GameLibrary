@@ -2,7 +2,35 @@
 
 ## Status
 
-`Approved` (final amendment from the second independent review applied)
+`Approved` (manual review amendment for Feature 007 applied)
+
+## Manual Review Amendment — 2026-08-19
+
+This amendment records product findings discovered during Feature 007 manual
+review. It intentionally supersedes earlier Feature 004 statements that a
+VideoGame has no game-level columns beyond common Game data, that VideoGame rows
+must keep `minimum_players` and `maximum_players` null, and that GameStatus and
+ProgressPercentage never influence each other.
+
+New authoritative VideoGame requirements:
+
+- VideoGames may optionally store player-count metadata using the existing
+  `MinimumPlayers` and `MaximumPlayers` concepts on `games`.
+- VideoGame player counts are both-or-neither: no player-count metadata is valid,
+  but if either value is supplied then both are required and must satisfy
+  `1 <= MinimumPlayers <= MaximumPlayers`.
+- VideoGame CRUD must round-trip optional `minimumPlayers` and `maximumPlayers`.
+- Existing VideoGames without player-count metadata remain valid; no backfill is
+  required.
+- For an Owned VideoGame, `GameStatus = Completed` normalizes
+  `ProgressPercentage` to `100` after create/update completes, including when
+  incoming progress is `null` or below `100`.
+- Changing away from `Completed` does not automatically lower progress.
+- The existing Owned -> Wishlist/Interested rule remains authoritative and still
+  clears `GameStatus` and `ProgressPercentage`.
+- Do not introduce local/online player counts, co-op-specific ranges,
+  multiplayer-mode entities, matchmaking, or any second VideoGame player-count
+  model.
 
 ## Objective
 
@@ -22,8 +50,9 @@ After this feature is implemented, an authenticated user can:
 10. Set Rating.
 11. Set Notes.
 12. Set an optional CoverImageUrl.
-13. Preserve strict user isolation.
-14. Be prevented from deleting a Platform that is associated with a VideoGame (the `409 Platform in use` state promised by Feature 003 becomes actually reachable).
+13. Set optional MinimumPlayers and MaximumPlayers.
+14. Preserve strict user isolation.
+15. Be prevented from deleting a Platform that is associated with a VideoGame (the `409 Platform in use` state promised by Feature 003 becomes actually reachable).
 
 This feature implements only VideoGame management. BoardGame management remains Feature 005.
 
@@ -114,7 +143,8 @@ This specification builds on the actual repository state:
 
 The approved Domain Specification deliberately separates `Game` from
 `LibraryEntry`. Game-level data for a VideoGame is: Name, optional CoverImageUrl,
-creation time, zero or more predefined Genres, and the VideoGame type identity.
+optional MinimumPlayers/MaximumPlayers, creation time, zero or more predefined
+Genres, and the VideoGame type identity.
 LibraryEntry data is user-specific: AcquisitionStatus, Rating, Notes, GameStatus,
 ProgressPercentage, and Platforms. In the MVP the relationship is 1:1: every
 application-created Game has exactly one LibraryEntry and Games are not shared
@@ -133,8 +163,9 @@ model (see Domain Decisions).
   enums.
 - A Core application service owning all VideoGame application/domain rules
   (ownership scoping, name validation, acquisition-status rules, GameStatus/
-  Progress restrictions, rating/progress ranges, platform and genre reference
-  validation) and a framework-independent `VideoGameRules` module holding the pure
+  Progress restrictions, rating/progress ranges, optional player-count ranges,
+  platform and genre reference validation) and a framework-independent
+  `VideoGameRules` module holding the pure
   rules so they can be unit-tested without a database.
 - The existing `ensure-library` helper extracted into a shared Core mechanism
   (`LibraryService`) now that a second consumer (VideoGame) exists, per the
@@ -152,7 +183,8 @@ model (see Domain Decisions).
   - Edit flow.
   - Delete flow with confirmation.
   - A form covering Name, AcquisitionStatus, Platforms, Genres, GameStatus,
-    ProgressPercentage, Rating, Notes, and CoverImageUrl with dynamic behavior
+    ProgressPercentage, Rating, Notes, CoverImageUrl, MinimumPlayers, and
+    MaximumPlayers with dynamic behavior
     that mirrors the domain rules.
   - Validation errors and API error handling (including `401` session-expired
     handling consistent with the Platforms feature).
@@ -258,6 +290,8 @@ Game-level (`games` table):
 | `GameType` | enum | Discriminator. Only `VideoGame` is creatable in this feature; `BoardGame` is defined for Feature 005 and must not be creatable here. |
 | `Name` | `string` | Required, trimmed, max 100 characters. Game names are **not unique** (approved Domain rule). |
 | `CoverImageUrl` | `string?` | Optional manual external URL. No upload/storage/resizing/CDN. |
+| `MinimumPlayers` | `int?` | Optional player-count metadata. If provided, `MaximumPlayers` must also be provided and the range must satisfy `1 <= MinimumPlayers <= MaximumPlayers`. |
+| `MaximumPlayers` | `int?` | Optional player-count metadata. If provided, `MinimumPlayers` must also be provided and the range must satisfy `1 <= MinimumPlayers <= MaximumPlayers`. |
 | `CreatedAt` | `DateTimeOffset` | Server-assigned creation timestamp (supports the future "Recently added" sort). Not editable. |
 
 LibraryEntry-level (`library_entries` table):
@@ -351,13 +385,33 @@ Rules, stated so no agent guesses transition behavior:
 - `GameStatus` is optional and valid only for Owned entries.
 - `ProgressPercentage` is optional, an integer from 0 through 100 inclusive, and
   valid only for Owned entries.
-- **Progress and GameStatus do not automatically determine each other.** The server
-  stores exactly what is sent (subject to the Owned-only rules above). There is no
-  logic that sets one from the other.
+- **Completed normalizes progress to 100.** For an Owned VideoGame, if
+  `GameStatus = Completed`, the server persists `ProgressPercentage = 100`, even
+  when the request sends `progressPercentage: null` or a lower value. This is a
+  normalization rule, not a rejection.
+- **The rule is one-way.** `ProgressPercentage = 100` does not imply
+  `GameStatus = Completed`, and changing an existing Completed/100% VideoGame to a
+  different GameStatus does not automatically lower progress.
 - Unknown `gameStatus` string values are a `400` ("Game status is invalid.").
   `null` means "not set".
 - For any non-Owned resulting state, both are normalized to `null` (see
   AcquisitionStatus Rules).
+
+### VideoGame Player Count Rules
+
+- Player-count metadata is optional for VideoGames.
+- The model uses the existing `MinimumPlayers` and `MaximumPlayers` concepts on
+  `Game`; no duplicate VideoGame-specific columns or second player-count model are
+  introduced.
+- No player-count metadata is represented as both values `null`.
+- If either `MinimumPlayers` or `MaximumPlayers` is supplied, both are required.
+- When present, the invariant is `1 <= MinimumPlayers <= MaximumPlayers`.
+- Examples: single-player = `1-1`; two-player = `2-2`; one through four players =
+  `1-4`.
+- No artificial business maximum is introduced beyond PostgreSQL `integer` / .NET
+  `int` technical limits.
+- Do not add local players, online players, co-op-specific counts, multiplayer
+  modes, matchmaking, or any future multiplayer modeling in this amendment.
 
 ### Platform Relationship
 
@@ -476,6 +530,9 @@ persistence work):
   values must be at most 5000 characters. No rich text.
 - **Rating:** optional integer in `[1, 5]`.
 - **ProgressPercentage:** optional integer in `[0, 100]`.
+- **VideoGame player counts:** optional both-or-neither pair. `MinimumPlayers` and
+  `MaximumPlayers` may both be `null`. If either is non-null, both must be non-null
+  and satisfy `1 <= MinimumPlayers <= MaximumPlayers`.
 - **AcquisitionStatus:** see AcquisitionStatus Rules (default on create, required on
   update, valid enum values).
 - **GameStatus:** see GameStatus / Progress Rules.
@@ -495,8 +552,9 @@ persistence work):
 - Duplicate ids within `platformIds` or `genreIds` are deduplicated (set semantics),
   never rejected.
 - **Resulting-state rules:** Owned ⇒ ≥ 1 Platform; non-Owned ⇒ GameStatus and
-  ProgressPercentage are `null` (normalized). These are applied to the resulting
-  state of every create and update.
+  ProgressPercentage are `null` (normalized); Owned + Completed ⇒
+  ProgressPercentage `100` (normalized). These are applied to the resulting state
+  of every create and update.
 
 ## Technical Requirements
 
@@ -583,12 +641,19 @@ for every input before doing persistence work. At minimum it exposes:
   ("Game status is invalid.").
 - `void ValidateRating(int? rating)` — `null` ok; must be 1–5.
 - `void ValidateProgressPercentage(int? progress)` — `null` ok; must be 0–100.
+- `(int? MinimumPlayers, int? MaximumPlayers) ValidateAndNormalizePlayerCounts(
+  int? minimumPlayers, int? maximumPlayers)` — both `null` accepted; exactly one
+  supplied throws ("Minimum and maximum players must both be provided.");
+  `minimumPlayers < 1` throws ("Minimum players must be at least 1.");
+  `maximumPlayers < minimumPlayers` throws ("Maximum players must be at least the
+  minimum players."); otherwise returns the pair unchanged.
 - `void ValidatePlatformRequirement(AcquisitionStatus status, int platformCount)` —
   throws when `status == Owned && platformCount == 0`
   ("An Owned video game requires at least one platform.").
 - `(GameStatus? GameStatus, int? ProgressPercentage) NormalizeStatusAndProgress(
   AcquisitionStatus status, GameStatus? gameStatus, int? progressPercentage)` —
-  returns `(null, null)` when `status != Owned`, otherwise the input values
+  returns `(null, null)` when `status != Owned`; returns `(Completed, 100)` when
+  `status == Owned && gameStatus == Completed`; otherwise returns the input values
   unchanged.
 - `bool IsOwnedToNonOwnedTransition(AcquisitionStatus currentStatus,
   AcquisitionStatus targetStatus)` — returns `true` exactly when
@@ -673,7 +738,8 @@ Supporting behavior:
 - `VideoGameView` is a plain Core read-model record (not an EF entity):
   `(Guid Id, string Name, string? CoverImageUrl, DateTimeOffset CreatedAt,
   AcquisitionStatus AcquisitionStatus, GameStatus? GameStatus, int? ProgressPercentage,
-  int? Rating, string? Notes, IReadOnlyList<Guid> PlatformIds, IReadOnlyList<Guid> GenreIds)`.
+  int? Rating, string? Notes, IReadOnlyList<Guid> PlatformIds, IReadOnlyList<Guid> GenreIds,
+  int? MinimumPlayers, int? MaximumPlayers)`.
 - `VideoGameInput` is a plain Core record carrying the raw create/update fields
   (nullable name, optional metadata, raw enum strings, id lists).
 - Platform resolution: query `platforms` where `Id ∈ platformIds` and
@@ -776,13 +842,14 @@ the service distinguishes the create default (`Owned`) from the update requireme
 
 - Create: `CreateVideoGameRequest(string? Name, string? CoverImageUrl, string?
   AcquisitionStatus, IReadOnlyList<Guid>? PlatformIds, IReadOnlyList<Guid>? GenreIds,
-  string? GameStatus, int? ProgressPercentage, int? Rating, string? Notes)`.
+  string? GameStatus, int? ProgressPercentage, int? Rating, string? Notes,
+  int? MinimumPlayers, int? MaximumPlayers)`.
 - Update: `UpdateVideoGameRequest` with the same fields (`string?` types at the HTTP
   boundary; the service enforces that `AcquisitionStatus` is required on update).
 - Response: `VideoGameResponse(Guid Id, string Name, string? CoverImageUrl, string
   AcquisitionStatus, IReadOnlyList<Guid> PlatformIds, IReadOnlyList<Guid> GenreIds,
   string? GameStatus, int? ProgressPercentage, int? Rating, string? Notes,
-  DateTimeOffset CreatedAt)`.
+  DateTimeOffset CreatedAt, int? MinimumPlayers, int? MaximumPlayers)`.
 
 The list response is a plain JSON array of `VideoGameResponse`. No wrapper object,
 no pagination. Enum values in JSON use their enum names (`"Owned"`, `"Wishlist"`,
@@ -935,6 +1002,22 @@ schemes):
   last-write-wins (no `RowVersion`/version column), acceptable for the MVP. No
   locks, event systems, or concurrency frameworks.
 
+Manual-review database amendment for implementation after Feature 007 review:
+
+- Reuse existing nullable `games.minimum_players` and `games.maximum_players`.
+- Do not add duplicate VideoGame player-count columns.
+- The current Feature 005 CHECK constraint `ck_games_board_columns_video_null`
+  prohibits player-count values on VideoGame rows. The targeted implementation
+  must add a small EF Core migration that drops/replaces that constraint so
+  VideoGame rows may have `minimum_players`/`maximum_players`, while
+  `approximate_duration` and `interaction_type` remain BoardGame-only.
+- The existing `ck_games_minimum_players` and `ck_games_maximum_players` range
+  constraints are reused. Add or retain a both-or-neither CHECK that allows both
+  player values null and rejects exactly one value null for VideoGame rows, while
+  preserving BoardGame's required player counts.
+- No trigger, subtype table, new migration workflow, or Supabase dashboard change
+  is introduced.
+
 The migration is committed to source control.
 
 ### Frontend
@@ -987,6 +1070,8 @@ src/app/features/games/
     progressPercentage: number | null;
     rating: number | null;
     notes: string | null;
+    minimumPlayers: number | null;
+    maximumPlayers: number | null;
     createdAt: string;
   }
 
@@ -1000,6 +1085,8 @@ src/app/features/games/
     progressPercentage: number | null;
     rating: number | null;
     notes: string | null;
+    minimumPlayers: number | null;
+    maximumPlayers: number | null;
   }
   ```
 
@@ -1063,7 +1150,8 @@ multi-select.
 
 - One `FormGroup` with controls for: `name`, `coverImageUrl`, `acquisitionStatus`
   (default `Owned`), `platformIds` (checkbox set), `genreIds` (checkbox set),
-  `gameStatus`, `progressPercentage`, `rating`, and `notes`.
+  `gameStatus`, `progressPercentage`, `rating`, `notes`, `minimumPlayers`, and
+  `maximumPlayers`.
 - **Frontend validation mirrors backend normalization before length validation**
   (Decision 5). The form must not reject a value solely because its raw untrimmed
   representation exceeds the limit when the normalized value is valid:
@@ -1073,6 +1161,9 @@ multi-select.
     3) validate the normalized non-null length ≤ 5000.
   - `coverImageUrl`: 1) trim; 2) empty becomes `null`; 3) apply the existing
     normalized length (≤ 2048) and `http(s)` validation.
+  - `minimumPlayers` / `maximumPlayers`: both empty is valid and submits both as
+    `null`; exactly one supplied is invalid; when both are supplied they must be
+    integers satisfying `1 <= minimumPlayers <= maximumPlayers`.
   The backend remains authoritative; these mirror validations provide immediate UX
   feedback only.
 - Dynamic domain behavior:
@@ -1092,7 +1183,11 @@ multi-select.
   - `rating` is an optional 1–5 selector; `progressPercentage` a number input
     validated to 0–100; `coverImageUrl` gets a light client-side
     `http(s)`/normalized-length check; `notes` a textarea with normalized-length
-    validation.
+    validation; `minimumPlayers` and `maximumPlayers` are optional number inputs.
+  - When `gameStatus` is changed to `Completed` while `Owned`, the frontend mirrors
+    backend behavior by setting/submitting `progressPercentage: 100`. If the user
+    later changes GameStatus away from Completed, the frontend does not
+    automatically reduce progress.
   - Genres multi-select comes from `GenresService`; Platform multi-select from
     `PlatformsService`.
 - **Transition UX consequence (Owned → Wishlist/Interested).** Because the backend
@@ -1137,6 +1232,9 @@ by the controller, mirroring the Platform pattern.
 | GameStatus invalid value | `400` | Title "Invalid video game", detail "Game status is invalid." |
 | Rating not in 1–5 | `400` | Title "Invalid video game", detail "Rating must be between 1 and 5." |
 | ProgressPercentage not in 0–100 | `400` | Title "Invalid video game", detail "Progress must be between 0 and 100." |
+| Exactly one of MinimumPlayers / MaximumPlayers supplied | `400` | Title "Invalid video game", detail "Minimum and maximum players must both be provided." |
+| MinimumPlayers < 1 | `400` | Title "Invalid video game", detail "Minimum players must be at least 1." |
+| MaximumPlayers < MinimumPlayers | `400` | Title "Invalid video game", detail "Maximum players must be at least the minimum players." |
 | Resulting state Owned with zero Platforms (create, or update to Owned, or removing the last Platform) | `400` | Title "Invalid video game", detail "An Owned video game requires at least one platform." |
 | Platform id unknown or belonging to another user | `400` | Title "Invalid video game", detail "One or more platforms are not available in your library." (identical for both cases; no cross-user leakage). |
 | Genre id unknown | `400` | Title "Invalid video game", detail "One or more genres are invalid." |
@@ -1182,6 +1280,12 @@ unit-testable without EF or a database.
     repeat).
   - Rating: `null` ok; 1–5 ok; 0, 6, negative → error.
   - Progress: `null` ok; 0 and 100 ok; −1 and 101 → error.
+  - Completed progress normalization: Owned + Completed + `null` progress → 100;
+    Owned + Completed + lower progress → 100; Owned + Completed + 100 → 100; Owned
+    + Playing + 100 remains 100; `ProgressPercentage = 100` alone does not set
+    GameStatus.
+  - VideoGame player counts: both null accepted; both present with `1 <= min <= max`
+    accepted; only one present rejected; min < 1 rejected; max < min rejected.
   - Notes: ≤ 5000 ok; > 5000 → error; whitespace-only → `null`.
   - CoverImageUrl: `null`/empty → `null`; `http(s)` ok; other scheme and > 2048 →
     error.
@@ -1307,7 +1411,17 @@ Required cases (all against real PostgreSQL):
     `null` and the Platforms/Rating/Notes preserved (assert the response).
 - **Validation:** empty / whitespace-only / missing `name` → `400`; 101-character
   name → `400`; `rating` 0 and 6 → `400`; `progressPercentage` −1 and 101 → `400`;
-  update with `acquisitionStatus` `null` → `400`.
+  update with `acquisitionStatus` `null` → `400`; invalid player-count ranges →
+  `400`.
+- **VideoGame player counts:** create with both player counts omitted → `201` and
+  response/list show `null`; create/update with `minimumPlayers: 1,
+  maximumPlayers: 4` persists and round-trips; create/update with only one player
+  count, `minimumPlayers < 1`, or `maximumPlayers < minimumPlayers` returns `400`.
+- **Completed progress normalization:** create/update Owned with `gameStatus:
+  "Completed"` and `progressPercentage: null` persists `100`; with lower progress
+  persists `100`; changing an existing Completed/100% entry to `Playing` may remain
+  `Playing`/`100` until the user changes progress; Owned -> Wishlist/Interested
+  still clears both GameStatus and ProgressPercentage.
 - **Update:** `PUT /video-games/{id}` renames and updates metadata; `GET
   /video-games` reflects it; `PUT` of an id that does not exist or is another
   user's → `404`.
@@ -1427,8 +1541,9 @@ Wishlist/Interested may have zero or more Platforms. An `Owned` → `Wishlist`/
 non-Owned resulting state stores `null` (cleared server-side).
 
 `FR-006` — ProgressPercentage: optional integer 0–100; valid only for Owned entries;
-cleared to `null` for non-Owned resulting states. GameStatus and ProgressPercentage
-never change each other automatically.
+cleared to `null` for non-Owned resulting states. For Owned VideoGames,
+`GameStatus = Completed` normalizes `ProgressPercentage` to `100`; the rule is
+one-way and changing away from Completed does not lower progress automatically.
 
 `FR-007` — Rating: optional integer 1–5; outside the range → `400`.
 
@@ -1453,6 +1568,13 @@ normal (non-transition) updates; Owned requires ≥ 1 Platform; Wishlist/Interes
 allow any count. During an `Owned` → `Wishlist`/`Interested` transition the request's
 `platformIds` are ignored (neither applied, validated, nor queried) and the persisted
 associations are preserved (see `FR-027`).
+
+`FR-011A` — VideoGame player counts: `MinimumPlayers` and `MaximumPlayers` are
+optional game-level metadata on VideoGames. If neither value is supplied, no
+player-count metadata is stored. If either value is supplied, both are required and
+must satisfy `1 <= MinimumPlayers <= MaximumPlayers`; invalid ranges return `400`.
+CRUD responses and list results round-trip these values. Existing VideoGames with
+both values null remain valid without backfill.
 
 `FR-012` — Update: `PUT /video-games/{id}` is full-replacement for all updates other
 than an `Owned` → `Wishlist`/`Interested` transition, returns `200` with the updated
@@ -1668,7 +1790,19 @@ and `GET /genres` return `401`.
 `AC-004` — `POST`/`PUT` with an empty, whitespace-only, or missing `name` returns
 `400`; a 101-character name returns `400`; `rating` 0 or 6 returns `400`;
 `progressPercentage` −1 or 101 returns `400`; `PUT` with `acquisitionStatus` `null`
-returns `400`.
+returns `400`; player-count requests with only one value, `minimumPlayers < 1`, or
+`maximumPlayers < minimumPlayers` return `400`.
+
+`AC-004A` — VideoGame player counts are optional and round-trip: create/list/update
+with both omitted returns `minimumPlayers: null` and `maximumPlayers: null`; create
+or update with `minimumPlayers: 1, maximumPlayers: 4` persists and returns those
+values; existing VideoGames are not backfilled.
+
+`AC-004B` — Completed progress is normalized: create/update an Owned VideoGame with
+`gameStatus: "Completed"` and `progressPercentage: null` persists `100`; with a
+lower incoming progress persists `100`; changing a Completed/100% game to `Playing`
+does not automatically lower progress; Owned -> Wishlist/Interested still clears
+`gameStatus` and `progressPercentage`.
 
 `AC-005` — Acquisition transitions: updating `Wishlist` → `Owned` without adding a
 Platform returns `400`; updating `Owned` → `Wishlist` (with `gameStatus`/`progress`

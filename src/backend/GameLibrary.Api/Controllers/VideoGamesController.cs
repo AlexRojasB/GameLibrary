@@ -115,11 +115,11 @@ public class VideoGamesController : ControllerBase
 
     private static VideoGameInput ToInput(CreateVideoGameRequest r) => new(
         r.Name, r.CoverImageUrl, r.AcquisitionStatus, r.PlatformIds, r.GenreIds,
-        r.GameStatus, r.ProgressPercentage, r.Rating, r.Notes);
+        r.GameStatus, r.ProgressPercentage, r.Rating, r.Notes, r.MinimumPlayers, r.MaximumPlayers);
 
     private static VideoGameInput ToInput(UpdateVideoGameRequest r) => new(
         r.Name, r.CoverImageUrl, r.AcquisitionStatus, r.PlatformIds, r.GenreIds,
-        r.GameStatus, r.ProgressPercentage, r.Rating, r.Notes);
+        r.GameStatus, r.ProgressPercentage, r.Rating, r.Notes, r.MinimumPlayers, r.MaximumPlayers);
 
     private static VideoGameResponse ToResponse(VideoGameView v) => new(
         v.Id,
@@ -132,5 +132,7 @@ public class VideoGamesController : ControllerBase
         v.ProgressPercentage,
         v.Rating,
         v.Notes,
-        v.CreatedAt);
+        v.CreatedAt,
+        v.MinimumPlayers,
+        v.MaximumPlayers);
 }

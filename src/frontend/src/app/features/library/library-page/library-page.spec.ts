@@ -27,8 +27,8 @@ const videoGame: LibraryItem = {
   genreIds: ['g1'],
   gameStatus: 'Playing',
   progressPercentage: 50,
-  minimumPlayers: null,
-  maximumPlayers: null,
+  minimumPlayers: 1,
+  maximumPlayers: 1,
   approximateDuration: null,
   interactionType: null,
 };
@@ -144,6 +144,7 @@ describe('LibraryPage', () => {
     expect(body).toContain('Action');
     expect(body).toContain('Status: Playing');
     expect(body).toContain('Progress: 50%');
+    expect(body).toContain('1 player');
     expect(body).toContain('Pandemic');
     expect(body).toContain('Board game');
     expect(body).toContain('2-4 players');

@@ -1,7 +1,14 @@
-Architecture Specification v0.2 --- Game Library
+Architecture Specification v0.3 --- Game Library
 
 Status: Approved
-Version: 0.2
+Version: 0.3
+
+Manual review amendment, 2026-08-19:
+
+Architecture remains unchanged at the component/project level. The amendment
+clarifies that VideoGame player counts reuse existing `games.minimum_players` /
+`games.maximum_players`, Completed-progress normalization is backend/domain
+behavior, and Random Picker visible history is frontend-only volatile state.
 
 1. Purpose
 
@@ -363,6 +370,10 @@ AcquisitionStatus transition rules.
 
 BoardGame player-count rules.
 
+VideoGame optional player-count rules.
+
+Owned VideoGame Completed => ProgressPercentage = 100 normalization.
+
 Platform deletion protection.
 
 Rating and progress ranges.
@@ -442,6 +453,9 @@ Random Picker session state is frontend-only and volatile.
 
 Refreshing/leaving the picker clears that session according to the
 Domain Specification.
+
+Visible Random Picker result history is part of that frontend-only volatile
+session state. It is not stored in PostgreSQL, localStorage, or sessionStorage.
 
 20. PWA
 
@@ -529,8 +543,13 @@ Current displayed result.
 
 Temporary list of already-shown LibraryEntry IDs.
 
+Visible temporary result history, newest first.
+
 For a random request, Angular sends the current filters and
 already-shown IDs to the API.
+
+Angular does not send the visible result history collection to the API. The
+backend continues to require only `shownLibraryEntryIds` for exclusion.
 
 No RandomPickerSession is stored in PostgreSQL.
 
@@ -600,6 +619,11 @@ Game/LibraryEntry lifecycle.
 Search/filter behavior.
 
 Random Picker result states.
+
+VideoGame player-count persistence/constraints and Completed-progress
+normalization.
+
+Volatile Random Picker visible-history synchronization with shown IDs.
 
 Frontend tests
 

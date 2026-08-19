@@ -2,6 +2,7 @@ using GameLibrary.Core.Data;
 using GameLibrary.Core.Games;
 using GameLibrary.Core.Libraries;
 using GameLibrary.Core.Platforms;
+using GameLibrary.Core.RandomPicker;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -14,8 +15,10 @@ builder.Services.AddScoped<LibraryService>();
 builder.Services.AddScoped<PlatformService>();
 builder.Services.AddScoped<VideoGameService>();
 builder.Services.AddScoped<BoardGameService>();
+builder.Services.AddScoped<RandomPickerService>();
 
-var connectionString = builder.Configuration.GetConnectionString("Default");
+var connectionString = builder.Configuration.GetConnectionString("Default")
+    ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured.");
 builder.Services.AddDbContext<GameLibraryDbContext>(options =>
     options.UseNpgsql(connectionString));
 

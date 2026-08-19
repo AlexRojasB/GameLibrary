@@ -96,6 +96,7 @@ public class DatabaseMigrationTests
             "ck_games_interaction_type",
             "ck_games_board_players_required",
             "ck_games_board_columns_video_null",
+            "ck_games_video_players_both_or_neither",
         })
         {
             Assert.Contains(constraint, constraints);

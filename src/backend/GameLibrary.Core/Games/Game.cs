@@ -23,14 +23,14 @@ public class Game
     public string? CoverImageUrl { get; set; }
 
     /// <summary>
-    /// Required for BoardGame rows (<c>1 &lt;= MinimumPlayers &lt;= MaximumPlayers</c>);
-    /// must be <c>null</c> for VideoGame rows.
+    /// Required for BoardGame rows and optional for VideoGame rows. When present,
+    /// the invariant is <c>1 &lt;= MinimumPlayers &lt;= MaximumPlayers</c>.
     /// </summary>
     public int? MinimumPlayers { get; set; }
 
     /// <summary>
-    /// Required for BoardGame rows; must be <c>&gt;= MinimumPlayers</c>; must be
-    /// <c>null</c> for VideoGame rows.
+    /// Required for BoardGame rows and optional for VideoGame rows. When present,
+    /// it must be <c>&gt;= MinimumPlayers</c>.
     /// </summary>
     public int? MaximumPlayers { get; set; }
 

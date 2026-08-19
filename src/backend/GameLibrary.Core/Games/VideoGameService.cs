@@ -19,7 +19,9 @@ public sealed record VideoGameInput(
     string? GameStatus,
     int? ProgressPercentage,
     int? Rating,
-    string? Notes);
+    string? Notes,
+    int? MinimumPlayers,
+    int? MaximumPlayers);
 
 /// <summary>
 /// Read-model projection of a VideoGame (Game + its LibraryEntry + associations).
@@ -36,7 +38,9 @@ public sealed record VideoGameView(
     int? Rating,
     string? Notes,
     IReadOnlyList<Guid> PlatformIds,
-    IReadOnlyList<Guid> GenreIds);
+    IReadOnlyList<Guid> GenreIds,
+    int? MinimumPlayers,
+    int? MaximumPlayers);
 
 /// <summary>
 /// Authoritative backend enforcement layer for VideoGame operations. Ownership is
@@ -75,7 +79,9 @@ public class VideoGameService
                 g.LibraryEntry.Rating,
                 g.LibraryEntry.Notes,
                 g.LibraryEntry.GamePlatforms.Select(gp => gp.PlatformId).ToList(),
-                g.GameGenres.Select(gg => gg.GenreId).ToList()))
+                g.GameGenres.Select(gg => gg.GenreId).ToList(),
+                g.MinimumPlayers,
+                g.MaximumPlayers))
             .ToListAsync(ct);
     }
 
@@ -88,6 +94,8 @@ public class VideoGameService
         var gameStatus = VideoGameRules.ParseGameStatus(input.GameStatus);
         VideoGameRules.ValidateRating(input.Rating);
         VideoGameRules.ValidateProgressPercentage(input.ProgressPercentage);
+        var (minimumPlayers, maximumPlayers) = VideoGameRules.ValidateAndNormalizePlayerCounts(
+            input.MinimumPlayers, input.MaximumPlayers);
 
         var (normalizedStatus, normalizedProgress) =
             VideoGameRules.NormalizeStatusAndProgress(acquisitionStatus, gameStatus, input.ProgressPercentage);
@@ -104,6 +112,8 @@ public class VideoGameService
             GameType = GameType.VideoGame,
             Name = name,
             CoverImageUrl = coverImageUrl,
+            MinimumPlayers = minimumPlayers,
+            MaximumPlayers = maximumPlayers,
             CreatedAt = now,
         };
 
@@ -155,6 +165,8 @@ public class VideoGameService
         string? notes;
         GameStatus? gameStatus;
         int? progress;
+        int? minimumPlayers;
+        int? maximumPlayers;
 
         if (isTransition)
         {
@@ -164,6 +176,8 @@ public class VideoGameService
             notes = entry.Notes;
             gameStatus = null;
             progress = null;
+            (minimumPlayers, maximumPlayers) = VideoGameRules.ValidateAndNormalizePlayerCounts(
+                input.MinimumPlayers, input.MaximumPlayers);
         }
         else
         {
@@ -173,6 +187,13 @@ public class VideoGameService
             gameStatus = VideoGameRules.ParseGameStatus(input.GameStatus);
             progress = input.ProgressPercentage;
             VideoGameRules.ValidateProgressPercentage(progress);
+            progress = VideoGameRules.PreserveProgressWhenLeavingCompleted(
+                entry.GameStatus,
+                entry.ProgressPercentage,
+                gameStatus,
+                progress);
+            (minimumPlayers, maximumPlayers) = VideoGameRules.ValidateAndNormalizePlayerCounts(
+                input.MinimumPlayers, input.MaximumPlayers);
 
             (platformIds, genreIds) = await ResolveReferencesAsync(userId, input.PlatformIds, input.GenreIds, ct);
             VideoGameRules.ValidatePlatformRequirement(targetStatus, platformIds.Count);
@@ -183,6 +204,8 @@ public class VideoGameService
 
         game.Name = name;
         game.CoverImageUrl = coverImageUrl;
+        game.MinimumPlayers = minimumPlayers;
+        game.MaximumPlayers = maximumPlayers;
 
         entry.AcquisitionStatus = targetStatus;
         entry.Rating = rating;
@@ -242,6 +265,7 @@ public class VideoGameService
             .Include(g => g.LibraryEntry)
                 .ThenInclude(le => le.GamePlatforms)
             .Include(g => g.GameGenres)
+            .AsSplitQuery()
             .SingleOrDefaultAsync(ct);
 
         return game ?? throw new VideoGameNotFoundException();
@@ -335,7 +359,9 @@ public class VideoGameService
         entry.Rating,
         entry.Notes,
         entry.GamePlatforms.Select(gp => gp.PlatformId).ToList(),
-        game.GameGenres.Select(gg => gg.GenreId).ToList());
+        game.GameGenres.Select(gg => gg.GenreId).ToList(),
+        game.MinimumPlayers,
+        game.MaximumPlayers);
 
     /// <summary>
     /// Saves the current changes. A concurrent delete of a referenced Platform (or

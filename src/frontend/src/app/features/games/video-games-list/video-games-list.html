@@ -29,6 +29,9 @@
             @if (game.genreIds.length > 0) {
               <span>{{ genreNames(game) }}</span>
             }
+            @if (playerRange(game)) {
+              <span>{{ playerRange(game) }}</span>
+            }
           </div>
           <div class="video-games__item-actions">
             <button type="button" (click)="openEdit(game)">Edit</button>

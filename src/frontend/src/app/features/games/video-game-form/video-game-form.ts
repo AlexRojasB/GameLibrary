@@ -49,6 +49,8 @@ export class VideoGameForm {
     progressPercentage: new FormControl<number | null>(null),
     rating: new FormControl<number | null>(null),
     notes: new FormControl<string | null>(null),
+    minimumPlayers: new FormControl<number | null>(null),
+    maximumPlayers: new FormControl<number | null>(null),
   });
 
   constructor() {
@@ -57,6 +59,12 @@ export class VideoGameForm {
 
     this.form.controls.acquisitionStatus.valueChanges.subscribe((value) => {
       this.acquisitionStatus.set(value);
+    });
+
+    this.form.controls.gameStatus.valueChanges.subscribe((value) => {
+      if (value === 'Completed') {
+        this.form.controls.progressPercentage.setValue(100, { emitEvent: false });
+      }
     });
 
     effect(() => {
@@ -73,6 +81,8 @@ export class VideoGameForm {
       this.form.controls.progressPercentage.setValue(game.progressPercentage, { emitEvent: false });
       this.form.controls.rating.setValue(game.rating, { emitEvent: false });
       this.form.controls.notes.setValue(game.notes, { emitEvent: false });
+      this.form.controls.minimumPlayers.setValue(game.minimumPlayers, { emitEvent: false });
+      this.form.controls.maximumPlayers.setValue(game.maximumPlayers, { emitEvent: false });
     });
 
     effect(() => {
@@ -105,6 +115,8 @@ export class VideoGameForm {
       progressPercentage: owned ? f.progressPercentage.value : null,
       rating: f.rating.value,
       notes: trimToNull(f.notes.value),
+      minimumPlayers: f.minimumPlayers.value,
+      maximumPlayers: f.maximumPlayers.value,
     });
   }
 
@@ -201,6 +213,28 @@ export class VideoGameForm {
       return '';
     }
     f.progressPercentage.setErrors(null);
+
+    const minimumPlayers = f.minimumPlayers.value;
+    const maximumPlayers = f.maximumPlayers.value;
+    if ((minimumPlayers === null) !== (maximumPlayers === null)) {
+      f.minimumPlayers.markAsTouched();
+      f.maximumPlayers.markAsTouched();
+      f.minimumPlayers.setErrors({ paired: true });
+      f.maximumPlayers.setErrors({ paired: true });
+      return 'Minimum and maximum players must both be provided.';
+    }
+    if (minimumPlayers !== null && (Number.isNaN(minimumPlayers) || minimumPlayers < 1)) {
+      f.minimumPlayers.markAsTouched();
+      f.minimumPlayers.setErrors({ range: true });
+      return '';
+    }
+    if (maximumPlayers !== null && minimumPlayers !== null && maximumPlayers < minimumPlayers) {
+      f.maximumPlayers.markAsTouched();
+      f.maximumPlayers.setErrors({ range: true });
+      return '';
+    }
+    f.minimumPlayers.setErrors(null);
+    f.maximumPlayers.setErrors(null);
 
     if (this.isOwned() && f.platformIds.value.length === 0) {
       if (this.platforms().length === 0) {
