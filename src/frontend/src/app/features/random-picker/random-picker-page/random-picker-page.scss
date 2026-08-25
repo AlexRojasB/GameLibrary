@@ -1,12 +1,7 @@
 .random-picker {
-  display: grid;
-  gap: 1.25rem;
   max-width: 64rem;
-  margin: 0 auto;
-  padding: 1rem;
 }
 
-.random-picker__header,
 .random-picker__actions,
 .random-picker-card__title-row {
   display: flex;
@@ -15,9 +10,50 @@
   justify-content: space-between;
 }
 
-.random-picker__controls {
+.random-picker__panel,
+.random-picker__stage,
+.random-picker__history {
+  padding: 1rem;
+}
+
+.random-picker__mode,
+.random-picker__filter-summary {
   display: grid;
+  gap: 0.45rem;
+}
+
+.random-picker__mode {
+  max-width: 24rem;
+  color: var(--color-muted);
+  font-weight: 800;
+}
+
+.random-picker__filter-summary {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  margin-top: 0.85rem;
+
+  p {
+    margin: 0;
+    color: var(--color-muted);
+    font-weight: 700;
+  }
+
+  div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+
+.random-picker__controls {
+  display: none;
   gap: 1rem;
+  margin-top: 1rem;
+
+  &.is-open {
+    display: grid;
+  }
 }
 
 .random-picker__controls label,
@@ -31,47 +67,163 @@
   max-width: 24rem;
 }
 
+.random-picker__controls fieldset {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+.random-picker__stage {
+  display: grid;
+  gap: 1rem;
+  background:
+    radial-gradient(circle at top right, rgba(180, 95, 53, 0.16), transparent 18rem),
+    var(--color-surface-raised);
+}
+
+.random-picker__actions {
+  justify-content: center;
+}
+
+.random-picker__pick {
+  min-width: min(100%, 18rem);
+  min-height: 3.35rem;
+  border-radius: 999px;
+  font-size: 1.08rem;
+}
+
 .random-picker__error {
-  color: #9f1239;
+  color: var(--color-danger);
 }
 
 .random-picker__empty,
 .random-picker-card {
-  border: 1px solid #d1d5db;
-  border-radius: 0.75rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
   padding: 1rem;
+}
+
+.random-picker__empty {
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+  text-align: center;
+
+  h2,
+  p {
+    margin: 0.25rem 0;
+  }
+
+  p {
+    color: var(--color-muted);
+  }
 }
 
 .random-picker-card {
   display: grid;
   grid-template-columns: 8rem 1fr;
   gap: 1rem;
+  background: var(--color-surface-raised);
+}
+
+.random-picker-card--current {
+  grid-template-columns: minmax(9rem, 12rem) 1fr;
+  border-color: color-mix(in srgb, var(--color-accent) 32%, var(--color-line));
+  background:
+    radial-gradient(circle at top left, rgba(180, 95, 53, 0.13), transparent 14rem),
+    var(--color-surface-raised);
+  box-shadow: var(--shadow-card);
+}
+
+.random-picker-card--history {
+  grid-template-columns: 5.5rem 1fr;
+  background: color-mix(in srgb, var(--color-surface-raised) 78%, var(--color-page));
+  box-shadow: none;
 }
 
 .random-picker-card__cover,
 .random-picker-card__placeholder {
   width: 8rem;
   aspect-ratio: 2 / 3;
-  border-radius: 0.5rem;
+  border-radius: 1rem;
   object-fit: cover;
+}
+
+.random-picker-card--current .random-picker-card__cover,
+.random-picker-card--current .random-picker-card__placeholder {
+  width: 100%;
+}
+
+.random-picker-card--history .random-picker-card__cover,
+.random-picker-card--history .random-picker-card__placeholder {
+  width: 5.5rem;
+  border-radius: 0.75rem;
 }
 
 .random-picker-card__placeholder {
   display: grid;
   place-items: center;
-  background: #e5e7eb;
-  color: #4b5563;
+  background:
+    radial-gradient(circle at top, rgba(180, 95, 53, 0.18), transparent 7rem),
+    var(--color-accent-soft);
+  color: var(--color-accent-strong);
+  font-weight: 900;
+}
+
+.random-picker-card__body p {
+  margin: 0.3rem 0;
+  color: var(--color-muted);
+}
+
+.random-picker-card__title-row {
+  align-items: flex-start;
+
+  h2,
+  h3 {
+    margin: 0;
+  }
+
+  h3 {
+    font-size: 1rem;
+  }
+}
+
+.random-picker__history {
+  h2 {
+    margin-top: 0;
+  }
+}
+
+.random-picker__history-grid {
+  display: grid;
+  gap: 0.75rem;
 }
 
 @media (max-width: 640px) {
-  .random-picker__header,
+  .random-picker__filter-summary,
   .random-picker__actions,
   .random-picker-card__title-row {
     align-items: flex-start;
     flex-direction: column;
   }
 
+  .random-picker__filter-summary {
+    grid-template-columns: 1fr;
+
+    div {
+      align-items: stretch;
+      flex-direction: column;
+    }
+  }
+
   .random-picker-card {
     grid-template-columns: 1fr;
+  }
+
+  .random-picker-card--history {
+    grid-template-columns: 4.5rem 1fr;
+  }
+
+  .random-picker-card--history .random-picker-card__cover,
+  .random-picker-card--history .random-picker-card__placeholder {
+    width: 4.5rem;
   }
 }

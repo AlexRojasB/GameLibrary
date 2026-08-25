@@ -1,7 +1,10 @@
 {
-  "name": "game-library",
-  "short_name": "game-library",
+  "name": "Game Library",
+  "short_name": "Play Shelf",
+  "description": "A personal game library and random picker for game night.",
   "display": "standalone",
+  "background_color": "#fffaf1",
+  "theme_color": "#b45f35",
   "scope": "./",
   "start_url": "./",
   "icons": [

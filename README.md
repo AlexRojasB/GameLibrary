@@ -4,7 +4,7 @@ Personal game library web application. Angular PWA frontend, ASP.NET Core Web AP
 
 ## Status
 
-Feature 007 (Random Picker) is implemented. Authenticated users can open the protected Angular `/random-picker` view and request an owned game from the backend-authoritative `POST /random-picker/pick` API. The picker supports VideoGames, BoardGames, and All modes, temporary shown-history exclusion, and distinct `SUCCESS`, `NO_CANDIDATES`, and `ALL_ALREADY_SHOWN` outcomes. No migration or persisted picker state was introduced. Features 001–006 are preserved, including platform management, VideoGame/BoardGame CRUD, Library browse/search/filter/sort, domain invariants, and cross-user isolation.
+Feature 008 (UX / PWA Polish / E2E) is implemented. The Angular app uses the Play Shelf shell with desktop top navigation, mobile bottom navigation, a protected `/manage` hub, polished Library and Random Picker mobile filters, dialog/sheet add-edit flows for VideoGames and BoardGames, and Playwright E2E smoke coverage. Features 001–007 are preserved, including Supabase auth/JWT validation, platform management, VideoGame/BoardGame CRUD, Library browse/search/filter/sort, Random Picker result states/history semantics, domain invariants, and cross-user isolation.
 
 ## Documentation
 
@@ -52,6 +52,7 @@ Version-selection policy: stable, supported versions available at implementation
 | Microsoft.AspNetCore.Mvc.Testing | 10.0.11 | backend integration tests |
 | Microsoft.AspNetCore.Authentication.JwtBearer | 10.0.11 | backend JWT bearer validation (`GameLibrary.Api.csproj`) |
 | @supabase/supabase-js | 2.112.3 | frontend Supabase auth SDK (`src/frontend/package.json`) |
+| @playwright/test | 1.62.1 | frontend E2E runner (`src/frontend/package.json`) |
 | Supabase CLI | current stable | install: `winget install supabase.cli` (or `npm i -g supabase`) |
 | Docker Desktop | current stable | required by the local Supabase stack |
 
@@ -119,6 +120,14 @@ dotnet user-secrets set "ConnectionStrings:Test" "<connection-string>" --project
 $env:ConnectionStrings__Test = "<connection-string>"
 ```
 
+Set `ConnectionStrings:E2E` for the isolated Playwright database. Do not point this at the normal development or production database, because the E2E reset helper clears application tables before seeding deterministic fixtures.
+
+```
+dotnet user-secrets set "ConnectionStrings:E2E" "<isolated-e2e-connection-string>" --project src/backend/GameLibrary.Api
+# or
+$env:ConnectionStrings__E2E = "<isolated-e2e-connection-string>"
+```
+
 Committed configuration is templates/placeholders only. Copy the template for local development:
 
 ```
@@ -166,7 +175,7 @@ The default `src/environments/environment.ts` uses empty placeholders for `supab
 
 The `SUPABASE_CLIENT` injection token (registered in `app.config.ts`) creates the client from these values. `core/auth/` holds the auth infrastructure: `AuthService` (signal-based state, session restoration via `getSession()` + `onAuthStateChange`, normalized errors), the route guards, and the API token interceptor. The interceptor attaches `Authorization: Bearer <access-token>` only to requests whose origin matches the configured API base URL (an `API_BASE_URL` injection token defaulting to `environment.apiBaseUrl`), and only when a session exists.
 
-Routes: `''` (protected home — shows the signed-in identity and the `GET /auth/me` result, plus logout), `login` and `register` (guest-only), `health` (anonymous, retained from Feature 001), `library` (protected, Feature 006), `random-picker` (protected, Feature 007), `platforms` (protected, Feature 003), `video-games` (protected, Feature 004), and `board-games` (protected, Feature 005).
+Routes: `''` (protected home), `login` and `register` (guest-only), `health` (anonymous, retained from Feature 001), `library` (protected, Feature 006), `random-picker` (protected, Feature 007), `manage` (protected Feature 008 hub), `platforms` (protected, Feature 003), `video-games` (protected, Feature 004), and `board-games` (protected, Feature 005). The shell owns account/logout UI; normal UI does not display the raw authenticated user id.
 
 ### Backend JWT configuration
 
@@ -317,6 +326,27 @@ Response states are `SUCCESS` with a result, `NO_CANDIDATES` with `result: null`
 
 The protected `/random-picker` Angular route keeps shown history only in component memory. Pick and Another send the accumulated `shownLibraryEntryIds`; changing filters or mode clears the displayed result but not shown history; Reset shown history explicitly clears it. Leaving or recreating the page starts a fresh volatile picker session. No `RandomPickerSession`, picker history table, localStorage/sessionStorage persistence, scoring, weighting, AI, or recommendation infrastructure is used.
 
+## UX / PWA / E2E (Feature 008)
+
+The PWA remains static/app-shell only. `ngsw-config.json` caches application assets and does not implement offline CRUD, sync, conflict resolution, mutation queues, image uploads, object storage, analytics, or external integrations. `manifest.webmanifest` uses the Game Library / Play Shelf name, standalone display, warm background, and app theme color.
+
+Feature 008 adds a deterministic E2E mode for Playwright only:
+
+- Backend activation requires `E2E__Auth__Enabled=true` and a non-Production ASP.NET Core environment. If the API runs in `Production`, the E2E controller is inactive even if the flag is set.
+- E2E JWTs use a deterministic symmetric test key, issuer `https://test-issuer.example/auth/v1`, audience `authenticated`, and Supabase-style `sub` `00000000-0000-0000-0000-000000000008` by default.
+- `/e2e/auth/session` and `/e2e/reset` are test helpers only. They are not production auth, not a header-only bypass, and not active unless the explicit E2E switch is enabled outside Production.
+- `/e2e/reset` applies EF migrations, clears only application tables in the isolated `ConnectionStrings:E2E` database, preserves the immutable genre catalog, and seeds one VideoGame plus one BoardGame for the deterministic E2E user.
+- The Angular E2E build uses `src/environments/environment.e2e.ts`; guards and the API token interceptor are still used.
+
+Run Playwright E2E with a real isolated PostgreSQL database in `ConnectionStrings__E2E`:
+
+```
+cd src/frontend
+ConnectionStrings__E2E="Host=127.0.0.1;Port=5433;Database=game_library_e2e;Username=postgres;Password=postgres" npm run e2e
+```
+
+Playwright starts the real ASP.NET Core API with `E2E__Auth__Enabled=true`, starts Angular with the `e2e` configuration, resets/seeds before each test, then exercises login, shell navigation, Library filters, management dialogs, and Random Picker history behavior.
+
 ## Backend
 
 Apply migrations (direct connection):
@@ -356,7 +386,7 @@ cd src/frontend
 ng serve
 ```
 
-Open `http://localhost:4200`. The home route is authenticated: it redirects to `/login` when signed out and otherwise shows the signed-in identity and the result of `GET /auth/me` (dev `apiBaseUrl` is `http://localhost:5218` via `src/environments/environment.development.ts`). "Library", "Random Picker", "Platforms", "Video games", and "Board games" links on home open the protected `/library` (Feature 006), `/random-picker` (Feature 007), `/platforms` (Feature 003), `/video-games` (Feature 004), and `/board-games` (Feature 005) features. `/login` and `/register` are guest-only; `/health` renders the Feature 001 health-check view anonymously.
+Open `http://localhost:4200`. The home route is authenticated and redirects to `/login` when signed out. The shell exposes Home, Library, Pick, and Manage navigation; `/manage` links to VideoGames, BoardGames, and Platforms. `/login` and `/register` are guest-only; `/health` renders the Feature 001 health-check view anonymously.
 
 Production build (also verifies PWA artifacts — service worker configuration `ngsw.json` and web app manifest `manifest.webmanifest` in the `dist/` output):
 
@@ -371,7 +401,7 @@ Backend tests (integration tests require `ConnectionStrings:Test` pointing at a 
 
 ```
 dotnet test tests/backend/GameLibrary.Core.Tests
-dotnet test tests/backend/GameLibrary.IntegrationTests
+ConnectionStrings__Test="Host=127.0.0.1;Port=5433;Database=game_library_test;Username=postgres;Password=postgres" dotnet test tests/backend/GameLibrary.IntegrationTests
 ```
 
 Frontend tests:
@@ -386,6 +416,13 @@ Frontend lint:
 ```
 cd src/frontend
 ng lint
+```
+
+Frontend E2E:
+
+```
+cd src/frontend
+ConnectionStrings__E2E="Host=127.0.0.1;Port=5433;Database=game_library_e2e;Username=postgres;Password=postgres" npm run e2e
 ```
 
 Backend build:

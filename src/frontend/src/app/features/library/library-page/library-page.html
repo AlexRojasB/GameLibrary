@@ -1,52 +1,78 @@
-<section class="library">
-  <header class="library__header">
-    <div>
-      <h1>Library</h1>
-      <p>Browse, search, filter, and sort all your games.</p>
-    </div>
-    <a routerLink="/">Back to home</a>
+<section class="library page-stack">
+  <header class="library__header page-hero">
+    <p class="eyebrow">Library</p>
+    <h1>Browse the shelf.</h1>
+    <p>Search, filter, and sort all your games without losing the quick path to edit.</p>
   </header>
 
-  <form class="library__filters">
-    <label>
-      Search
-      <input
-        type="search"
-        [value]="filters().search"
-        (input)="onSearch($any($event.target).value)"
-        placeholder="Search by game name"
-      />
-    </label>
+  <section class="library__filter-shell surface-card" aria-label="Library filters">
+    <div class="library__quick-filters">
+      <label>
+        Search
+        <input
+          type="search"
+          [value]="filters().search"
+          (input)="onSearch($any($event.target).value)"
+          placeholder="Search by game name"
+        />
+      </label>
 
-    <label>
-      Game type
-      <select [value]="filters().gameType ?? ''" (change)="onGameType($any($event.target).value)">
-        <option value="">All</option>
-        <option value="VideoGame">Video games</option>
-        <option value="BoardGame">Board games</option>
-      </select>
-    </label>
+      <label>
+        Sort
+        <select [value]="sort()" (change)="onSort($any($event.target).value)">
+          @for (option of sorts; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </label>
+    </div>
 
-    <label>
-      Acquisition status
-      <select multiple (change)="onAcquisitionStatuses($event)">
-        @for (status of acquisitionStatuses; track status) {
-          <option [value]="status" [selected]="filters().acquisitionStatuses.includes(status)">{{ status }}</option>
-        }
-      </select>
-    </label>
+    <div class="library__filter-summary">
+      <p>{{ filterSummary() }}</p>
+      <div>
+        <button
+          type="button"
+          class="button button--ghost"
+          (click)="toggleFilters()"
+          [attr.aria-expanded]="filtersOpen()"
+          aria-controls="library-advanced-filters"
+        >
+          {{ filtersOpen() ? 'Hide filters' : 'Advanced filters' }}
+        </button>
+        <button type="button" class="button button--ghost" (click)="clearFilters()">Clear filters</button>
+      </div>
+    </div>
 
-    <label>
-      Minimum rating
-      <select [value]="filters().ratingMin ?? ''" (change)="onRatingMin($any($event.target).value)">
-        <option value="">Any</option>
-        <option value="1">1+</option>
-        <option value="2">2+</option>
-        <option value="3">3+</option>
-        <option value="4">4+</option>
-        <option value="5">5+</option>
-      </select>
-    </label>
+    <form id="library-advanced-filters" class="library__filters" [class.is-open]="filtersOpen()" [attr.aria-hidden]="!filtersOpen()">
+      <label>
+        Game type
+        <select [value]="filters().gameType ?? ''" (change)="onGameType($any($event.target).value)">
+          <option value="">All</option>
+          <option value="VideoGame">Video games</option>
+          <option value="BoardGame">Board games</option>
+        </select>
+      </label>
+
+      <label>
+        Acquisition status
+        <select multiple (change)="onAcquisitionStatuses($event)">
+          @for (status of acquisitionStatuses; track status) {
+            <option [value]="status" [selected]="filters().acquisitionStatuses.includes(status)">{{ status }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Minimum rating
+        <select [value]="filters().ratingMin ?? ''" (change)="onRatingMin($any($event.target).value)">
+          <option value="">Any</option>
+          <option value="1">1+</option>
+          <option value="2">2+</option>
+          <option value="3">3+</option>
+          <option value="4">4+</option>
+          <option value="5">5+</option>
+        </select>
+      </label>
 
     @if (showVideoFilters()) {
       <fieldset>
@@ -96,33 +122,24 @@
       </fieldset>
     }
 
-    <label>
-      Sort
-      <select [value]="sort()" (change)="onSort($any($event.target).value)">
-        @for (option of sorts; track option.value) {
-          <option [value]="option.value">{{ option.label }}</option>
-        }
-      </select>
-    </label>
-
-    <button type="button" (click)="clearFilters()">Clear filters</button>
-  </form>
+    </form>
+  </section>
 
   @if (loading()) {
     <p class="library__status">Loading...</p>
   } @else if (error()) {
     <p class="library__error" role="alert">{{ error() }}</p>
-    <button type="button" (click)="load()">Try again</button>
+    <button type="button" class="button button--secondary" (click)="load()">Try again</button>
   } @else if (items().length === 0 && !hasActiveCriteria()) {
-    <div class="library__empty">
+    <div class="library__empty surface-card">
       <p>No games in your library yet.</p>
       <a routerLink="/video-games">Add video games</a>
       <a routerLink="/board-games">Add board games</a>
     </div>
   } @else if (items().length === 0) {
-    <div class="library__empty">
+    <div class="library__empty surface-card">
       <p>No games match your search and filters.</p>
-      <button type="button" (click)="clearFilters()">Clear filters</button>
+      <button type="button" class="button button--secondary" (click)="clearFilters()">Clear filters</button>
     </div>
   } @else {
     <ul class="library__cards">
@@ -136,7 +153,7 @@
           <div class="library-card__body">
             <div class="library-card__title-row">
               <h2>{{ item.name }}</h2>
-              <span>{{ item.gameType === 'VideoGame' ? 'Video game' : 'Board game' }}</span>
+              <span class="game-type-chip library-card__type">{{ item.gameType === 'VideoGame' ? 'Video game' : 'Board game' }}</span>
             </div>
             <p>{{ item.acquisitionStatus }}</p>
             @if (item.rating !== null) {
@@ -167,7 +184,7 @@
                 <p>{{ item.interactionType }}</p>
               }
             }
-            <button type="button" (click)="edit(item)">Edit</button>
+            <button type="button" class="button button--secondary" (click)="edit(item)">Edit</button>
           </div>
         </li>
       }

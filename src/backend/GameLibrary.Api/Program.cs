@@ -1,3 +1,4 @@
+using GameLibrary.Api.E2E;
 using GameLibrary.Core.Data;
 using GameLibrary.Core.Games;
 using GameLibrary.Core.Libraries;
@@ -17,8 +18,12 @@ builder.Services.AddScoped<VideoGameService>();
 builder.Services.AddScoped<BoardGameService>();
 builder.Services.AddScoped<RandomPickerService>();
 
-var connectionString = builder.Configuration.GetConnectionString("Default")
-    ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured.");
+var e2eModeEnabled = E2eTestMode.IsEnabled(builder.Configuration, builder.Environment);
+var connectionString = e2eModeEnabled
+    ? builder.Configuration.GetConnectionString("E2E")
+        ?? throw new InvalidOperationException("ConnectionStrings:E2E is required when E2E auth is enabled.")
+    : builder.Configuration.GetConnectionString("Default")
+        ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured.");
 builder.Services.AddDbContext<GameLibraryDbContext>(options =>
     options.UseNpgsql(connectionString));
 
@@ -38,14 +43,23 @@ builder.Services
     .AddJwtBearer(options =>
     {
         options.MapInboundClaims = false;
-        options.TokenValidationParameters.ValidAudiences = builder.Configuration
-            .GetSection("Authentication:Schemes:Bearer:TokenValidationParameters:ValidAudiences")
-            .Get<string[]>();
-        options.TokenValidationParameters.ValidAlgorithms =
-        [
-            SecurityAlgorithms.EcdsaSha256,
-            SecurityAlgorithms.RsaSha256,
-        ];
+        if (e2eModeEnabled)
+        {
+            options.MetadataAddress = string.Empty;
+            options.RequireHttpsMetadata = false;
+            options.TokenValidationParameters = E2eTestMode.TokenValidationParameters(builder.Configuration);
+        }
+        else
+        {
+            options.TokenValidationParameters.ValidAudiences = builder.Configuration
+                .GetSection("Authentication:Schemes:Bearer:TokenValidationParameters:ValidAudiences")
+                .Get<string[]>();
+            options.TokenValidationParameters.ValidAlgorithms =
+            [
+                SecurityAlgorithms.EcdsaSha256,
+                SecurityAlgorithms.RsaSha256,
+            ];
+        }
     });
 builder.Services.AddAuthorization();
 

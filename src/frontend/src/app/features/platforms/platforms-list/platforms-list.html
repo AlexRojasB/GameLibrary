@@ -8,21 +8,21 @@
     <p class="platforms__status">Loading…</p>
   } @else if (loadError()) {
     <p class="platforms__error" role="alert">Unable to load your platforms.</p>
-    <button type="button" (click)="load()">Try again</button>
+    <button type="button" class="button button--secondary" (click)="load()">Try again</button>
   } @else if (platforms().length === 0) {
     <p class="platforms__status">No platforms yet.</p>
-    <button type="button" (click)="openCreate()">Add your first platform</button>
+    <button type="button" class="button button--primary" (click)="openCreate()">Add your first platform</button>
   } @else {
     <ul class="platforms__list">
       @for (platform of platforms(); track platform.id) {
         <li class="platforms__item">
           <span>{{ platform.name }}</span>
-          <button type="button" (click)="openEdit(platform)">Edit</button>
-          <button type="button" (click)="onDelete(platform)">Delete</button>
+          <button type="button" class="button button--secondary" (click)="openEdit(platform)">Edit</button>
+          <button type="button" class="button button--danger" (click)="onDelete(platform)">Delete</button>
         </li>
       }
     </ul>
-    <button type="button" (click)="openCreate()">Add platform</button>
+    <button type="button" class="button button--primary" (click)="openCreate()">Add platform</button>
   }
 
   @if (notice()) {

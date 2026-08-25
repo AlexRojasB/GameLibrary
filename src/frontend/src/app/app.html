@@ -1,3 +1,44 @@
-<main>
-  <router-outlet />
-</main>
+@if (showShell) {
+  <div class="app-shell">
+    <header class="app-shell__topbar">
+      <a class="app-shell__brand" routerLink="/" aria-label="Game Library home">
+        <span class="app-shell__mark" aria-hidden="true">GL</span>
+        <span>
+          <strong>Game Library</strong>
+          <small>Play Shelf</small>
+        </span>
+      </a>
+
+      <nav class="app-shell__desktop-nav" aria-label="Primary navigation">
+        <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+        <a routerLink="/library" routerLinkActive="is-active">Library</a>
+        <a routerLink="/random-picker" routerLinkActive="is-active">Pick</a>
+        <a routerLink="/manage" [class.is-active]="isManageActive()">Manage</a>
+      </nav>
+
+      <div class="app-shell__account">
+        @if (email()) {
+          <span>{{ email() }}</span>
+        }
+        <button type="button" class="button button--ghost" (click)="onLogout()" [disabled]="signingOut()">
+          {{ signingOut() ? 'Signing out...' : 'Log out' }}
+        </button>
+      </div>
+    </header>
+
+    <main class="app-shell__content">
+      <router-outlet />
+    </main>
+
+    <nav class="app-shell__mobile-nav" aria-label="Primary navigation">
+      <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+      <a routerLink="/library" routerLinkActive="is-active">Library</a>
+      <a routerLink="/random-picker" routerLinkActive="is-active">Pick</a>
+      <a routerLink="/manage" [class.is-active]="isManageActive()">Manage</a>
+    </nav>
+  </div>
+} @else {
+  <main class="app-auth">
+    <router-outlet />
+  </main>
+}

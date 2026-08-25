@@ -130,6 +130,38 @@ describe('VideoGameForm', () => {
     ]);
   });
 
+  it('orders shared form fields before game-specific details', () => {
+    configure();
+    flushOptions([steam], [action]);
+
+    const root = fixture.nativeElement as HTMLElement;
+    const orderedIds = [
+      'game-form-name',
+      'game-form-cover',
+      'game-form-acquisition',
+      'game-form-status',
+      'game-form-minimum-players',
+      'game-form-rating',
+      'game-form-notes',
+    ];
+    const positions = orderedIds.map((id) => {
+      const element = root.querySelector(`#${id}`);
+      if (element === null) {
+        throw new Error(`Missing #${id}`);
+      }
+      return [...root.querySelectorAll('input, select, textarea')].indexOf(element);
+    });
+
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+
+  it('renders platform and genre choices as checkbox cards', () => {
+    configure();
+    flushOptions([steam], [action]);
+
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.game-form__check-card').length).toBe(2);
+  });
+
   it('does not preselect a Platform when the user has more than one', () => {
     configure();
     flushOptions([steam, xbox], [action]);

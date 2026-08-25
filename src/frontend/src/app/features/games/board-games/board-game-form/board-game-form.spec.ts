@@ -92,6 +92,30 @@ describe('BoardGameForm', () => {
     ]);
   });
 
+  it('orders shared form fields before board-game play details', () => {
+    configure();
+
+    const root = fixture.nativeElement as HTMLElement;
+    const orderedIds = [
+      'board-game-form-name',
+      'board-game-form-cover',
+      'board-game-form-acquisition',
+      'board-game-form-minimum',
+      'board-game-form-duration',
+      'board-game-form-rating',
+      'board-game-form-notes',
+    ];
+    const positions = orderedIds.map((id) => {
+      const element = root.querySelector(`#${id}`);
+      if (element === null) {
+        throw new Error(`Missing #${id}`);
+      }
+      return [...root.querySelectorAll('input, select, textarea')].indexOf(element);
+    });
+
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+
   it('does not require changing the default InteractionType or setting duration to save', () => {
     configure();
     const emitted = collectSubmitted();

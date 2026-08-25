@@ -1,6 +1,8 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Session } from '@supabase/supabase-js';
 
+import { environment } from '../../../environments/environment';
+
 import { SUPABASE_CLIENT } from './supabase-client';
 
 export class AuthServiceError extends Error {}
@@ -8,6 +10,8 @@ export class AuthServiceError extends Error {}
 export interface SignUpResult {
   needsEmailConfirmation: boolean;
 }
+
+const e2eStorageKey = 'game-library-e2e-session';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -30,6 +34,11 @@ export class AuthService {
   }
 
   async signIn(email: string, password: string): Promise<void> {
+    if (environment.e2e.enabled) {
+      await this.signInE2e(email, password);
+      return;
+    }
+
     try {
       const { data, error } = await this.supabase.auth.signInWithPassword({ email, password });
       if (error) {
@@ -54,6 +63,12 @@ export class AuthService {
   }
 
   async signOut(): Promise<void> {
+    if (environment.e2e.enabled) {
+      this.authSession.set(null);
+      localStorage.removeItem(e2eStorageKey);
+      return;
+    }
+
     try {
       const { error } = await this.supabase.auth.signOut();
       if (error) {
@@ -66,9 +81,17 @@ export class AuthService {
 
   clearLocalSession(): void {
     this.authSession.set(null);
+    if (environment.e2e.enabled) {
+      localStorage.removeItem(e2eStorageKey);
+    }
   }
 
   private async doInitialize(): Promise<void> {
+    if (environment.e2e.enabled) {
+      this.authSession.set(readE2eSession());
+      return;
+    }
+
     try {
       this.supabase.auth.onAuthStateChange((_event, session) => {
         this.authSession.set(session);
@@ -79,6 +102,63 @@ export class AuthService {
       this.authSession.set(null);
     }
   }
+
+  private async signInE2e(email: string, password: string): Promise<void> {
+    try {
+      const response = await fetch(`${environment.apiBaseUrl}/e2e/auth/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!response.ok) {
+        throw new Error(`E2E auth failed with ${response.status}.`);
+      }
+      const body = (await response.json()) as E2eSessionResponse;
+      const session = makeE2eSession(body);
+      localStorage.setItem(e2eStorageKey, JSON.stringify(session));
+      this.authSession.set(session);
+    } catch (error) {
+      throw new AuthServiceError(normalizeAuthError(error));
+    }
+  }
+}
+
+interface E2eSessionResponse {
+  accessToken: string;
+  userId: string;
+  email: string;
+  expiresAt: number;
+}
+
+function readE2eSession(): Session | null {
+  const raw = localStorage.getItem(e2eStorageKey);
+  if (raw === null) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw) as Session;
+  } catch {
+    localStorage.removeItem(e2eStorageKey);
+    return null;
+  }
+}
+
+function makeE2eSession(response: E2eSessionResponse): Session {
+  return {
+    access_token: response.accessToken,
+    refresh_token: 'e2e-refresh-token',
+    expires_in: Math.max(response.expiresAt - Math.floor(Date.now() / 1000), 0),
+    expires_at: response.expiresAt,
+    token_type: 'bearer',
+    user: {
+      id: response.userId,
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'authenticated',
+      created_at: new Date(0).toISOString(),
+      email: response.email,
+    },
+  } as Session;
 }
 
 function normalizeAuthError(error: unknown): string {

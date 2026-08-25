@@ -10,6 +10,7 @@ import { VideoGamesList } from './features/games/video-games-list/video-games-li
 import { BoardGamesList } from './features/games/board-games/board-games-list/board-games-list';
 import { LibraryPage } from './features/library/library-page/library-page';
 import { RandomPickerPage } from './features/random-picker/random-picker-page/random-picker-page';
+import { ManageHub } from './features/manage/manage-hub';
 
 export const routes: Routes = [
   { path: '', component: Home, canActivate: [authGuard] },
@@ -18,6 +19,7 @@ export const routes: Routes = [
   { path: 'health', component: HealthCheck },
   { path: 'library', component: LibraryPage, canActivate: [authGuard] },
   { path: 'random-picker', component: RandomPickerPage, canActivate: [authGuard] },
+  { path: 'manage', component: ManageHub, canActivate: [authGuard] },
   { path: 'platforms', component: PlatformsList, canActivate: [authGuard] },
   { path: 'video-games', component: VideoGamesList, canActivate: [authGuard] },
   { path: 'board-games', component: BoardGamesList, canActivate: [authGuard] },

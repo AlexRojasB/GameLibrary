@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 
@@ -17,17 +17,13 @@ type MeState = 'loading' | 'ok' | 'expired' | 'error';
 export class Home {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
 
   protected readonly meState = signal<MeState>('loading');
-  protected readonly userId = signal('');
   protected readonly email = computed(() => this.auth.session()?.user.email ?? '');
-  protected readonly signingOut = signal(false);
 
   constructor() {
     this.http.get<{ userId: string }>(`${environment.apiBaseUrl}/auth/me`).subscribe({
-      next: (body) => {
-        this.userId.set(body.userId);
+      next: () => {
         this.meState.set('ok');
       },
       error: (error: HttpErrorResponse) => {
@@ -41,13 +37,4 @@ export class Home {
     });
   }
 
-  async onLogout(): Promise<void> {
-    this.signingOut.set(true);
-    try {
-      await this.auth.signOut();
-    } finally {
-      this.signingOut.set(false);
-    }
-    await this.router.navigateByUrl('/login');
-  }
 }

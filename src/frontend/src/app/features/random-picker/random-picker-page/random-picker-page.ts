@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import type { InteractionType } from '../../games/board-game';
@@ -29,7 +29,7 @@ const MODES: { value: RandomPickerMode; label: string }[] = [
 
 @Component({
   selector: 'app-random-picker-page',
-  imports: [RouterLink],
+  imports: [],
   templateUrl: './random-picker-page.html',
   styleUrl: './random-picker-page.scss',
 })
@@ -50,6 +50,15 @@ export class RandomPickerPage {
   protected readonly shownLibraryEntryIds = signal<string[]>([]);
   protected readonly platforms = signal<Platform[]>([]);
   protected readonly genres = signal<Genre[]>([]);
+  protected readonly filtersOpen = signal(false);
+  protected readonly filterSummary = computed(() => filterSummary(this.mode(), this.filters()));
+  protected readonly historyItems = computed(() => {
+    const current = this.currentResult();
+    if (current === null) {
+      return this.visibleHistory();
+    }
+    return this.visibleHistory().filter((item) => item.libraryEntryId !== current.libraryEntryId);
+  });
 
   protected readonly modes = MODES;
   protected readonly gameStatuses = GAME_STATUSES;
@@ -107,10 +116,41 @@ export class RandomPickerPage {
     this.clearDisplayedResult();
   }
 
+  protected toggleFilters(): void {
+    this.filtersOpen.update((open) => !open);
+  }
+
   protected resetShownHistory(): void {
     this.shownLibraryEntryIds.set([]);
     this.visibleHistory.set([]);
     this.clearDisplayedResult();
+  }
+
+  protected metadata(item: RandomPickerItem): string[] {
+    const details: string[] = [];
+    const players = this.playerRange(item);
+    if (players) {
+      details.push(players);
+    }
+    if (item.rating !== null) {
+      details.push(`Rating: ${item.rating}`);
+    }
+    if (item.gameType === 'VideoGame') {
+      if (item.gameStatus !== null) {
+        details.push(item.gameStatus);
+      }
+      if (item.progressPercentage !== null) {
+        details.push(`${item.progressPercentage}% progress`);
+      }
+      return details;
+    }
+    if (item.approximateDuration !== null) {
+      details.push(`${item.approximateDuration} min`);
+    }
+    if (item.interactionType !== null) {
+      details.push(item.interactionType);
+    }
+    return details;
   }
 
   protected edit(item: RandomPickerItem): void {
@@ -259,6 +299,29 @@ function filtersForMode(mode: RandomPickerMode, current: RandomPickerFilters): R
     ratingMin: current.ratingMin,
     playerCount: current.playerCount,
   };
+}
+
+function filterSummary(mode: RandomPickerMode, filters: RandomPickerFilters): string {
+  const active = activeFilterCount(mode, filters);
+  if (active === 0) {
+    return 'No picker filters active.';
+  }
+  return `${active} picker filter${active === 1 ? '' : 's'} active.`;
+}
+
+function activeFilterCount(mode: RandomPickerMode, filters: RandomPickerFilters): number {
+  if (mode === 'VideoGames') {
+    return [
+      filters.platformIds.length > 0,
+      filters.genreIds.length > 0,
+      filters.gameStatuses.length > 0,
+      filters.playerCount !== null,
+    ].filter(Boolean).length;
+  }
+  if (mode === 'BoardGames') {
+    return [filters.playerCount !== null, filters.availableDuration !== null, filters.interactionTypes.length > 0].filter(Boolean).length;
+  }
+  return [filters.ratingMin !== null, filters.playerCount !== null].filter(Boolean).length;
 }
 
 function selectedValues(event: Event): string[] {

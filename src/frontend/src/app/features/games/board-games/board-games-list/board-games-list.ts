@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../../core/auth/auth.service';
@@ -15,6 +15,7 @@ import { BoardGameForm } from '../board-game-form/board-game-form';
   styleUrl: './board-games-list.scss',
 })
 export class BoardGamesList {
+  private readonly formDialog = viewChild<ElementRef<HTMLDialogElement>>('formDialog');
   private readonly boardGamesService = inject(BoardGamesService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
@@ -26,6 +27,7 @@ export class BoardGamesList {
   protected readonly editingGame = signal<BoardGame | null>(null);
   protected readonly formError = signal('');
   protected readonly notice = signal('');
+  private returnFocusTo: HTMLElement | null = null;
 
   constructor() {
     this.load();
@@ -53,18 +55,39 @@ export class BoardGamesList {
   openCreate(): void {
     this.editingGame.set(null);
     this.formError.set('');
-    this.formOpen.set(true);
+    this.openForm();
   }
 
   openEdit(game: BoardGame): void {
     this.editingGame.set(game);
     this.formError.set('');
-    this.formOpen.set(true);
+    this.openForm();
   }
 
   closeForm(): void {
+    const dialog = this.formDialog()?.nativeElement;
+    if (dialog?.open) {
+      if (typeof dialog.close === 'function') {
+        dialog.close();
+      } else {
+        dialog.removeAttribute('open');
+      }
+    }
     this.formOpen.set(false);
     this.formError.set('');
+    this.returnFocusTo?.focus();
+    this.returnFocusTo = null;
+  }
+
+  protected onDialogCancel(event: Event): void {
+    event.preventDefault();
+    this.closeForm();
+  }
+
+  protected onDialogBackdropClick(event: MouseEvent): void {
+    if (event.target === this.formDialog()?.nativeElement) {
+      this.closeForm();
+    }
   }
 
   onSubmit(input: BoardGameInput): void {
@@ -103,6 +126,21 @@ export class BoardGamesList {
       return '1 player';
     }
     return `${game.minimumPlayers}–${game.maximumPlayers} players`;
+  }
+
+  private openForm(): void {
+    this.returnFocusTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    this.formOpen.set(true);
+    queueMicrotask(() => {
+      const dialog = this.formDialog()?.nativeElement;
+      if (dialog !== undefined && !dialog.open) {
+        if (typeof dialog.showModal === 'function') {
+          dialog.showModal();
+        } else {
+          dialog.setAttribute('open', '');
+        }
+      }
+    });
   }
 
   private createGame(input: BoardGameInput): void {
