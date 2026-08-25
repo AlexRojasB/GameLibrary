@@ -240,7 +240,7 @@ export class VideoGamesList {
     });
   }
 
-  private handleSessionExpired(): void {
+  protected handleSessionExpired(): void {
     this.auth.clearLocalSession();
     void this.router.navigateByUrl('/login');
   }

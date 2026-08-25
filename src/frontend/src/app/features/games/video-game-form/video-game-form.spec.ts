@@ -162,6 +162,20 @@ describe('VideoGameForm', () => {
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('.game-form__check-card').length).toBe(2);
   });
 
+  it('renders cover search in add mode without searching automatically', () => {
+    configure();
+    flushOptions([steam], [action]);
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Search cover');
+  });
+
+  it('renders cover search in edit mode without searching automatically', () => {
+    configure(ownedGame);
+    flushOptions([steam], [action]);
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Search cover');
+  });
+
   it('does not preselect a Platform when the user has more than one', () => {
     configure();
     flushOptions([steam, xbox], [action]);

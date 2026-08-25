@@ -1,4 +1,7 @@
 using GameLibrary.Api.E2E;
+using GameLibrary.Api.CoverImages;
+using GameLibrary.Api.Auth;
+using GameLibrary.Core.CoverImages;
 using GameLibrary.Core.Data;
 using GameLibrary.Core.Games;
 using GameLibrary.Core.Libraries;
@@ -6,8 +9,10 @@ using GameLibrary.Core.PlayLog;
 using GameLibrary.Core.Platforms;
 using GameLibrary.Core.RandomPicker;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +24,8 @@ builder.Services.AddScoped<VideoGameService>();
 builder.Services.AddScoped<BoardGameService>();
 builder.Services.AddScoped<RandomPickerService>();
 builder.Services.AddScoped<PlayLogService>();
+builder.Services.AddScoped<CoverImageSearchService>();
+builder.Services.Configure<CoverImageSearchOptions>(builder.Configuration.GetSection("CoverImageSearch"));
 
 var e2eModeEnabled = E2eTestMode.IsEnabled(builder.Configuration, builder.Environment);
 var connectionString = e2eModeEnabled
@@ -28,6 +35,34 @@ var connectionString = e2eModeEnabled
         ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured.");
 builder.Services.AddDbContext<GameLibraryDbContext>(options =>
     options.UseNpgsql(connectionString));
+
+if (e2eModeEnabled && builder.Configuration.GetValue<bool>("E2E:CoverImageSearch:Enabled"))
+{
+    builder.Services.AddScoped<ICoverImageSearchClient, E2eCoverImageSearchClient>();
+}
+else
+{
+    builder.Services.AddHttpClient<ICoverImageSearchClient, BraveCoverImageSearchClient>((services, client) =>
+    {
+        var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<CoverImageSearchOptions>>().CurrentValue;
+        client.Timeout = TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 1, 30));
+    });
+}
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("CoverImageSearch", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.User.GetSupabaseUserId() ?? "anonymous",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true,
+            }));
+});
 
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
@@ -85,6 +120,7 @@ app.UseExceptionHandler(exceptionHandlerApp =>
 app.UseCors("Frontend");
 
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();

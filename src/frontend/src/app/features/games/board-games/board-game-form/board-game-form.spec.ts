@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormGroup } from '@angular/forms';
 
@@ -21,15 +23,18 @@ const ownedGame: BoardGame = {
 
 describe('BoardGameForm', () => {
   let fixture: ComponentFixture<BoardGameForm>;
+  let httpMock: HttpTestingController;
 
   function configure(game: BoardGame | null = null): void {
     TestBed.configureTestingModule({
       imports: [BoardGameForm],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     fixture = TestBed.createComponent(BoardGameForm);
     fixture.componentRef.setInput('game', game);
     fixture.componentRef.setInput('submitLabel', 'Save');
     fixture.detectChanges();
+    httpMock = TestBed.inject(HttpTestingController);
   }
 
   function collectSubmitted(): BoardGameInput[] {
@@ -67,6 +72,10 @@ describe('BoardGameForm', () => {
     select.dispatchEvent(new Event('change'));
     fixture.detectChanges();
   }
+
+  afterEach(() => {
+    httpMock.verify();
+  });
 
   it('quick-adds an Owned board game with the approved default interaction type', () => {
     configure();
@@ -114,6 +123,18 @@ describe('BoardGameForm', () => {
     });
 
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+
+  it('renders cover search in add mode without searching automatically', () => {
+    configure();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Search cover');
+  });
+
+  it('renders cover search in edit mode without searching automatically', () => {
+    configure(ownedGame);
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Search cover');
   });
 
   it('does not require changing the default InteractionType or setting duration to save', () => {

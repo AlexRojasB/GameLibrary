@@ -12,7 +12,7 @@ export default defineConfig({
   webServer: [
     {
       command:
-        'ASPNETCORE_ENVIRONMENT=Development E2E__Auth__Enabled=true AllowedOrigins__0=http://127.0.0.1:4200 dotnet run --project ../backend/GameLibrary.Api/GameLibrary.Api.csproj --urls http://localhost:5218',
+        'ASPNETCORE_ENVIRONMENT=Development E2E__Auth__Enabled=true E2E__CoverImageSearch__Enabled=true AllowedOrigins__0=http://127.0.0.1:4200 dotnet run --project ../backend/GameLibrary.Api/GameLibrary.Api.csproj --urls http://localhost:5218',
       url: 'http://localhost:5218/health',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

@@ -32,6 +32,14 @@ creation, but may not change the associated game, ownership or CreatedAt. Play
 Log is promoted to authenticated desktop primary navigation while mobile bottom
 navigation remains Home, Library, Pick and Manage.
 
+Feature 010 amendment, 2026-08-24:
+
+CoverImageUrl remains the persisted cover model. Users may continue to manually
+paste, edit and clear cover image URLs. The product may also offer optional,
+explicitly user-triggered external cover-image search assistance that returns
+visual candidates for the user to inspect and select. Selecting a candidate only
+fills the existing CoverImageUrl field; normal game saving remains separate.
+
 1. Product Vision
 
 Game Library is a responsive Progressive Web App (PWA) for managing a
@@ -333,7 +341,14 @@ Notes apply to the game as a whole and are not platform-specific.
 
 Cover images are optional.
 
-For the MVP, a cover is supplied only as an optional image URL.
+For the MVP, a cover is stored only as an optional image URL.
+
+The user may manually paste, edit or clear that URL. The UI may optionally help
+the user find a cover by making an explicit authenticated search request and
+letting the user select one returned image URL.
+
+Cover search is assistance only. It must not automatically run while browsing,
+typing or opening forms, and it must not automatically save a game.
 
 There is no image upload or managed image storage in the MVP.
 
@@ -748,6 +763,8 @@ Owned / Wishlist / Interested.
 
 Optional cover image URL.
 
+Optional cover image search assistance for choosing a CoverImageUrl.
+
 Library search/filter/sort.
 
 Random Picker for VideoGames.
@@ -781,6 +798,9 @@ Favorites.
 Custom genres.
 
 Image upload or managed image storage.
+
+Automatic cover search, cover downloads, image generation, reverse-image search,
+or stored cover-search history.
 
 External platform integrations.
 

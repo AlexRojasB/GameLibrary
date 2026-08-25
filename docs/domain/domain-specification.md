@@ -24,6 +24,13 @@ CreatedAt remains server-assigned. Users may correct PlayedAt and
 DurationMinutes after creation, but PlayLogEntry ownership and associated game do
 not change. The ownership path remains PlayLogEntry -> LibraryEntry -> Library.
 
+Feature 010 amendment, 2026-08-24:
+
+CoverImageUrl remains the only persisted cover-image domain data. A user may
+enter the URL directly or choose a URL from optional external cover-search
+assistance, but search candidates, provider metadata and search history are not
+domain entities and are not persisted.
+
 1. Purpose
 
 This document defines the core domain terminology, relationships,
@@ -406,7 +413,13 @@ CoverImageUrl belongs to Game and is optional.
 
 For the MVP:
 
-It is supplied manually as an image URL.
+It is stored as an image URL.
+
+It may be supplied by manual URL entry or by the user selecting a URL from
+external cover-search assistance.
+
+Only the selected URL is persisted; cover-search candidates, provider metadata and
+search history are not domain concepts.
 
 Image upload is unsupported.
 
