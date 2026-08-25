@@ -4,7 +4,7 @@ Personal game library web application. Angular PWA frontend, ASP.NET Core Web AP
 
 ## Status
 
-Feature 009 (Play Log) is implemented. The Angular app uses the Play Shelf shell with desktop top navigation, mobile bottom navigation, a protected `/manage` hub, polished Library and Random Picker mobile filters, dialog/sheet add-edit flows for VideoGames and BoardGames, Playwright E2E smoke coverage, and a protected `/play-log` screen. Features 001–008 are preserved, including Supabase auth/JWT validation, platform management, VideoGame/BoardGame CRUD, Library browse/search/filter/sort, Random Picker result states/history semantics, domain invariants, and cross-user isolation.
+Feature 010 (Cover Image Search) is implemented. The app supports explicit cover-image search assistance in VideoGame and BoardGame Add/Edit dialogs, backed by the Game Library API and optional Brave Search Image API configuration. Manual CoverImageUrl entry remains available and the application works without a Brave API key. Features 001–009 are preserved, including Supabase auth/JWT validation, platform management, VideoGame/BoardGame CRUD, Library browse/search/filter/sort, Random Picker result states/history semantics, Play Shelf UX/PWA/E2E, Play Log, domain invariants, and cross-user isolation.
 
 ## Documentation
 
@@ -148,6 +148,31 @@ Copy-Item src/backend/GameLibrary.Api/appsettings.Development.example.json src/b
 ```
 
 `AllowedOrigins` is the CORS allow-list (dev default: the Angular dev origin `http://localhost:4200`). The CORS policy is never unrestricted.
+
+### Optional Cover Image Search Provider
+
+Cover image search uses the Brave Search Image API through the backend only. Angular never receives provider credentials and never calls Brave directly.
+
+Real provider search is optional. The API and all existing CRUD/library/random-picker/play-log/manual CoverImageUrl flows start and work without a Brave key; only `POST /cover-images/search` returns `503` with `Cover image search is not configured.` when provider configuration is missing.
+
+Configure a real Brave provider through user-secrets, environment variables, or deployment secrets:
+
+```
+CoverImageSearch__Provider=Brave
+CoverImageSearch__Brave__ApiKey=<secret subscription token>
+```
+
+Optional defaults:
+
+```
+CoverImageSearch__Brave__BaseUrl=https://api.search.brave.com/res/v1/images/search
+CoverImageSearch__Brave__Country=US
+CoverImageSearch__Brave__SearchLanguage=en
+CoverImageSearch__Brave__Count=5
+CoverImageSearch__TimeoutSeconds=5
+```
+
+SafeSearch is always sent to Brave as `strict` by backend code. There is no frontend SafeSearch parameter and no configuration value can make the provider request unsafe. Automated tests and Playwright E2E use deterministic provider substitution and do not require or consume a real Brave API key.
 
 ## Authentication (Feature 002)
 
@@ -342,10 +367,10 @@ Run Playwright E2E with a real isolated PostgreSQL database in `ConnectionString
 
 ```
 cd src/frontend
-ConnectionStrings__E2E="Host=127.0.0.1;Port=5433;Database=game_library_e2e;Username=postgres;Password=postgres" npm run e2e
+ConnectionStrings__E2E="Host=127.0.0.1;Port=5433;Database=game_library_e2e;Username=postgres;Password=<password>" npm run e2e
 ```
 
-Playwright starts the real ASP.NET Core API with `E2E__Auth__Enabled=true`, starts Angular with the `e2e` configuration, resets/seeds before each test, then exercises login, shell navigation, Library filters, management dialogs, and Random Picker history behavior.
+Playwright starts the real ASP.NET Core API with `E2E__Auth__Enabled=true` and `E2E__CoverImageSearch__Enabled=true`, starts Angular with the `e2e` configuration, resets/seeds before each test, then exercises login, shell navigation, Library filters, management dialogs, deterministic cover search, and Random Picker history behavior.
 
 ## Play Log (Feature 009)
 
@@ -397,6 +422,34 @@ Behavior:
 - Feature 009 does not add delete, changing the associated game, notes, scores, participants, analytics, PlaySession, or persistent Random Picker history.
 
 Schema: migration `20260825025118_AddPlayLogEntries` adds `play_log_entries` with `id uuid primary key`, `library_entry_id uuid not null`, `played_at timestamp with time zone not null`, and `created_at timestamp with time zone not null`. Migration `20260825034331_AddPlayLogDurationMinutes` adds nullable `duration_minutes integer` with a positive-value CHECK constraint. `library_entry_id` references `library_entries.id` with `ON DELETE CASCADE`, and `ix_play_log_entries_library_entry_id` supports joins/cascades. No `library_id` column exists on `play_log_entries`; ownership derives through `PlayLogEntry -> LibraryEntry -> Library`.
+
+## Cover Image Search (Feature 010)
+
+`POST /cover-images/search` is an authenticated, non-persisting endpoint for cover-search assistance. It accepts only structured fields:
+
+```json
+{
+  "gameType": "VideoGame",
+  "name": "Resident Evil 4",
+  "platformName": "PlayStation 5"
+}
+```
+
+BoardGame requests omit `platformName`. The API rejects user IDs, library IDs, raw provider queries, and provider options by contract. Validation trims `name` and optional `platformName`, requires a non-empty name, enforces 100-character limits, accepts only exact `VideoGame`/`BoardGame`, rejects `platformName` for BoardGame, and returns ProblemDetails with title `Invalid cover image search` for validation failures.
+
+Query construction is backend-owned:
+
+- VideoGame with one/effective Platform: `"<Name>" "<Platform>" game cover`.
+- VideoGame without Platform: `"<Name>" video game cover`.
+- BoardGame: `"<Name>" board game cover`.
+
+The backend normalizes Brave results to at most five candidates containing only `imageUrl`, optional `thumbnailUrl`, optional `sourcePageUrl`, optional `sourceName`, and optional dimensions. It filters unusable image URLs, allows only `http`/`https`, caps selected URL length at 2048 compatibility, deduplicates by `imageUrl`, and preserves provider order.
+
+The endpoint is protected by ASP.NET Core built-in rate limiting: 10 searches per minute per authenticated JWT `sub`, queue size 0, returning `429` when exceeded. Missing provider configuration, provider timeout, and provider failure return `503` with stable readable details. Search does not read or mutate application tables and does not create Library rows.
+
+Frontend Add/Edit dialogs keep the manual `Cover image URL` field. `Search cover` is explicitly user-triggered, shows loading/error/zero-result states, renders up to five visual cards, uses source/dimension metadata when available, disables broken-preview candidates, and updates only the existing CoverImageUrl form control when selected. Typing Name or changing Platforms never auto-searches. Changing query-driving context after a completed search clears stale candidates and selection markers without clearing CoverImageUrl, and stale in-flight responses are ignored.
+
+Playwright E2E uses explicit non-Production `E2E__CoverImageSearch__Enabled=true` provider substitution through DI. It is not a public fake-provider endpoint, is unavailable in Production, and does not call Brave or third-party image hosts.
 
 Verification:
 
@@ -469,7 +522,7 @@ Backend tests (integration tests require `ConnectionStrings:Test` pointing at a 
 
 ```
 dotnet test tests/backend/GameLibrary.Core.Tests
-ConnectionStrings__Test="Host=127.0.0.1;Port=5433;Database=game_library_test;Username=postgres;Password=postgres" dotnet test tests/backend/GameLibrary.IntegrationTests
+ConnectionStrings__Test="Host=127.0.0.1;Port=5433;Database=game_library_test;Username=postgres;Password=<password>" dotnet test tests/backend/GameLibrary.IntegrationTests
 ```
 
 Frontend tests:
@@ -490,7 +543,7 @@ Frontend E2E:
 
 ```
 cd src/frontend
-ConnectionStrings__E2E="Host=127.0.0.1;Port=5433;Database=game_library_e2e;Username=postgres;Password=postgres" npm run e2e
+ConnectionStrings__E2E="Host=127.0.0.1;Port=5433;Database=game_library_e2e;Username=postgres;Password=<password>" npm run e2e
 ```
 
 Backend build:
@@ -508,8 +561,8 @@ ng build
 
 ## Notes
 
-- The initial migration is intentionally empty: it establishes the EF migration infrastructure and verifies connectivity, not a domain artifact. The `AddPlatformManagement` migration (Feature 003) creates the `libraries` and `platforms` tables with the unique `user_id` index, the unique `(library_id, name_normalized)` index, and the `platforms.library_id → libraries.id` foreign key (`ON DELETE RESTRICT`). The `AddVideoGameManagement` migration (Feature 004) adds `games`, `library_entries`, `genres`, `game_genres`, and `game_platforms`. The `AddBoardGameManagement` migration (Feature 005) adds the four BoardGame columns and their CHECK constraints to the existing `games` table. The `AddPlayLogEntries` migration (Feature 009) adds `play_log_entries` only.
-- Backend unit tests (`tests/backend/GameLibrary.Core.Tests`) cover the domain/application rules (`VideoGameRules`, `BoardGameRules`, `LibraryFilterRules`, `RandomPickerRules`, and `PlayLogRules`). Platform, VideoGame, BoardGame, Library, Random Picker, and Play Log integration tests run against real PostgreSQL via `ConnectionStrings:Test` and include two-user isolation, duplicate/lifecycle behavior, acquisition transitions, cross-type safety, relational CHECK backstops, literal search semantics, library filter/sort behavior, Random Picker eligibility/result states/shown-history exclusion, Play Log caller scoping, Owned-only logging, cascade deletion, request validation, and schema assertions. `DatabaseMigrationTests` asserts the `public` schema contains exactly `__EFMigrationsHistory`, `libraries`, `platforms`, `games`, `library_entries`, `genres`, `game_genres`, `game_platforms`, and `play_log_entries` (order-independent).
+- The initial migration is intentionally empty: it establishes the EF migration infrastructure and verifies connectivity, not a domain artifact. The `AddPlatformManagement` migration (Feature 003) creates the `libraries` and `platforms` tables with the unique `user_id` index, the unique `(library_id, name_normalized)` index, and the `platforms.library_id → libraries.id` foreign key (`ON DELETE RESTRICT`). The `AddVideoGameManagement` migration (Feature 004) adds `games`, `library_entries`, `genres`, `game_genres`, and `game_platforms`. The `AddBoardGameManagement` migration (Feature 005) adds the four BoardGame columns and their CHECK constraints to the existing `games` table. The `AddPlayLogEntries` migration (Feature 009) adds `play_log_entries` only. Feature 010 adds no migration, table, column, storage bucket, search-history persistence, or image storage.
+- Backend unit tests (`tests/backend/GameLibrary.Core.Tests`) cover the domain/application rules (`VideoGameRules`, `BoardGameRules`, `LibraryFilterRules`, `RandomPickerRules`, `PlayLogRules`, and `CoverImageSearchRules`). Platform, VideoGame, BoardGame, Library, Random Picker, Play Log, and Cover Image Search integration tests run against real PostgreSQL via `ConnectionStrings:Test` and include two-user isolation, duplicate/lifecycle behavior, acquisition transitions, cross-type safety, relational CHECK backstops, literal search semantics, library filter/sort behavior, Random Picker eligibility/result states/shown-history exclusion, Play Log caller scoping, Owned-only logging, cascade deletion, cover-search auth/validation/provider substitution/rate limiting/no-mutation behavior, request validation, and schema assertions. `DatabaseMigrationTests` asserts the `public` schema contains exactly `__EFMigrationsHistory`, `libraries`, `platforms`, `games`, `library_entries`, `genres`, `game_genres`, `game_platforms`, and `play_log_entries` (order-independent).
 - Angular's service worker is active in production builds only; local `ng serve` verification of the PWA relies on `ng build` output.
 - No secrets are committed. Local secret-bearing files (`appsettings.Development.json`, `.env`, `.env.*`) are gitignored; committed configuration contains placeholders only.
 - Authentication adds `@supabase/supabase-js` and `Microsoft.AspNetCore.Authentication.JwtBearer`; the Angular initial-bundle budget warning was raised from 500 kB to 700 kB to accommodate `supabase-js` (the error budget stays 1 MB).

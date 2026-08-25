@@ -3,13 +3,14 @@ import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 
 import type { AcquisitionStatus } from '../../acquisition-status';
 import { BoardGame, BoardGameInput, InteractionType } from '../../board-game';
+import { CoverImageSearch } from '../../cover-image-search/cover-image-search';
 
 const ACQUISITION_STATUSES: AcquisitionStatus[] = ['Owned', 'Wishlist', 'Interested'];
 const INTERACTION_TYPES: InteractionType[] = ['Cooperative', 'Competitive'];
 
 @Component({
   selector: 'app-board-game-form',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, CoverImageSearch],
   templateUrl: './board-game-form.html',
   styleUrl: './board-game-form.scss',
 })
@@ -20,6 +21,7 @@ export class BoardGameForm {
 
   readonly submitted = output<BoardGameInput>();
   readonly cancelled = output<void>();
+  readonly unauthorized = output<void>();
 
   protected readonly acquisitionStatuses = ACQUISITION_STATUSES;
   protected readonly interactionTypes = INTERACTION_TYPES;
@@ -77,6 +79,10 @@ export class BoardGameForm {
       notes: trimToNull(f.notes.value),
       coverImageUrl: trimToNull(f.coverImageUrl.value),
     });
+  }
+
+  protected setCoverImageUrl(value: string): void {
+    this.form.controls.coverImageUrl.setValue(value);
   }
 
   private validate(): string | null {

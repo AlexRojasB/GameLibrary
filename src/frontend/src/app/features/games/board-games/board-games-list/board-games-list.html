@@ -72,6 +72,7 @@
           [serverError]="formError()"
           (submitted)="onSubmit($event)"
           (cancelled)="closeForm()"
+          (unauthorized)="handleSessionExpired()"
         />
       </div>
     }

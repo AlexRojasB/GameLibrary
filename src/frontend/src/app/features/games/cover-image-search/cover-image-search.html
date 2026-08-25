@@ -1,0 +1,68 @@
+<section class="cover-search" aria-label="Cover image search">
+  <div class="cover-search__heading">
+    <div>
+      <h3>Find a cover</h3>
+      <p>Search is optional and only runs when you choose it.</p>
+    </div>
+    <button type="button" class="button button--secondary" (click)="search()" [disabled]="!canSearch()">
+      {{ loading() ? 'Searching...' : 'Search cover' }}
+    </button>
+  </div>
+
+  @if (showPlatformSelector()) {
+    <label class="cover-search__platform" for="cover-search-platform">
+      Search platform
+      <select id="cover-search-platform" [value]="effectivePlatformName()" (change)="changeSearchPlatform($any($event.target).value)">
+        @for (platformName of platformOptions(); track platformName) {
+          <option [value]="platformName">{{ platformName }}</option>
+        }
+      </select>
+    </label>
+  }
+
+  @if (loading()) {
+    <p class="cover-search__status" role="status">Searching cover images...</p>
+  }
+  @if (error()) {
+    <p class="cover-search__error" role="alert">{{ error() }}</p>
+  }
+  @if (noResults()) {
+    <p class="cover-search__status">No cover images found.</p>
+  }
+
+  @if (candidates().length > 0) {
+    <div class="cover-search__gallery" aria-label="Cover image candidates">
+      @for (candidate of candidates(); track candidate.imageUrl) {
+        <button
+          type="button"
+          class="cover-search-card"
+          [class.cover-search-card--selected]="isSelected(candidate)"
+          [disabled]="isPreviewBroken(candidate)"
+          [attr.aria-pressed]="isSelected(candidate)"
+          (click)="selectCandidate(candidate)"
+        >
+          <span class="cover-search-card__preview">
+            @if (isPreviewBroken(candidate)) {
+              <span class="cover-search-card__placeholder">Preview unavailable</span>
+            } @else {
+              <img [src]="previewUrl(candidate)" alt="" (error)="markPreviewBroken(candidate)" />
+            }
+          </span>
+          <span class="cover-search-card__meta">
+            @if (isSelected(candidate)) {
+              <strong>Selected</strong>
+            } @else {
+              <strong>Select cover</strong>
+            }
+            @if (candidate.sourceName) {
+              <span>{{ candidate.sourceName }}</span>
+            }
+            @if (candidate.width !== null && candidate.height !== null) {
+              <span>{{ candidate.width }} x {{ candidate.height }}</span>
+            }
+          </span>
+        </button>
+      }
+    </div>
+  }
+</section>

@@ -4,6 +4,16 @@ const email = 'player@example.com';
 const password = 'password123';
 
 test.beforeEach(async ({ page, request }) => {
+  await page.route('https://e2e.example.test/covers/**', async (route) => {
+    await route.fulfill({
+      contentType: 'image/png',
+      body: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
+        'base64',
+      ),
+    });
+  });
+
   const response = await request.post('http://localhost:5218/e2e/reset');
   expect(response.ok(), `E2E reset failed with ${response.status()} ${response.statusText()}: ${await response.text()}`).toBeTruthy();
 
@@ -63,6 +73,44 @@ test('opens management forms in dialogs', async ({ page }) => {
   await expect(page.getByRole('dialog', { name: 'Add video game' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog', { name: 'Add video game' })).toBeHidden();
+});
+
+test('searches and selects a cover during VideoGame creation', async ({ page }) => {
+  let searchRequests = 0;
+  await page.route('**/cover-images/search', async (route) => {
+    if (route.request().method() === 'POST') {
+      searchRequests++;
+    }
+    await route.continue();
+  });
+
+  await page.getByRole('link', { name: 'Manage' }).first().click();
+  await page.getByRole('link', { name: /video game catalog/i }).click();
+  await page.getByRole('button', { name: 'Add video game' }).click();
+
+  const dialog = page.getByRole('dialog', { name: 'Add video game' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel('Name').fill('Metroid Prime 4');
+  await dialog.getByLabel('Switch').check();
+  expect(searchRequests).toBe(0);
+
+  await dialog.getByRole('button', { name: 'Search cover' }).click();
+  await expect(dialog.locator('.cover-search-card')).toHaveCount(5);
+  expect(searchRequests).toBe(1);
+
+  await dialog.locator('.cover-search-card').first().click();
+  await expect(dialog.getByLabel('Cover image URL')).toHaveValue('https://e2e.example.test/covers/metroid-prime-4-1.jpg');
+
+  await dialog.getByRole('button', { name: 'Create' }).click();
+  await expect(dialog).toBeHidden();
+
+  await page.getByRole('link', { name: 'Library', exact: true }).first().click();
+  const card = page.locator('.library-card').filter({ hasText: 'Metroid Prime 4' });
+  await expect(card).toBeVisible();
+  await expect(card.locator('img.library-card__cover')).toHaveAttribute(
+    'src',
+    'https://e2e.example.test/covers/metroid-prime-4-1.jpg',
+  );
 });
 
 test('picks a game and keeps visible session history', async ({ page }) => {

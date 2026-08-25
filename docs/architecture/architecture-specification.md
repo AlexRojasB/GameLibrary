@@ -10,6 +10,14 @@ clarifies that VideoGame player counts reuse existing `games.minimum_players` /
 `games.maximum_players`, Completed-progress normalization is backend/domain
 behavior, and Random Picker visible history is frontend-only volatile state.
 
+Feature 010 amendment, 2026-08-24:
+
+Cover image search, when implemented, is a backend-mediated external HTTP
+integration. Angular calls the Game Library API; the API calls the configured
+image-search provider. Provider credentials are server-side secrets and are never
+sent to Angular. The persisted model remains the existing optional external
+CoverImageUrl, so no application schema change is required.
+
 1. Purpose
 
 This document defines the approved technical architecture for the Game
@@ -488,6 +496,20 @@ Cover images are external URLs.
 The application stores the optional URL and displays a placeholder when
 absent or unusable.
 
+An approved feature may provide optional cover-image search assistance through
+the ASP.NET Core API. This integration follows the normal boundary:
+
+Angular PWA -> Game Library API -> external image-search provider.
+
+Angular must not call the external provider directly and must not receive provider
+API keys, subscription tokens or other provider credentials.
+
+The backend uses normal `HttpClient` / `IHttpClientFactory` conventions,
+server-side configuration, short timeouts and predictable ProblemDetails error
+responses for provider unavailability. Missing provider configuration must not
+prevent the rest of the application from starting or using manual CoverImageUrl
+entry.
+
 No upload pipeline, object storage, image processing service or CDN is
 required.
 
@@ -686,7 +708,9 @@ such as the Supabase project URL and publishable/anon key as appropriate
 for Supabase client authentication.
 
 Privileged database credentials, service-role credentials and
-server-only secrets remain backend/deployment secrets.
+server-only secrets remain backend/deployment secrets. External provider
+credentials, including cover-image search API keys or subscription tokens, are
+also server-only secrets.
 
 29. Deployment
 
@@ -751,6 +775,10 @@ RLS as a parallel MVP authorization system.
 Full offline synchronization.
 
 Image-storage infrastructure.
+
+Direct Angular access to external image-search providers or provider credentials.
+
+Generic multi-provider search plugin/fallback frameworks.
 
 Persistent Random Picker sessions.
 

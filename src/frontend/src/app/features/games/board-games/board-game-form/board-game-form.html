@@ -17,6 +17,13 @@
     @if (form.controls.coverImageUrl.errors) {
       <p class="board-game-form__error" role="alert">Cover image URL is invalid.</p>
     }
+    <app-cover-image-search
+      [gameType]="'BoardGame'"
+      [gameName]="form.controls.name.value"
+      [coverImageUrl]="form.controls.coverImageUrl.value"
+      (coverImageUrlSelected)="setCoverImageUrl($event)"
+      (unauthorized)="unauthorized.emit()"
+    />
   </section>
 
   <section class="board-game-form__section">

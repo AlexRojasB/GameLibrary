@@ -8,13 +8,14 @@ import { PlatformsService } from '../../platforms/platforms.service';
 import { Genre } from '../genres';
 import { GenresService } from '../genres.service';
 import { AcquisitionStatus, GameStatus, VideoGame, VideoGameInput } from '../video-game';
+import { CoverImageSearch } from '../cover-image-search/cover-image-search';
 
 const ACQUISITION_STATUSES: AcquisitionStatus[] = ['Owned', 'Wishlist', 'Interested'];
 const GAME_STATUSES: GameStatus[] = ['Backlog', 'Playing', 'Completed', 'Abandoned', 'WantToPlay'];
 
 @Component({
   selector: 'app-video-game-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, CoverImageSearch],
   templateUrl: './video-game-form.html',
   styleUrl: './video-game-form.scss',
 })
@@ -25,6 +26,7 @@ export class VideoGameForm {
 
   readonly submitted = output<VideoGameInput>();
   readonly cancelled = output<void>();
+  readonly unauthorized = output<void>();
 
   private readonly platformsService = inject(PlatformsService);
   private readonly genresService = inject(GenresService);
@@ -138,6 +140,17 @@ export class VideoGameForm {
       selected.delete(genreId);
     }
     this.form.controls.genreIds.setValue([...selected]);
+  }
+
+  protected selectedPlatformNames(): string[] {
+    const selected = new Set(this.form.controls.platformIds.value);
+    return this.platforms()
+      .filter((platform) => selected.has(platform.id))
+      .map((platform) => platform.name);
+  }
+
+  protected setCoverImageUrl(value: string): void {
+    this.form.controls.coverImageUrl.setValue(value);
   }
 
   private loadPlatforms(): void {
