@@ -1,24 +1,32 @@
-<section class="video-games">
-  <header class="video-games__header">
+<section class="video-games page-stack">
+  <header class="video-games__header page-hero">
+    <p class="eyebrow">Manage</p>
     <h1>Video games</h1>
-    <a routerLink="/">Home</a>
+    <p>Maintain the digital side of the shelf with platforms, status, and progress.</p>
+    <a routerLink="/manage">Back to Manage</a>
   </header>
 
   @if (loading()) {
     <p class="video-games__status">Loading…</p>
   } @else if (loadError()) {
     <p class="video-games__error" role="alert">Unable to load your video games.</p>
-    <button type="button" (click)="load()">Try again</button>
+    <button type="button" class="button button--secondary" (click)="load()">Try again</button>
   } @else if (videoGames().length === 0) {
-    <p class="video-games__status">No video games yet.</p>
-    <button type="button" (click)="openCreate()">Add your first video game</button>
+    <div class="video-games__empty surface-card">
+      <p class="video-games__status">No video games yet.</p>
+      <button type="button" class="button button--primary" (click)="openCreate()">Add your first video game</button>
+    </div>
   } @else {
+    <div class="video-games__toolbar">
+      <p>{{ videoGames().length }} video game{{ videoGames().length === 1 ? '' : 's' }}</p>
+      <button type="button" class="button button--primary" (click)="openCreate()">Add video game</button>
+    </div>
     <ul class="video-games__list">
       @for (game of videoGames(); track game.id) {
         <li class="video-games__item">
           <div class="video-games__item-info">
             <strong>{{ game.name }}</strong>
-            <span>{{ game.acquisitionStatus }}</span>
+            <span class="video-games__pill">{{ game.acquisitionStatus }}</span>
             @if (game.gameStatus) {
               <span>{{ game.gameStatus }}</span>
             }
@@ -34,26 +42,41 @@
             }
           </div>
           <div class="video-games__item-actions">
-            <button type="button" (click)="openEdit(game)">Edit</button>
-            <button type="button" (click)="onDelete(game)">Delete</button>
+            <button type="button" class="button button--secondary" (click)="openEdit(game)">Edit</button>
+            <button type="button" class="button button--danger" (click)="onDelete(game)">Delete</button>
           </div>
         </li>
       }
     </ul>
-    <button type="button" (click)="openCreate()">Add video game</button>
   }
 
   @if (notice()) {
     <p class="video-games__notice" role="status">{{ notice() }}</p>
   }
 
-  @if (formOpen()) {
-    <app-video-game-form
-      [game]="editingGame()"
-      [submitLabel]="editingGame() !== null ? 'Save' : 'Create'"
-      [serverError]="formError()"
-      (submitted)="onSubmit($event)"
-      (cancelled)="closeForm()"
-    />
-  }
+  <dialog
+    #formDialog
+    class="video-games__dialog"
+    aria-labelledby="video-game-dialog-title"
+    tabindex="-1"
+    (cancel)="onDialogCancel($event)"
+    (click)="onDialogBackdropClick($event)"
+    (keydown.escape)="closeForm()"
+  >
+    @if (formOpen()) {
+      <div class="video-games__dialog-panel">
+        <header class="video-games__dialog-header">
+          <h2 id="video-game-dialog-title">{{ editingGame() !== null ? 'Edit video game' : 'Add video game' }}</h2>
+          <button type="button" class="button button--tertiary" (click)="closeForm()">Close</button>
+        </header>
+        <app-video-game-form
+          [game]="editingGame()"
+          [submitLabel]="editingGame() !== null ? 'Save' : 'Create'"
+          [serverError]="formError()"
+          (submitted)="onSubmit($event)"
+          (cancelled)="closeForm()"
+        />
+      </div>
+    }
+  </dialog>
 </section>

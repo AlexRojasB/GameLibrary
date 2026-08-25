@@ -1,21 +1,37 @@
-<section class="random-picker">
-  <header class="random-picker__header">
-    <div>
-      <h1>Random Picker</h1>
-      <p>Pick an owned game from your library without repeating shown results during this session.</p>
-    </div>
-    <a routerLink="/">Back to home</a>
+<section class="random-picker page-stack">
+  <header class="random-picker__header page-hero">
+    <p class="eyebrow">Random Picker</p>
+    <h1>Let the shelf decide.</h1>
+    <p>Pick an owned game from your library without repeating shown results during this session.</p>
   </header>
 
-  <form class="random-picker__controls">
-    <label>
-      Mode
+  <section class="random-picker__panel surface-card" aria-label="Picker controls">
+    <label class="random-picker__mode">
+      <span>Mode</span>
       <select [value]="mode()" (change)="onMode($any($event.target).value)">
         @for (option of modes; track option.value) {
           <option [value]="option.value">{{ option.label }}</option>
         }
       </select>
     </label>
+
+    <div class="random-picker__filter-summary">
+      <p>{{ filterSummary() }}</p>
+      <div>
+        <button
+          type="button"
+          class="button button--ghost"
+          (click)="toggleFilters()"
+          [attr.aria-expanded]="filtersOpen()"
+          aria-controls="random-picker-filters"
+        >
+          {{ filtersOpen() ? 'Hide filters' : 'Filter this pick' }}
+        </button>
+        <button type="button" class="button button--ghost" (click)="clearFilters()">Clear filters</button>
+      </div>
+    </div>
+
+    <form id="random-picker-filters" class="random-picker__controls" [class.is-open]="filtersOpen()" [attr.aria-hidden]="!filtersOpen()">
 
     @if (mode() === 'All') {
       <label>
@@ -91,36 +107,44 @@
       </fieldset>
     }
 
+    </form>
+  </section>
+
+  <section class="random-picker__stage surface-card" aria-label="Picker result">
     <div class="random-picker__actions">
-      <button type="button" (click)="pick()" [disabled]="loading()">Pick a game</button>
       @if (currentResult()) {
-        <button type="button" (click)="another()" [disabled]="loading()">Another</button>
+        <button type="button" class="random-picker__pick button button--primary" (click)="another()" [disabled]="loading()">
+          {{ loading() ? 'Picking...' : 'Another' }}
+        </button>
+        <button type="button" class="button button--secondary" (click)="resetShownHistory()" [disabled]="loading()">Start over</button>
+      } @else {
+        <button type="button" class="random-picker__pick button button--primary" (click)="pick()" [disabled]="loading()">
+          {{ loading() ? 'Picking...' : 'Pick a game' }}
+        </button>
       }
-      <button type="button" (click)="clearFilters()">Clear filters</button>
     </div>
-  </form>
 
-  @if (loading()) {
-    <p class="random-picker__status">Picking...</p>
-  }
+    @if (loading()) {
+      <p class="random-picker__status">Picking...</p>
+    }
 
-  @if (error()) {
-    <p class="random-picker__error" role="alert">{{ error() }}</p>
-  }
+    @if (error()) {
+      <p class="random-picker__error" role="alert">{{ error() }}</p>
+    }
 
-  @if (currentState() === 'NO_CANDIDATES') {
-    <div class="random-picker__empty">
-      <h2>No owned games match</h2>
-      <p>No owned games match the current mode and filters. Modify or clear filters and try again.</p>
-    </div>
-  } @else if (currentState() === 'ALL_ALREADY_SHOWN') {
-    <div class="random-picker__empty">
-      <h2>All matching games already shown</h2>
-      <p>Every owned game matching the current mode and filters has already appeared in this picker session.</p>
-      <button type="button" (click)="resetShownHistory()">Reset shown history</button>
-    </div>
-  } @else if (currentResult(); as result) {
-    <article class="random-picker-card">
+    @if (currentState() === 'NO_CANDIDATES') {
+      <div class="random-picker__empty">
+        <h2>No owned games match</h2>
+        <p>No owned games match the current mode and filters. Modify or clear filters and try again.</p>
+      </div>
+    } @else if (currentState() === 'ALL_ALREADY_SHOWN') {
+      <div class="random-picker__empty">
+        <h2>All matching games already shown</h2>
+        <p>Every owned game matching the current mode and filters has already appeared in this picker session.</p>
+        <button type="button" class="button button--secondary" (click)="resetShownHistory()">Start over</button>
+      </div>
+    } @else if (currentResult(); as result) {
+      <article class="random-picker-card random-picker-card--current" aria-label="Current pick">
       @if (result.coverImageUrl) {
         <img class="random-picker-card__cover" [src]="result.coverImageUrl" [alt]="result.name + ' cover'" />
       } @else {
@@ -129,7 +153,7 @@
       <div class="random-picker-card__body">
         <div class="random-picker-card__title-row">
           <h2>{{ result.name }}</h2>
-          <span>{{ result.gameType === 'VideoGame' ? 'Video game' : 'Board game' }}</span>
+          <span class="game-type-chip">{{ result.gameType === 'VideoGame' ? 'Video game' : 'Board game' }}</span>
         </div>
         @if (result.rating !== null) {
           <p>Rating: {{ result.rating }}</p>
@@ -162,19 +186,41 @@
         @if (result.notes !== null) {
           <p>Notes: {{ result.notes }}</p>
         }
-        <button type="button" (click)="edit(result)">Edit</button>
+        <button type="button" class="button button--secondary" (click)="edit(result)">Edit</button>
       </div>
-    </article>
-  }
+      </article>
+    } @else {
+      <div class="random-picker__empty random-picker__empty--quiet">
+        <h2>Ready when you are.</h2>
+        <p>Set a mode, adjust filters if needed, then pick.</p>
+      </div>
+    }
+  </section>
 
-  @if (visibleHistory().length > 0) {
-    <section class="random-picker__history" aria-label="Shown history">
-      <h2>Shown this session</h2>
-      <ol>
-        @for (item of visibleHistory(); track item.libraryEntryId) {
-          <li>{{ item.name }} ({{ item.gameType === 'VideoGame' ? 'Video game' : 'Board game' }})</li>
+  @if (historyItems().length > 0) {
+    <section class="random-picker__history surface-card" aria-label="Shown history">
+      <h2>Previous picks</h2>
+      <div class="random-picker__history-grid">
+        @for (item of historyItems(); track item.libraryEntryId) {
+          <article class="random-picker-card random-picker-card--history">
+            @if (item.coverImageUrl) {
+              <img class="random-picker-card__cover" [src]="item.coverImageUrl" [alt]="item.name + ' cover'" />
+            } @else {
+              <div class="random-picker-card__placeholder" aria-hidden="true">No cover</div>
+            }
+            <div class="random-picker-card__body">
+              <div class="random-picker-card__title-row">
+                <h3>{{ item.name }}</h3>
+                <span class="game-type-chip">{{ item.gameType === 'VideoGame' ? 'Video game' : 'Board game' }}</span>
+              </div>
+              @for (detail of metadata(item); track detail) {
+                <p>{{ detail }}</p>
+              }
+              <button type="button" class="button button--secondary" (click)="edit(item)">Edit</button>
+            </div>
+          </article>
         }
-      </ol>
+      </div>
     </section>
   }
 </section>

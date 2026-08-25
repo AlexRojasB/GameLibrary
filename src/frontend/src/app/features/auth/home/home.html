@@ -1,15 +1,30 @@
-<section class="home">
-  <h1>Welcome</h1>
+<section class="home page-stack">
+  <div class="page-hero">
+    <p class="eyebrow">Play Shelf</p>
+    <h1>Your game night starts here.</h1>
+    <p>Keep the collection clean, browse what is ready to play, and let the Random Picker choose when nobody wants to decide.</p>
+  </div>
 
   @switch (meState()) {
     @case ('ok') {
       <p class="home__identity">Signed in as {{ email() }}</p>
-      <p class="home__user-id">User ID: {{ userId() }}</p>
-      <p><a routerLink="/library">Library</a></p>
-      <p><a routerLink="/random-picker">Random Picker</a></p>
-      <p><a routerLink="/platforms">Platforms</a></p>
-      <p><a routerLink="/video-games">Video games</a></p>
-      <p><a routerLink="/board-games">Board games</a></p>
+      <div class="home__actions" aria-label="Primary actions">
+        <a class="home-card home-card--pick" routerLink="/random-picker">
+          <span>Pick</span>
+          <h2>Choose the next game</h2>
+          <p>Use eligible owned games and session history to keep picks fresh.</p>
+        </a>
+        <a class="home-card" routerLink="/library">
+          <span>Library</span>
+          <h2>Browse the shelf</h2>
+          <p>Search and filter the collection before deciding what fits tonight.</p>
+        </a>
+        <a class="home-card" routerLink="/manage">
+          <span>Manage</span>
+          <h2>Add or edit games</h2>
+          <p>Maintain video games, board games, and platforms.</p>
+        </a>
+      </div>
     }
     @case ('expired') {
       <p class="home__expired">Session expired. Please sign in again.</p>
@@ -22,6 +37,4 @@
       <p>Loading…</p>
     }
   }
-
-  <button type="button" (click)="onLogout()" [disabled]="signingOut()">Log out</button>
 </section>

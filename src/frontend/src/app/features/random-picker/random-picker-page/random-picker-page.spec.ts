@@ -132,7 +132,11 @@ function setNumberByLabel(fixture: ComponentFixture<RandomPickerPage>, label: st
 }
 
 function currentCard(fixture: ComponentFixture<RandomPickerPage>): HTMLElement | null {
-  return (fixture.nativeElement as HTMLElement).querySelector('.random-picker-card');
+  return (fixture.nativeElement as HTMLElement).querySelector('.random-picker-card--current');
+}
+
+function historyCards(fixture: ComponentFixture<RandomPickerPage>): HTMLElement[] {
+  return [...(fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.random-picker-card--history')];
 }
 
 describe('RandomPickerPage', () => {
@@ -203,6 +207,8 @@ describe('RandomPickerPage', () => {
     expect(text(fixture)).toContain('Pandemic');
     expect(text(fixture)).toContain('2-4 players');
     expect(text(fixture)).toContain('45 min');
+    expect(currentCard(fixture)?.textContent).toContain('Pandemic');
+    expect(historyCards(fixture).map((card) => card.textContent ?? '')).toEqual([expect.stringContaining('Hades')]);
   });
 
   it('preserves shown history when filters change and clears the displayed result', async () => {
@@ -220,7 +226,7 @@ describe('RandomPickerPage', () => {
     rating.dispatchEvent(new Event('change'));
     fixture.detectChanges();
     expect(currentCard(fixture)).toBeNull();
-    expect(text(fixture)).toContain('Shown this session');
+    expect(text(fixture)).toContain('Previous picks');
     expect(text(fixture)).toContain('Hades');
 
     buttonByText(fixture, 'Pick a game').click();
@@ -241,7 +247,7 @@ describe('RandomPickerPage', () => {
 
     setMode(fixture, 'BoardGames');
     expect(currentCard(fixture)).toBeNull();
-    expect(text(fixture)).toContain('Shown this session');
+    expect(text(fixture)).toContain('Previous picks');
     expect(text(fixture)).toContain('Hades');
     expect(text(fixture)).not.toContain('Platforms');
 
@@ -298,8 +304,9 @@ describe('RandomPickerPage', () => {
     fixture.detectChanges();
     expect(text(fixture)).toContain('All matching games already shown');
 
-    buttonByText(fixture, 'Reset shown history').click();
+    buttonByText(fixture, 'Start over').click();
     fixture.detectChanges();
+    expect(text(fixture)).not.toContain('Previous picks');
     buttonByText(fixture, 'Pick a game').click();
     const req = pickRequest(httpMock);
     expect(req.request.body.shownLibraryEntryIds).toEqual([]);

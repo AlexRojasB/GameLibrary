@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../core/auth/auth.service';
@@ -20,6 +20,7 @@ import { VideoGameForm } from '../video-game-form/video-game-form';
   styleUrl: './video-games-list.scss',
 })
 export class VideoGamesList {
+  private readonly formDialog = viewChild<ElementRef<HTMLDialogElement>>('formDialog');
   private readonly videoGamesService = inject(VideoGamesService);
   private readonly platformsService = inject(PlatformsService);
   private readonly genresService = inject(GenresService);
@@ -35,6 +36,7 @@ export class VideoGamesList {
   protected readonly editingGame = signal<VideoGame | null>(null);
   protected readonly formError = signal('');
   protected readonly notice = signal('');
+  private returnFocusTo: HTMLElement | null = null;
 
   constructor() {
     this.loadPlatforms();
@@ -64,18 +66,39 @@ export class VideoGamesList {
   openCreate(): void {
     this.editingGame.set(null);
     this.formError.set('');
-    this.formOpen.set(true);
+    this.openForm();
   }
 
   openEdit(game: VideoGame): void {
     this.editingGame.set(game);
     this.formError.set('');
-    this.formOpen.set(true);
+    this.openForm();
   }
 
   closeForm(): void {
+    const dialog = this.formDialog()?.nativeElement;
+    if (dialog?.open) {
+      if (typeof dialog.close === 'function') {
+        dialog.close();
+      } else {
+        dialog.removeAttribute('open');
+      }
+    }
     this.formOpen.set(false);
     this.formError.set('');
+    this.returnFocusTo?.focus();
+    this.returnFocusTo = null;
+  }
+
+  protected onDialogCancel(event: Event): void {
+    event.preventDefault();
+    this.closeForm();
+  }
+
+  protected onDialogBackdropClick(event: MouseEvent): void {
+    if (event.target === this.formDialog()?.nativeElement) {
+      this.closeForm();
+    }
   }
 
   onSubmit(input: VideoGameInput): void {
@@ -133,6 +156,21 @@ export class VideoGamesList {
 
   private genreName(id: string): string {
     return this.genres().find((genre) => genre.id === id)?.name ?? 'Unknown genre';
+  }
+
+  private openForm(): void {
+    this.returnFocusTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    this.formOpen.set(true);
+    queueMicrotask(() => {
+      const dialog = this.formDialog()?.nativeElement;
+      if (dialog !== undefined && !dialog.open) {
+        if (typeof dialog.showModal === 'function') {
+          dialog.showModal();
+        } else {
+          dialog.setAttribute('open', '');
+        }
+      }
+    });
   }
 
   private createGame(input: VideoGameInput): void {

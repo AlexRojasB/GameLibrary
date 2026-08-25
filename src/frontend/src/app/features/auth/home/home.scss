@@ -1,19 +1,73 @@
 .home {
-  max-width: 32rem;
-  margin: 0 auto;
-  padding: 2rem 1rem;
-
-  &__identity,
-  &__user-id {
+  &__identity {
+    width: fit-content;
+    margin: 0;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    background: var(--color-surface-raised);
+    color: var(--color-muted);
     overflow-wrap: anywhere;
+  }
+
+  &__actions {
+    display: grid;
+    grid-template-columns: 1.25fr repeat(2, 1fr);
+    gap: 1rem;
   }
 
   &__expired,
   &__error {
     color: #b3261e;
   }
+}
 
-  button {
-    margin-top: 1rem;
+.home-card {
+  display: flex;
+  min-height: 13rem;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  padding: 1.15rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-card);
+  color: var(--color-ink);
+  text-decoration: none;
+
+  h2,
+  p {
+    margin: 0;
+  }
+
+  p {
+    color: var(--color-muted);
+  }
+
+  span {
+    color: var(--color-accent-strong);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  &--pick {
+    min-height: 17rem;
+    background:
+      radial-gradient(circle at top right, rgba(180, 95, 53, 0.2), transparent 16rem),
+      var(--color-surface-raised);
+  }
+}
+
+@media (max-width: 820px) {
+  .home__actions {
+    grid-template-columns: 1fr;
+  }
+
+  .home-card,
+  .home-card--pick {
+    min-height: 10rem;
   }
 }

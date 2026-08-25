@@ -33,7 +33,7 @@ describe('Home', () => {
     httpMock.verify();
   });
 
-  it('calls /auth/me and displays the user id and identity', async () => {
+  it('calls /auth/me and displays the signed-in identity without exposing the raw user id', async () => {
     configure();
 
     const req = httpMock.expectOne((request) => request.method === 'GET' && request.url.endsWith('/auth/me'));
@@ -42,8 +42,8 @@ describe('Home', () => {
     fixture.detectChanges();
 
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('user-1');
     expect(text).toContain('user@example.com');
+    expect(text).not.toContain('user-1');
   });
 
   it('renders a session-expired state and clears auth on 401', async () => {

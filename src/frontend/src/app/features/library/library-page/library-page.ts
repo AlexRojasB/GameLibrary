@@ -45,6 +45,7 @@ export class LibraryPage implements OnDestroy {
   protected readonly genres = signal<Genre[]>([]);
   protected readonly filters = signal<LibraryFilterState>(emptyFilters());
   protected readonly sort = signal<LibrarySort>('NameAsc');
+  protected readonly filtersOpen = signal(false);
 
   protected readonly acquisitionStatuses = ACQUISITION_STATUSES;
   protected readonly gameStatuses = GAME_STATUSES;
@@ -54,6 +55,7 @@ export class LibraryPage implements OnDestroy {
   protected readonly showVideoFilters = computed(() => this.filters().gameType !== 'BoardGame');
   protected readonly showBoardFilters = computed(() => this.filters().gameType !== 'VideoGame');
   protected readonly hasActiveCriteria = computed(() => hasActiveCriteria(this.filters()));
+  protected readonly filterSummary = computed(() => filterSummary(this.filters(), this.sort()));
 
   private requestId = 0;
   private searchDebounce: ReturnType<typeof setTimeout> | null = null;
@@ -154,6 +156,10 @@ export class LibraryPage implements OnDestroy {
     this.load();
   }
 
+  protected toggleFilters(): void {
+    this.filtersOpen.update((open) => !open);
+  }
+
   protected edit(item: LibraryItem): void {
     void this.router.navigateByUrl(item.gameType === 'VideoGame' ? '/video-games' : '/board-games');
   }
@@ -248,6 +254,29 @@ function hasActiveCriteria(filters: LibraryFilterState): boolean {
     filters.interactionTypes.length > 0 ||
     filters.gameStatuses.length > 0
   );
+}
+
+function filterSummary(filters: LibraryFilterState, sort: LibrarySort): string {
+  const active = activeFilterCount(filters);
+  const sortLabel = SORTS.find((option) => option.value === sort)?.label ?? 'Custom sort';
+  if (active === 0) {
+    return `No filters active. Sorted by ${sortLabel}.`;
+  }
+  return `${active} filter${active === 1 ? '' : 's'} active. Sorted by ${sortLabel}.`;
+}
+
+function activeFilterCount(filters: LibraryFilterState): number {
+  return [
+    filters.search.trim().length > 0,
+    filters.gameType !== null,
+    filters.acquisitionStatuses.length > 0,
+    filters.platformIds.length > 0,
+    filters.genreIds.length > 0,
+    filters.ratingMin !== null,
+    filters.playerCount !== null,
+    filters.interactionTypes.length > 0,
+    filters.gameStatuses.length > 0,
+  ].filter(Boolean).length;
 }
 
 function selectedValues(event: Event): string[] {

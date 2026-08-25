@@ -1,27 +1,33 @@
 <form [formGroup]="form" (ngSubmit)="submit()" class="game-form">
-  <label for="game-form-name">Name</label>
-  <input id="game-form-name" type="text" formControlName="name" maxlength="100" required />
+  <section class="game-form__section">
+    <label for="game-form-name">Name</label>
+    <input id="game-form-name" type="text" formControlName="name" maxlength="100" required />
 
-  @if (form.controls.name.touched && form.controls.name.errors) {
-    @if (form.controls.name.hasError('required')) {
-      <p class="game-form__error" role="alert">Video game name is required.</p>
-    } @else if (form.controls.name.hasError('maxlength')) {
-      <p class="game-form__error" role="alert">Video game name must be at most 100 characters.</p>
+    @if (form.controls.name.touched && form.controls.name.errors) {
+      @if (form.controls.name.hasError('required')) {
+        <p class="game-form__error" role="alert">Video game name is required.</p>
+      } @else if (form.controls.name.hasError('maxlength')) {
+        <p class="game-form__error" role="alert">Video game name must be at most 100 characters.</p>
+      }
     }
-  }
+  </section>
 
-  <label for="game-form-cover">Cover image URL</label>
-  <input id="game-form-cover" type="url" formControlName="coverImageUrl" maxlength="2048" placeholder="https://…" />
-  @if (form.controls.coverImageUrl.errors) {
-    <p class="game-form__error" role="alert">Cover image URL is invalid.</p>
-  }
-
-  <label for="game-form-acquisition">Acquisition status</label>
-  <select id="game-form-acquisition" formControlName="acquisitionStatus">
-    @for (status of acquisitionStatuses; track status) {
-      <option [ngValue]="status">{{ status }}</option>
+  <section class="game-form__section">
+    <label for="game-form-cover">Cover image URL</label>
+    <input id="game-form-cover" type="url" formControlName="coverImageUrl" maxlength="2048" placeholder="https://…" />
+    @if (form.controls.coverImageUrl.errors) {
+      <p class="game-form__error" role="alert">Cover image URL is invalid.</p>
     }
-  </select>
+  </section>
+
+  <section class="game-form__section">
+    <label for="game-form-acquisition">Acquisition status</label>
+    <select id="game-form-acquisition" formControlName="acquisitionStatus">
+      @for (status of acquisitionStatuses; track status) {
+        <option [ngValue]="status">{{ status }}</option>
+      }
+    </select>
+  </section>
 
   <fieldset class="game-form__group">
     <legend>Platforms</legend>
@@ -30,49 +36,55 @@
         You have no platforms yet. <a routerLink="/platforms">Manage your platforms</a>.
       </p>
     } @else {
+      <div class="game-form__checks">
       @for (platform of platforms(); track platform.id) {
-        <label>
+        <label class="game-form__check-card">
           <input
             type="checkbox"
             class="game-form__platform"
             [checked]="form.controls.platformIds.value.includes(platform.id)"
             (change)="togglePlatform(platform.id, $any($event.target).checked)"
           />
-          {{ platform.name }}
+          <span>{{ platform.name }}</span>
         </label>
       }
+      </div>
     }
   </fieldset>
 
   <fieldset class="game-form__group">
     <legend>Genres</legend>
+    <div class="game-form__checks">
     @for (genre of genres(); track genre.id) {
-      <label>
+      <label class="game-form__check-card">
         <input
           type="checkbox"
           class="game-form__genre"
           [checked]="form.controls.genreIds.value.includes(genre.id)"
           (change)="toggleGenre(genre.id, $any($event.target).checked)"
         />
-        {{ genre.name }}
+        <span>{{ genre.name }}</span>
       </label>
     }
+    </div>
   </fieldset>
 
   @if (isOwned()) {
-    <label for="game-form-status">Game status</label>
-    <select id="game-form-status" formControlName="gameStatus">
-      <option [ngValue]="null">Not set</option>
-      @for (status of gameStatuses; track status) {
-        <option [ngValue]="status">{{ status }}</option>
-      }
-    </select>
+    <section class="game-form__section game-form__section--split">
+      <label for="game-form-status">Game status</label>
+      <select id="game-form-status" formControlName="gameStatus">
+        <option [ngValue]="null">Not set</option>
+        @for (status of gameStatuses; track status) {
+          <option [ngValue]="status">{{ status }}</option>
+        }
+      </select>
 
-    <label for="game-form-progress">Progress (%)</label>
-    <input id="game-form-progress" type="number" formControlName="progressPercentage" min="0" max="100" />
-    @if (form.controls.progressPercentage.errors) {
-      <p class="game-form__error" role="alert">Progress must be between 0 and 100.</p>
-    }
+      <label for="game-form-progress">Progress (%)</label>
+      <input id="game-form-progress" type="number" formControlName="progressPercentage" min="0" max="100" />
+      @if (form.controls.progressPercentage.errors) {
+        <p class="game-form__error" role="alert">Progress must be between 0 and 100.</p>
+      }
+    </section>
   }
 
   <fieldset class="game-form__group">
@@ -86,24 +98,28 @@
     }
   </fieldset>
 
-  <label for="game-form-rating">Rating</label>
-  <select id="game-form-rating" formControlName="rating">
-    <option [ngValue]="null">Not rated</option>
-    <option [ngValue]="1">1</option>
-    <option [ngValue]="2">2</option>
-    <option [ngValue]="3">3</option>
-    <option [ngValue]="4">4</option>
-    <option [ngValue]="5">5</option>
-  </select>
-  @if (form.controls.rating.errors) {
-    <p class="game-form__error" role="alert">Rating must be between 1 and 5.</p>
-  }
+  <section class="game-form__section">
+    <label for="game-form-rating">Rating</label>
+    <select id="game-form-rating" formControlName="rating">
+      <option [ngValue]="null">Not rated</option>
+      <option [ngValue]="1">1</option>
+      <option [ngValue]="2">2</option>
+      <option [ngValue]="3">3</option>
+      <option [ngValue]="4">4</option>
+      <option [ngValue]="5">5</option>
+    </select>
+    @if (form.controls.rating.errors) {
+      <p class="game-form__error" role="alert">Rating must be between 1 and 5.</p>
+    }
+  </section>
 
-  <label for="game-form-notes">Notes</label>
-  <textarea id="game-form-notes" formControlName="notes" maxlength="5000"></textarea>
-  @if (form.controls.notes.errors) {
-    <p class="game-form__error" role="alert">Notes must be at most 5000 characters.</p>
-  }
+  <section class="game-form__section">
+    <label for="game-form-notes">Notes</label>
+    <textarea id="game-form-notes" formControlName="notes" maxlength="5000"></textarea>
+    @if (form.controls.notes.errors) {
+      <p class="game-form__error" role="alert">Notes must be at most 5000 characters.</p>
+    }
+  </section>
 
   @if (validationError()) {
     <p class="game-form__error" role="alert">{{ validationError() }}</p>
@@ -116,7 +132,7 @@
   }
 
   <div class="game-form__actions">
-    <button type="submit">{{ submitLabel() }}</button>
-    <button type="button" (click)="cancelled.emit()">Cancel</button>
+    <button type="submit" class="button button--primary">{{ submitLabel() }}</button>
+    <button type="button" class="button button--secondary" (click)="cancelled.emit()">Cancel</button>
   </div>
 </form>

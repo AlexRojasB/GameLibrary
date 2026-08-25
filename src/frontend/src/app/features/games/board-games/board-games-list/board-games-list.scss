@@ -1,37 +1,144 @@
-.board-games__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.board-games {
+  &__header a {
+    width: fit-content;
+    font-weight: 800;
+  }
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+
+    p {
+      margin: 0;
+      color: var(--color-muted);
+      font-weight: 700;
+    }
+  }
+
+  &__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    display: flex;
+    min-height: 13rem;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--color-surface-raised);
+    box-shadow: var(--shadow-card);
+  }
+
+  &__item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.38rem;
+
+    strong {
+      font-size: 1.2rem;
+    }
+
+    span:not(.board-games__pill) {
+      color: var(--color-muted);
+    }
+  }
+
+  &__pill {
+    width: fit-content;
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    background: var(--color-accent-soft);
+    color: var(--color-accent-strong);
+    font-size: 0.78rem;
+    font-weight: 900;
+  }
+
+  &__item-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  &__empty {
+    display: grid;
+    gap: 0.75rem;
+    justify-items: start;
+    padding: 1rem;
+  }
+
+  &__error {
+    color: var(--color-danger);
+  }
+
+  &__notice {
+    color: var(--color-success);
+  }
+
+  &__dialog {
+    width: min(46rem, calc(100vw - 2rem));
+    max-height: min(46rem, calc(100dvh - 2rem));
+    padding: 0;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    box-shadow: var(--shadow-soft);
+
+    &::backdrop {
+      background: rgba(38, 28, 18, 0.42);
+      backdrop-filter: blur(3px);
+    }
+  }
+
+  &__dialog-panel {
+    max-height: inherit;
+    overflow: auto;
+    padding: 1rem;
+  }
+
+  &__dialog-header {
+    position: sticky;
+    top: -1rem;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: -1rem -1rem 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-line);
+    background: var(--color-surface);
+
+    h2 {
+      margin: 0;
+    }
+  }
 }
 
-.board-games__item {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 0.25rem;
-  padding: 0.5rem;
-}
+@media (max-width: 640px) {
+  .board-games {
+    &__toolbar {
+      align-items: stretch;
+      flex-direction: column;
+    }
 
-.board-games__item-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.board-games__item-actions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
-}
-
-.board-games__error {
-  color: #b3261e;
-}
-
-.board-games__notice {
-  color: #006a4e;
+    &__dialog {
+      width: 100vw;
+      max-width: none;
+      max-height: calc(100dvh - 1rem);
+      margin: auto 0 0;
+      border-radius: 1.2rem 1.2rem 0 0;
+    }
+  }
 }
