@@ -1,0 +1,41 @@
+<dialog #dialog class="log-play-dialog" aria-labelledby="log-play-dialog-title" (cancel)="onDialogCancel($event)">
+  @if (gameName()) {
+    <form class="log-play-dialog__panel" [formGroup]="form" (ngSubmit)="submit()">
+      <header>
+        <p class="eyebrow">{{ mode() === 'edit' ? 'Edit play log' : 'Log play' }}</p>
+        <h2 id="log-play-dialog-title">{{ gameName() }}</h2>
+        <p>
+          {{ mode() === 'edit' ? 'Correct when you played or how long it took. The game cannot be changed.' : 'Confirm when you played and optionally add how long it took.' }}
+        </p>
+      </header>
+
+      <label>
+        Played date/time
+        <input type="datetime-local" formControlName="playedAt" required />
+      </label>
+
+      <label>
+        Duration minutes <span>(optional)</span>
+        <input type="number" min="1" step="1" formControlName="durationMinutes" placeholder="90" />
+      </label>
+
+      @if (validationError()) {
+        <p class="log-play-dialog__error" role="alert">{{ validationError() }}</p>
+      }
+      @if (serverError()) {
+        <p class="log-play-dialog__error" role="alert">{{ serverError() }}</p>
+      }
+
+      <div class="log-play-dialog__actions">
+        <button type="button" class="button button--ghost" (click)="cancel()" [disabled]="pending()">Cancel</button>
+        <button type="submit" class="button button--primary" [disabled]="pending()">
+          @if (pending()) {
+            {{ mode() === 'edit' ? 'Saving...' : 'Logging...' }}
+          } @else {
+            {{ mode() === 'edit' ? 'Save' : 'Log play' }}
+          }
+        </button>
+      </div>
+    </form>
+  }
+</dialog>

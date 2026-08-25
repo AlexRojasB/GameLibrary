@@ -47,6 +47,7 @@ public class DatabaseMigrationTests
                 "genres",
                 "game_genres",
                 "game_platforms",
+                "play_log_entries",
             }.OrderBy(x => x),
             tables.OrderBy(x => x));
     }
@@ -141,5 +142,92 @@ public class DatabaseMigrationTests
                 """)
             .ToListAsync();
         Assert.Equal(new[] { "r" }, platformFkDeleteRule);
+    }
+
+    [Fact]
+    public async Task AddPlayLogEntries_AddsApprovedTableForeignKeyAndIndex()
+    {
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__Test");
+        Assert.True(
+            !string.IsNullOrWhiteSpace(connectionString),
+            "ConnectionStrings__Test must be configured to a real PostgreSQL database to run this integration test.");
+
+        var options = new DbContextOptionsBuilder<GameLibraryDbContext>()
+            .UseNpgsql(connectionString)
+            .Options;
+
+        await using var db = new GameLibraryDbContext(options);
+        await db.Database.MigrateAsync();
+
+        var columns = await db.Database
+            .SqlQuery<string>($"""
+                SELECT column_name AS "Value"
+                FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'play_log_entries'
+                """)
+            .ToListAsync();
+
+        Assert.Equal(
+            new[] { "id", "library_entry_id", "played_at", "created_at", "duration_minutes" }.OrderBy(x => x),
+            columns.OrderBy(x => x));
+        Assert.DoesNotContain("library_id", columns);
+
+        var durationColumn = await db.Database
+            .SqlQuery<string>($"""
+                SELECT is_nullable AS "Value"
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'play_log_entries'
+                  AND column_name = 'duration_minutes'
+                """)
+            .SingleAsync();
+        Assert.Equal("YES", durationColumn);
+
+        var foreignKey = await db.Database
+            .SqlQuery<string>($"""
+                SELECT c.conname AS "Value"
+                FROM pg_constraint c
+                JOIN pg_class t ON t.oid = c.conrelid
+                JOIN pg_class rt ON rt.oid = c.confrelid
+                WHERE c.contype = 'f'
+                  AND t.relname = 'play_log_entries'
+                  AND rt.relname = 'library_entries'
+                  AND c.confdeltype = 'c'
+                """)
+            .ToListAsync();
+        Assert.Equal(new[] { "fk_play_log_entries_library_entries_library_entry_id" }, foreignKey);
+
+        var directLibraryForeignKey = await db.Database
+            .SqlQuery<int>($"""
+                SELECT COUNT(*)::int AS "Value"
+                FROM pg_constraint c
+                JOIN pg_class t ON t.oid = c.conrelid
+                JOIN pg_class rt ON rt.oid = c.confrelid
+                WHERE c.contype = 'f'
+                  AND t.relname = 'play_log_entries'
+                  AND rt.relname = 'libraries'
+                """)
+            .SingleAsync();
+        Assert.Equal(0, directLibraryForeignKey);
+
+        var indexes = await db.Database
+            .SqlQuery<string>($"""
+                SELECT indexname AS "Value"
+                FROM pg_indexes
+                WHERE schemaname = 'public' AND tablename = 'play_log_entries'
+                """)
+            .ToListAsync();
+        Assert.Contains("ix_play_log_entries_library_entry_id", indexes);
+
+        var checks = await db.Database
+            .SqlQuery<string>($"""
+                SELECT c.conname AS "Value"
+                FROM pg_constraint c
+                JOIN pg_class t ON t.oid = c.conrelid
+                WHERE c.contype = 'c'
+                  AND t.relname = 'play_log_entries'
+                """)
+            .ToListAsync();
+        Assert.Contains("ck_play_log_entries_duration_minutes_positive", checks);
     }
 }

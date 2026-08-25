@@ -292,6 +292,7 @@ public class RandomPickerEndpointTests : IClassFixture<RandomPickerTestFactory>,
                 "genres",
                 "game_genres",
                 "game_platforms",
+                "play_log_entries",
             }.OrderBy(x => x),
             tables.OrderBy(x => x));
     }

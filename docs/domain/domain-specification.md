@@ -10,6 +10,20 @@ MaximumPlayers. Owned VideoGames with GameStatus = Completed must persist
 ProgressPercentage = 100. RandomPickerSession now includes visible volatile
 result history, newest first.
 
+Feature 009 amendment, 2026-08-24:
+
+PlayLogEntry is a manual user-confirmed play activity record. It is distinct from
+RandomPickerSession, persistent picker history, automatic playtime, external
+gameplay imports and analytics.
+
+Feature 009 manual review amendment, 2026-08-25:
+
+PlayLogEntry now records a user-supplied PlayedAt timestamp and may record an
+optional positive DurationMinutes value for the individual play occurrence.
+CreatedAt remains server-assigned. Users may correct PlayedAt and
+DurationMinutes after creation, but PlayLogEntry ownership and associated game do
+not change. The ownership path remains PlayLogEntry -> LibraryEntry -> Library.
+
 1. Purpose
 
 This document defines the core domain terminology, relationships,
@@ -73,6 +87,8 @@ Each User has exactly one Library.
 Each Library belongs to exactly one User.
 
 A Library contains zero or more LibraryEntries.
+
+A Library may contain zero or more PlayLogEntries through its LibraryEntries.
 
 A Library is private.
 
@@ -169,6 +185,89 @@ May contain Notes.
 For VideoGames it may additionally contain GameStatus,
 ProgressPercentage and Platforms subject to the rules below.
 
+9A. PlayLogEntry (Feature 009 Amendment)
+
+A PlayLogEntry records one user-confirmed play occurrence.
+
+A PlayLogEntry:
+
+Has an Id.
+
+References exactly one LibraryEntry.
+
+Belongs to the same Library as that referenced LibraryEntry. This ownership path
+is indirect through LibraryEntry; PlayLogEntry does not have a separate Library
+ownership relationship.
+
+Has a PlayedAt timestamp.
+
+Has a CreatedAt timestamp.
+
+May have DurationMinutes.
+
+Rules:
+
+Only an Owned LibraryEntry can receive a new PlayLogEntry.
+
+VideoGame and BoardGame LibraryEntries can both receive PlayLogEntries.
+
+Multiple PlayLogEntries may reference the same LibraryEntry.
+
+There is no uniqueness rule on LibraryEntryId.
+
+Multiple intentional plays remain valid. After one PlayLogEntry creation
+completes, the user may explicitly create another PlayLogEntry for the same
+LibraryEntry. User interfaces must not turn one pending Log play activation into
+multiple create requests.
+
+PlayedAt is when the user says the play occurred. It is supplied during creation
+as an offset-aware timestamp and persisted in UTC/offset-aware form according to
+the application's .NET/PostgreSQL conventions. User interfaces may default
+PlayedAt to the user's current browser-local date/time, but backend validation is
+authoritative.
+
+PlayedAt is required when creating a PlayLogEntry. It must not be materially in
+the future. The approved tolerance is server current UTC time plus five minutes to
+allow small client/server clock differences. Values later than that are invalid.
+
+CreatedAt is an audit timestamp for when the PlayLogEntry was created and is not
+user-editable. CreatedAt is always assigned by the backend when the row is
+created. PlayedAt and CreatedAt may differ substantially.
+
+DurationMinutes belongs to the individual PlayLogEntry, not to Game or
+LibraryEntry. DurationMinutes is optional. When present, it must be an integer
+greater than 0. Null, 30, 90 and 240 are valid examples. Zero and negative values
+are invalid. No arbitrary maximum duration is imposed in the MVP.
+
+After creation, a PlayLogEntry may be corrected by editing only PlayedAt and
+DurationMinutes. Editing uses the same PlayedAt and DurationMinutes validation as
+creation: PlayedAt must not be later than server current UTC time plus five
+minutes, and DurationMinutes must be null or greater than 0. Editing may add a
+duration to a log that had none, change an existing duration, or clear an
+existing duration back to null.
+
+Editing a PlayLogEntry must not change Id, LibraryEntryId, GameId, ownership or
+CreatedAt. Editing does not reassign the PlayLogEntry to another LibraryEntry or
+Game. If the user wants to record a play for another game, they create another
+PlayLogEntry.
+
+Changing an Owned LibraryEntry to Wishlist or Interested does not delete existing
+PlayLogEntries, but new PlayLogEntries cannot be created while the entry is not
+Owned.
+
+Deleting a LibraryEntry deletes its PlayLogEntries.
+
+PlayLogEntry is not Random Picker history. Random Picker SUCCESS, Another and
+visible volatile result history do not create PlayLogEntries automatically.
+
+PlayLogEntry does not model timers, start/end timestamps, automatic playtime,
+external play sessions, pause/resume, platform telemetry, scores, outcomes,
+player attendance, platform-specific sessions, recommendations or analytics in
+the MVP.
+
+Deleting PlayLogEntries, changing the associated game after creation, and richer
+PlaySession behavior are outside the feature scope.
+
 10. AcquisitionStatus
 
 Values:
@@ -184,6 +283,14 @@ Default:
 Owned
 
 Only Owned entries are eligible for the Random Picker.
+
+Only Owned entries can receive new PlayLogEntries.
+
+PlayLogEntry PlayedAt is required, is user-supplied during creation and edit, and
+cannot be later than server current UTC time plus five minutes.
+
+PlayLogEntry DurationMinutes is optional during creation and edit and must be
+greater than 0 when present.
 
 11. VideoGame LibraryEntry Rules
 
@@ -610,6 +717,8 @@ are outside the MVP.
 
 Deleting a LibraryEntry also deletes its associated Game.
 
+Deleting a LibraryEntry also deletes its PlayLogEntries.
+
 The domain must not leave orphan Games.
 
 Deleting or editing one user's Game cannot affect another user.
@@ -625,6 +734,8 @@ A Library belongs to exactly one User.
 A Library is private.
 
 A LibraryEntry belongs to exactly one Library.
+
+Each PlayLogEntry belongs to a Library only through its referenced LibraryEntry.
 
 A LibraryEntry references exactly one Game.
 
@@ -672,6 +783,24 @@ A Platform in use cannot be deleted.
 
 Only Owned entries participate in Random Picker.
 
+Only Owned entries can receive new PlayLogEntries.
+
+PlayLogEntries represent user-confirmed play occurrences, not Random Picker
+history.
+
+Multiple PlayLogEntries may reference the same LibraryEntry.
+
+PlayLogEntry correction after creation is limited to PlayedAt and
+DurationMinutes.
+
+Editing a PlayLogEntry does not change Id, LibraryEntryId, GameId, ownership or
+CreatedAt.
+
+Changing an Owned entry to Wishlist/Interested preserves existing
+PlayLogEntries but blocks new PlayLogEntries while non-Owned.
+
+Deleting a LibraryEntry deletes its PlayLogEntries.
+
 Random shown-result history is temporary and not persisted.
 
 Visible Random Picker result history is temporary, newest first, and not
@@ -709,9 +838,11 @@ Library
  | contains
  v
 LibraryEntry
- |
- | references (1:1 in MVP)
- v
+  |
+  +-- has play log --> PlayLogEntry
+  |
+  | references (1:1 in MVP)
+  v
 Game
  +----------------+
  |                |
@@ -738,7 +869,15 @@ Custom Genres.
 
 Image upload/storage.
 
-GameSession / PlayTime.
+Automatic GameSession / PlayTime.
+
+Deleting PlayLogEntry after creation.
+
+Changing a PlayLogEntry's associated LibraryEntry or Game after creation.
+
+PlayLogEntry revision history, audit log, event sourcing or archival state.
+
+Timers, active sessions, outcomes, scores or player attendance.
 
 Achievement.
 

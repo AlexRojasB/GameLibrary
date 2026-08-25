@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { AuthService } from '../../../core/auth/auth.service';
@@ -9,6 +9,9 @@ import { GenresService } from '../../games/genres.service';
 import type { GameStatus } from '../../games/video-game';
 import { Platform } from '../../platforms/platform';
 import { PlatformsService } from '../../platforms/platforms.service';
+import { CreatePlayLogEntryRequest } from '../../play-log/play-log';
+import { LogPlayDialog } from '../../play-log/log-play-dialog/log-play-dialog';
+import { PlayLogService } from '../../play-log/play-log.service';
 
 import {
   RandomPickerFilters,
@@ -29,14 +32,16 @@ const MODES: { value: RandomPickerMode; label: string }[] = [
 
 @Component({
   selector: 'app-random-picker-page',
-  imports: [],
+  imports: [LogPlayDialog],
   templateUrl: './random-picker-page.html',
   styleUrl: './random-picker-page.scss',
 })
 export class RandomPickerPage {
+  private readonly logPlayDialog = viewChild<LogPlayDialog>('logPlayDialog');
   private readonly randomPicker = inject(RandomPickerService);
   private readonly platformsService = inject(PlatformsService);
   private readonly genresService = inject(GenresService);
+  private readonly playLogService = inject(PlayLogService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
@@ -51,6 +56,9 @@ export class RandomPickerPage {
   protected readonly platforms = signal<Platform[]>([]);
   protected readonly genres = signal<Genre[]>([]);
   protected readonly filtersOpen = signal(false);
+  protected readonly logPendingGameId = signal<string | null>(null);
+  protected readonly logSuccess = signal('');
+  protected readonly logError = signal('');
   protected readonly filterSummary = computed(() => filterSummary(this.mode(), this.filters()));
   protected readonly historyItems = computed(() => {
     const current = this.currentResult();
@@ -157,6 +165,60 @@ export class RandomPickerPage {
     void this.router.navigateByUrl(item.gameType === 'VideoGame' ? '/video-games' : '/board-games');
   }
 
+  protected logPlay(item: RandomPickerItem): void {
+    const gameId = item.gameId;
+    if (this.logPendingGameId() === gameId) {
+      return;
+    }
+
+    this.logSuccess.set('');
+    this.logError.set('');
+    this.logPlayDialog()?.open({ id: gameId, name: item.name });
+  }
+
+  protected onLogPlayConfirmed(request: CreatePlayLogEntryRequest): void {
+    const gameId = request.gameId;
+    if (this.logPendingGameId() === gameId) {
+      return;
+    }
+
+    this.logPendingGameId.set(gameId);
+    this.logSuccess.set('');
+    this.logError.set('');
+    this.logPlayDialog()?.setPending(true);
+
+    this.playLogService.logPlay(request).subscribe({
+      next: () => {
+        if (this.logPendingGameId() === gameId) {
+          this.logPendingGameId.set(null);
+        }
+        this.logPlayDialog()?.close();
+        if (this.currentResult()?.gameId === gameId) {
+          this.logSuccess.set('Play logged.');
+        }
+      },
+      error: (error: HttpErrorResponse) => {
+        if (this.logPendingGameId() === gameId) {
+          this.logPendingGameId.set(null);
+        }
+        if (error.status === 401) {
+          this.logPlayDialog()?.close();
+          this.handleSessionExpired();
+          return;
+        }
+        if (this.currentResult()?.gameId === gameId) {
+          const message = this.logErrorMessage(error);
+          this.logError.set(message);
+          this.logPlayDialog()?.showError(message);
+        }
+      },
+    });
+  }
+
+  protected isLogging(item: RandomPickerItem): boolean {
+    return this.logPendingGameId() === item.gameId;
+  }
+
   protected platformNames(item: RandomPickerItem): string {
     return item.platformIds.map((id) => this.platformName(id)).join(', ');
   }
@@ -184,6 +246,9 @@ export class RandomPickerPage {
         this.loading.set(false);
         this.currentState.set(response.state);
         this.currentResult.set(response.result);
+        this.logPendingGameId.set(null);
+        this.logSuccess.set('');
+        this.logError.set('');
         if (response.result !== null) {
           this.visibleHistory.update((history) => [response.result!, ...history.filter((item) => item.libraryEntryId !== response.result!.libraryEntryId)]);
           this.shownLibraryEntryIds.update((ids) =>
@@ -220,6 +285,9 @@ export class RandomPickerPage {
     this.currentResult.set(null);
     this.currentState.set(null);
     this.error.set('');
+    this.logPendingGameId.set(null);
+    this.logSuccess.set('');
+    this.logError.set('');
   }
 
   private loadLookups(): void {
@@ -255,6 +323,14 @@ export class RandomPickerPage {
       return detail === null ? 'Invalid picker filters.' : `Invalid picker filters: ${detail}`;
     }
     return 'Unable to pick a game. Please try again.';
+  }
+
+  private logErrorMessage(error: HttpErrorResponse): string {
+    const detail = serverDetail(error);
+    if (detail !== null) {
+      return detail;
+    }
+    return 'Unable to log this play. Please try again.';
   }
 
   private handleSessionExpired(): void {

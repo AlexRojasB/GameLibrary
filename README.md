@@ -4,7 +4,7 @@ Personal game library web application. Angular PWA frontend, ASP.NET Core Web AP
 
 ## Status
 
-Feature 008 (UX / PWA Polish / E2E) is implemented. The Angular app uses the Play Shelf shell with desktop top navigation, mobile bottom navigation, a protected `/manage` hub, polished Library and Random Picker mobile filters, dialog/sheet add-edit flows for VideoGames and BoardGames, and Playwright E2E smoke coverage. Features 001–007 are preserved, including Supabase auth/JWT validation, platform management, VideoGame/BoardGame CRUD, Library browse/search/filter/sort, Random Picker result states/history semantics, domain invariants, and cross-user isolation.
+Feature 009 (Play Log) is implemented. The Angular app uses the Play Shelf shell with desktop top navigation, mobile bottom navigation, a protected `/manage` hub, polished Library and Random Picker mobile filters, dialog/sheet add-edit flows for VideoGames and BoardGames, Playwright E2E smoke coverage, and a protected `/play-log` screen. Features 001–008 are preserved, including Supabase auth/JWT validation, platform management, VideoGame/BoardGame CRUD, Library browse/search/filter/sort, Random Picker result states/history semantics, domain invariants, and cross-user isolation.
 
 ## Documentation
 
@@ -175,7 +175,7 @@ The default `src/environments/environment.ts` uses empty placeholders for `supab
 
 The `SUPABASE_CLIENT` injection token (registered in `app.config.ts`) creates the client from these values. `core/auth/` holds the auth infrastructure: `AuthService` (signal-based state, session restoration via `getSession()` + `onAuthStateChange`, normalized errors), the route guards, and the API token interceptor. The interceptor attaches `Authorization: Bearer <access-token>` only to requests whose origin matches the configured API base URL (an `API_BASE_URL` injection token defaulting to `environment.apiBaseUrl`), and only when a session exists.
 
-Routes: `''` (protected home), `login` and `register` (guest-only), `health` (anonymous, retained from Feature 001), `library` (protected, Feature 006), `random-picker` (protected, Feature 007), `manage` (protected Feature 008 hub), `platforms` (protected, Feature 003), `video-games` (protected, Feature 004), and `board-games` (protected, Feature 005). The shell owns account/logout UI; normal UI does not display the raw authenticated user id.
+Routes: `''` (protected home), `login` and `register` (guest-only), `health` (anonymous, retained from Feature 001), `library` (protected, Feature 006), `random-picker` (protected, Feature 007), `play-log` (protected, Feature 009), `manage` (protected Feature 008 hub), `platforms` (protected, Feature 003), `video-games` (protected, Feature 004), and `board-games` (protected, Feature 005). The shell owns account/logout UI; normal UI does not display the raw authenticated user id.
 
 ### Backend JWT configuration
 
@@ -347,6 +347,74 @@ ConnectionStrings__E2E="Host=127.0.0.1;Port=5433;Database=game_library_e2e;Usern
 
 Playwright starts the real ASP.NET Core API with `E2E__Auth__Enabled=true`, starts Angular with the `e2e` configuration, resets/seeds before each test, then exercises login, shell navigation, Library filters, management dialogs, and Random Picker history behavior.
 
+## Play Log (Feature 009)
+
+`/play-log` is a protected Angular route for browsing manually logged plays newest first. Home links to Play Log as a secondary card/action, and authenticated desktop navigation includes Play Log. Mobile bottom navigation remains exactly Home, Library, Pick, and Manage.
+
+Endpoints, all `[Authorize]`:
+
+| Method | Route | Success | Errors |
+| --- | --- | --- | --- |
+| `GET` | `/play-log` | `200` with a JSON array of play log entries newest first | `401` |
+| `POST` | `/play-log` | `201` with the created play log entry | `400`, `401`, `404` |
+| `PUT` | `/play-log/{id}` | `200` with the updated play log entry | `400`, `401`, `404` |
+
+`POST /play-log` accepts only:
+
+```json
+{
+  "gameId": "00000000-0000-0000-0000-000000000000",
+  "playedAt": "2026-08-24T18:30:00Z",
+  "durationMinutes": 90
+}
+```
+
+`gameId` and `playedAt` are required. `durationMinutes` is optional and must be greater than `0` when supplied. Responses include only `id`, `libraryEntryId`, `gameId`, `gameType`, `gameName`, `coverImageUrl`, `playedAt`, `durationMinutes`, and `createdAt`. The API never accepts user ID, library ID, library-entry ID, or `createdAt` from the client.
+
+`PUT /play-log/{id}` accepts only editable event fields:
+
+```json
+{
+  "playedAt": "2026-08-24T18:30:00Z",
+  "durationMinutes": 120
+}
+```
+
+The route ID identifies the Play Log entry. Update never accepts or changes `gameId`, `libraryEntryId`, `libraryId`, user ID, owner ID, or `createdAt`.
+
+Behavior:
+
+- The backend derives ownership only from the validated Supabase JWT `sub`.
+- New play logs can be created only for caller-owned `Owned` VideoGames or BoardGames.
+- Caller-owned Wishlist or Interested games return `400` with `Only owned games can be logged.`.
+- Unknown, deleted, or another user's `gameId` returns `404` without leaking existence.
+- Multiple intentional logs for the same game are allowed; no uniqueness or backend deduplication is used.
+- The client supplies the actual played date/time; the server rejects values more than five minutes in the future and assigns `createdAt` using current UTC time.
+- Existing Play Log entries can be corrected by editing only `playedAt` and nullable `durationMinutes`; updating preserves `createdAt`, `libraryEntryId`, ownership, and associated game.
+- Library and Random Picker use a shared Log Play dialog/sheet before posting. Pick, Another, and Start over never log automatically.
+- The Play Log page exposes Edit on each card and updates/reorders the list locally after successful edits.
+- Existing play logs remain when a game changes away from Owned, but new logs are blocked while it is non-Owned.
+- Feature 009 does not add delete, changing the associated game, notes, scores, participants, analytics, PlaySession, or persistent Random Picker history.
+
+Schema: migration `20260825025118_AddPlayLogEntries` adds `play_log_entries` with `id uuid primary key`, `library_entry_id uuid not null`, `played_at timestamp with time zone not null`, and `created_at timestamp with time zone not null`. Migration `20260825034331_AddPlayLogDurationMinutes` adds nullable `duration_minutes integer` with a positive-value CHECK constraint. `library_entry_id` references `library_entries.id` with `ON DELETE CASCADE`, and `ix_play_log_entries_library_entry_id` supports joins/cascades. No `library_id` column exists on `play_log_entries`; ownership derives through `PlayLogEntry -> LibraryEntry -> Library`.
+
+Verification:
+
+```
+dotnet test tests/backend/GameLibrary.Core.Tests/GameLibrary.Core.Tests.csproj
+dotnet test tests/backend/GameLibrary.IntegrationTests/GameLibrary.IntegrationTests.csproj
+dotnet build src/backend/GameLibrary.sln
+```
+
+```
+cd src/frontend
+npm test -- --watch=false
+npm run lint
+npm run build
+npm run build -- --configuration e2e
+npm run e2e
+```
+
 ## Backend
 
 Apply migrations (direct connection):
@@ -440,8 +508,8 @@ ng build
 
 ## Notes
 
-- The initial migration is intentionally empty: it establishes the EF migration infrastructure and verifies connectivity, not a domain artifact. The `AddPlatformManagement` migration (Feature 003) creates the `libraries` and `platforms` tables with the unique `user_id` index, the unique `(library_id, name_normalized)` index, and the `platforms.library_id → libraries.id` foreign key (`ON DELETE RESTRICT`). The `AddVideoGameManagement` migration (Feature 004) adds `games`, `library_entries`, `genres`, `game_genres`, and `game_platforms`. The `AddBoardGameManagement` migration (Feature 005) adds the four BoardGame columns and their CHECK constraints to the existing `games` table.
-- Backend unit tests (`tests/backend/GameLibrary.Core.Tests`) cover the domain/application rules (`VideoGameRules`, `BoardGameRules`, `LibraryFilterRules`, and `RandomPickerRules`). Platform, VideoGame, BoardGame, Library, and Random Picker integration tests run against real PostgreSQL via `ConnectionStrings:Test` (in the current environment, the remote Supabase project's `postgres` database) and include two-user isolation, duplicate/lifecycle behavior, acquisition transitions, cross-type safety, relational CHECK backstops, literal search semantics, library filter/sort behavior, Random Picker eligibility/result states/shown-history exclusion, and schema assertions. `DatabaseMigrationTests` asserts the `public` schema contains exactly `__EFMigrationsHistory`, `libraries`, `platforms`, `games`, `library_entries`, `genres`, `game_genres`, and `game_platforms` (order-independent).
+- The initial migration is intentionally empty: it establishes the EF migration infrastructure and verifies connectivity, not a domain artifact. The `AddPlatformManagement` migration (Feature 003) creates the `libraries` and `platforms` tables with the unique `user_id` index, the unique `(library_id, name_normalized)` index, and the `platforms.library_id → libraries.id` foreign key (`ON DELETE RESTRICT`). The `AddVideoGameManagement` migration (Feature 004) adds `games`, `library_entries`, `genres`, `game_genres`, and `game_platforms`. The `AddBoardGameManagement` migration (Feature 005) adds the four BoardGame columns and their CHECK constraints to the existing `games` table. The `AddPlayLogEntries` migration (Feature 009) adds `play_log_entries` only.
+- Backend unit tests (`tests/backend/GameLibrary.Core.Tests`) cover the domain/application rules (`VideoGameRules`, `BoardGameRules`, `LibraryFilterRules`, `RandomPickerRules`, and `PlayLogRules`). Platform, VideoGame, BoardGame, Library, Random Picker, and Play Log integration tests run against real PostgreSQL via `ConnectionStrings:Test` and include two-user isolation, duplicate/lifecycle behavior, acquisition transitions, cross-type safety, relational CHECK backstops, literal search semantics, library filter/sort behavior, Random Picker eligibility/result states/shown-history exclusion, Play Log caller scoping, Owned-only logging, cascade deletion, request validation, and schema assertions. `DatabaseMigrationTests` asserts the `public` schema contains exactly `__EFMigrationsHistory`, `libraries`, `platforms`, `games`, `library_entries`, `genres`, `game_genres`, `game_platforms`, and `play_log_entries` (order-independent).
 - Angular's service worker is active in production builds only; local `ng serve` verification of the PWA relies on `ng build` output.
 - No secrets are committed. Local secret-bearing files (`appsettings.Development.json`, `.env`, `.env.*`) are gitignored; committed configuration contains placeholders only.
 - Authentication adds `@supabase/supabase-js` and `Microsoft.AspNetCore.Authentication.JwtBearer`; the Angular initial-bundle budget warning was raised from 500 kB to 700 kB to accommodate `supabase-js` (the error budget stays 1 MB).

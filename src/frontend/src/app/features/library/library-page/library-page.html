@@ -184,10 +184,25 @@
                 <p>{{ item.interactionType }}</p>
               }
             }
-            <button type="button" class="button button--secondary" (click)="edit(item)">Edit</button>
+            <div class="library-card__actions">
+              @if (item.acquisitionStatus === 'Owned') {
+                <button type="button" class="button button--secondary" (click)="logPlay(item)" [disabled]="isLogging(item.id)">
+                  {{ isLogging(item.id) ? 'Logging...' : 'Log play' }}
+                </button>
+              }
+              <button type="button" class="button button--secondary" (click)="edit(item)">Edit</button>
+            </div>
+            @if (logSuccessByGameId()[item.id]) {
+              <p class="library-card__notice" role="status">{{ logSuccessByGameId()[item.id] }}</p>
+            }
+            @if (logErrorByGameId()[item.id]) {
+              <p class="library-card__error" role="alert">{{ logErrorByGameId()[item.id] }}</p>
+            }
           </div>
         </li>
       }
     </ul>
   }
+
+  <app-log-play-dialog #logPlayDialog (createSubmitted)="onLogPlayConfirmed($event)" />
 </section>

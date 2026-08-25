@@ -3,6 +3,7 @@ using System;
 using GameLibrary.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GameLibrary.Core.Data.Migrations
 {
     [DbContext(typeof(GameLibraryDbContext))]
-    partial class GameLibraryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260825025118_AddPlayLogEntries")]
+    partial class AddPlayLogEntries
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -348,10 +351,6 @@ namespace GameLibrary.Core.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<int?>("DurationMinutes")
-                        .HasColumnType("integer")
-                        .HasColumnName("duration_minutes");
-
                     b.Property<Guid>("LibraryEntryId")
                         .HasColumnType("uuid")
                         .HasColumnName("library_entry_id");
@@ -366,10 +365,7 @@ namespace GameLibrary.Core.Data.Migrations
                     b.HasIndex("LibraryEntryId")
                         .HasDatabaseName("ix_play_log_entries_library_entry_id");
 
-                    b.ToTable("play_log_entries", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_play_log_entries_duration_minutes_positive", "duration_minutes IS NULL OR duration_minutes > 0");
-                        });
+                    b.ToTable("play_log_entries", (string)null);
                 });
 
             modelBuilder.Entity("GameLibrary.Core.Games.GameGenre", b =>

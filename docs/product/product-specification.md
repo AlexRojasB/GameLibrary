@@ -17,6 +17,21 @@ Owned VideoGames with GameStatus = Completed must persist ProgressPercentage =
 The Random Picker must show visible volatile session result history, newest
 first.
 
+Feature 009 amendment, 2026-08-24:
+
+Play Log is a manual user-confirmed activity feature. It is distinct
+from Random Picker visible history, persistent picker history, automatic playtime,
+external gameplay imports and analytics.
+
+Feature 009 manual review amendment, 2026-08-25:
+
+Play Log remains manual. A new PlayLogEntry records the user-selected played
+date/time and may optionally record the duration of that play in minutes. Users
+may correct an existing PlayLogEntry's PlayedAt and DurationMinutes after
+creation, but may not change the associated game, ownership or CreatedAt. Play
+Log is promoted to authenticated desktop primary navigation while mobile bottom
+navigation remains Home, Library, Pick and Manage.
+
 1. Product Vision
 
 Game Library is a responsive Progressive Web App (PWA) for managing a
@@ -33,6 +48,9 @@ entry is the primary MVP workflow.
 
 A central product feature is the Random Game Picker, which selects a
 game from the user's owned collection according to optional filters.
+
+A secondary product feature is the Play Log, which lets the user manually record
+that they played an Owned game.
 
 2. Product Principles
 
@@ -578,6 +596,97 @@ NO_CANDIDATES and ALL_ALREADY_SHOWN states must not erase visible volatile
 history. The explicit reset action clears both the shown-results pool and the
 visible volatile history.
 
+26A. Play Log (Feature 009 Amendment)
+
+The Play Log records actual user-confirmed play activity.
+
+It is not Random Picker history. Showing a game in Random Picker must never
+automatically create a Play Log entry.
+
+The user may manually log a play for an Owned VideoGame or Owned BoardGame in
+their private Library.
+
+Only games with AcquisitionStatus = Owned can receive new Play Log entries.
+
+Each Play Log entry records one play occurrence for one LibraryEntry. Multiple
+plays for the same LibraryEntry are allowed.
+
+A Play Log entry belongs to the user's Library through its referenced
+LibraryEntry. It does not introduce a second stored Library ownership path.
+
+Multiple intentional plays remain valid: after one Log play request completes,
+the user may explicitly log the same game again. The UI must prevent accidental
+duplicate logging from repeated activation while the original Log play request is
+still pending.
+
+When creating a Play Log entry, the user can choose when the play actually
+happened. Manual logging interactions default the played date/time to the current
+browser-local date/time, and the user may change it before submitting. Random
+Picker logging uses the same interaction and defaults the played date/time to now.
+
+PlayedAt represents when the user says the play occurred. It is persisted and
+transported as an offset-aware/UTC-compatible timestamp, and normal UI displays it
+using browser-local date/time semantics.
+
+CreatedAt represents when the PlayLogEntry row was created. It is always assigned
+by the backend and is not user-editable. PlayedAt and CreatedAt may differ
+substantially.
+
+A Play Log entry may optionally record how long that individual play occurrence
+lasted. Duration is a positive integer number of minutes when present. Duration
+belongs to the PlayLogEntry, not to Game or LibraryEntry. Null duration is valid;
+zero or negative duration is invalid. No arbitrary maximum duration is imposed in
+the MVP.
+
+Feature 009 supports correcting an existing Play Log entry after creation.
+Editable fields are limited to PlayedAt and DurationMinutes. The associated
+LibraryEntry/Game, ownership and CreatedAt are not editable. If the user wants to
+record a play for a different game, they create another Play Log entry.
+
+The same PlayedAt and Duration validation used during creation applies during
+edit. PlayedAt may be historical, current or within the approved future tolerance;
+PlayedAt later than server current UTC time plus five minutes is invalid.
+DurationMinutes may be added, changed or cleared to null. When present, duration
+must be a positive integer; zero and negative values are invalid. No arbitrary
+maximum duration is imposed in the MVP.
+
+The Play Log page exposes an Edit action on each Play Log card. Edit uses the
+Play Shelf dialog/sheet pattern, prepopulates PlayedAt and DurationMinutes, and
+makes the game identity read-only and obvious. Saving updates the card without a
+full application reload. If PlayedAt changes, the Play Log list re-sorts newest
+first immediately.
+
+Edit actions belong only to the Play Log page. Library cards and Random Picker
+result cards may create new logs but must not expose Play Log edit actions.
+
+Deleting Play Log entries, changing the associated game, and richer session
+details remain outside this feature unless a future approved specification adds
+them.
+
+Changing an Owned game to Wishlist or Interested does not remove existing Play
+Log entries, but it prevents new entries from being logged while the game is not
+Owned.
+
+Deleting a LibraryEntry also deletes its Play Log entries.
+
+The Play Log screen lists entries newest first and shows enough game context to
+identify what was played. It shows PlayedAt in the user's browser-local date/time
+format and shows duration when present using a user-friendly minutes/hours
+presentation.
+
+The Play Log does not change Random Picker eligibility, filtering, shown-history
+behavior or selection weighting.
+
+The Play Log does not include timers, active sessions, automatic playtime
+tracking, outcomes, scores, party/player attendance, platform-specific sessions,
+analytics, recommendations or external integrations in the MVP.
+
+Desktop authenticated primary navigation includes Play Log as a normal destination
+alongside Home, Library, Pick and Manage. Home must still provide a discoverable
+secondary path to Play Log. Mobile bottom navigation remains exactly Home,
+Library, Pick and Manage; Play Log must not become a fifth mobile bottom-nav item
+and must not make Manage active on `/play-log`.
+
 27. Feature 008 UX Input
 
 Manual Feature 007 product testing also identified a management-page UX issue
@@ -653,6 +762,10 @@ Temporary Random Picker history.
 
 Visible volatile Random Picker result history.
 
+Manual Play Log entries for Owned games, with user-selected PlayedAt, optional
+duration in minutes, and correction of existing entries' PlayedAt and
+DurationMinutes.
+
 Responsive PWA.
 
 31. Explicitly Outside the MVP
@@ -677,7 +790,12 @@ Achievements.
 
 Automatic playtime.
 
-Gameplay session history.
+Automatic gameplay session tracking.
+
+Deleted Play Log entries, associated-game reassignment for Play Log entries, and
+richer Play Log session details beyond PlayedAt and DurationMinutes.
+
+Timers, active sessions, outcomes, scores or player attendance.
 
 Persistent Random Picker history.
 
@@ -741,3 +859,6 @@ Request another result without repeating previously shown games
 during the same session when alternatives remain.
 
 See visible volatile result history for the current Random Picker session.
+
+Manually record, browse and correct Play Log entries for Owned games, including
+when the play happened and optional duration when useful.

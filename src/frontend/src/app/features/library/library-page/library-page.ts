@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, computed, inject, signal, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../core/auth/auth.service';
@@ -10,6 +10,9 @@ import type { InteractionType } from '../../games/board-game';
 import type { GameStatus } from '../../games/video-game';
 import { Platform } from '../../platforms/platform';
 import { PlatformsService } from '../../platforms/platforms.service';
+import { CreatePlayLogEntryRequest } from '../../play-log/play-log';
+import { LogPlayDialog } from '../../play-log/log-play-dialog/log-play-dialog';
+import { PlayLogService } from '../../play-log/play-log.service';
 
 import { LibraryFilterState, LibraryGameType, LibraryItem, LibrarySort } from '../library';
 import { LibraryService } from '../library.service';
@@ -27,14 +30,16 @@ const SORTS: { value: LibrarySort; label: string }[] = [
 
 @Component({
   selector: 'app-library-page',
-  imports: [RouterLink],
+  imports: [RouterLink, LogPlayDialog],
   templateUrl: './library-page.html',
   styleUrl: './library-page.scss',
 })
 export class LibraryPage implements OnDestroy {
+  private readonly logPlayDialog = viewChild<LogPlayDialog>('logPlayDialog');
   private readonly libraryService = inject(LibraryService);
   private readonly platformsService = inject(PlatformsService);
   private readonly genresService = inject(GenresService);
+  private readonly playLogService = inject(PlayLogService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
@@ -46,6 +51,9 @@ export class LibraryPage implements OnDestroy {
   protected readonly filters = signal<LibraryFilterState>(emptyFilters());
   protected readonly sort = signal<LibrarySort>('NameAsc');
   protected readonly filtersOpen = signal(false);
+  protected readonly loggingGameIds = signal<string[]>([]);
+  protected readonly logSuccessByGameId = signal<Record<string, string>>({});
+  protected readonly logErrorByGameId = signal<Record<string, string>>({});
 
   protected readonly acquisitionStatuses = ACQUISITION_STATUSES;
   protected readonly gameStatuses = GAME_STATUSES;
@@ -164,6 +172,50 @@ export class LibraryPage implements OnDestroy {
     void this.router.navigateByUrl(item.gameType === 'VideoGame' ? '/video-games' : '/board-games');
   }
 
+  protected logPlay(item: LibraryItem): void {
+    if (item.acquisitionStatus !== 'Owned' || this.isLogging(item.id)) {
+      return;
+    }
+
+    this.logSuccessByGameId.update((messages) => withoutKey(messages, item.id));
+    this.logErrorByGameId.update((messages) => withoutKey(messages, item.id));
+    this.logPlayDialog()?.open({ id: item.id, name: item.name });
+  }
+
+  protected onLogPlayConfirmed(request: CreatePlayLogEntryRequest): void {
+    if (this.isLogging(request.gameId)) {
+      return;
+    }
+
+    this.loggingGameIds.update((ids) => [...ids, request.gameId]);
+    this.logSuccessByGameId.update((messages) => withoutKey(messages, request.gameId));
+    this.logErrorByGameId.update((messages) => withoutKey(messages, request.gameId));
+    this.logPlayDialog()?.setPending(true);
+
+    this.playLogService.logPlay(request).subscribe({
+      next: () => {
+        this.loggingGameIds.update((ids) => ids.filter((id) => id !== request.gameId));
+        this.logSuccessByGameId.update((messages) => ({ ...messages, [request.gameId]: 'Play logged.' }));
+        this.logPlayDialog()?.close();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.loggingGameIds.update((ids) => ids.filter((id) => id !== request.gameId));
+        if (error.status === 401) {
+          this.logPlayDialog()?.close();
+          this.handleSessionExpired();
+          return;
+        }
+        const message = this.logErrorMessage(error);
+        this.logErrorByGameId.update((messages) => ({ ...messages, [request.gameId]: message }));
+        this.logPlayDialog()?.showError(message);
+      },
+    });
+  }
+
+  protected isLogging(gameId: string): boolean {
+    return this.loggingGameIds().includes(gameId);
+  }
+
   protected platformNames(item: LibraryItem): string {
     return item.platformIds.map((id) => this.platformName(id)).join(', ');
   }
@@ -220,6 +272,14 @@ export class LibraryPage implements OnDestroy {
       return detail === null ? 'Invalid filters.' : `Invalid filters: ${detail}`;
     }
     return 'Unable to load your library. Please try again.';
+  }
+
+  private logErrorMessage(error: HttpErrorResponse): string {
+    const detail = serverDetail(error);
+    if (detail !== null) {
+      return detail;
+    }
+    return 'Unable to log this play. Please try again.';
   }
 
   private handleSessionExpired(): void {
@@ -290,4 +350,10 @@ function serverDetail(error: HttpErrorResponse): string | null {
     return body.detail;
   }
   return null;
+}
+
+function withoutKey<T>(source: Record<string, T>, key: string): Record<string, T> {
+  const rest = { ...source };
+  delete rest[key];
+  return rest;
 }

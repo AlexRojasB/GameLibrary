@@ -88,6 +88,10 @@ function libraryRequest(httpMock: HttpTestingController) {
   return httpMock.expectOne((request) => request.method === 'GET' && request.url.endsWith('/library'));
 }
 
+function playLogRequests(httpMock: HttpTestingController) {
+  return httpMock.match((request) => request.method === 'POST' && request.url.endsWith('/play-log'));
+}
+
 function text(fixture: ComponentFixture<LibraryPage>): string {
   return (fixture.nativeElement as HTMLElement).textContent ?? '';
 }
@@ -100,6 +104,21 @@ function buttonByText(fixture: ComponentFixture<LibraryPage>, label: string): HT
     throw new Error(`No button with text "${label}"`);
   }
   return button as HTMLButtonElement;
+}
+
+function submitLogDialog(fixture: ComponentFixture<LibraryPage>, playedAt = '2026-08-24T18:30', durationMinutes = '90'): void {
+  const host = (fixture.nativeElement as HTMLElement).querySelector('app-log-play-dialog') as HTMLElement;
+  const playedAtInput = host.querySelector('input[type="datetime-local"]') as HTMLInputElement;
+  const durationInput = host.querySelector('input[type="number"]') as HTMLInputElement;
+
+  playedAtInput.value = playedAt;
+  playedAtInput.dispatchEvent(new Event('input'));
+  durationInput.value = durationMinutes;
+  durationInput.dispatchEvent(new Event('input'));
+  fixture.detectChanges();
+
+  (host.querySelector('button[type="submit"]') as HTMLButtonElement).click();
+  fixture.detectChanges();
 }
 
 describe('LibraryPage', () => {
@@ -151,6 +170,7 @@ describe('LibraryPage', () => {
     expect(body).toContain('45 min');
     expect(body).toContain('Cooperative');
     expect(body).toContain('No cover');
+    expect(body).toContain('Log play');
   });
 
   it('distinguishes empty library from no results', async () => {
@@ -261,5 +281,95 @@ describe('LibraryPage', () => {
     editButtons[1].click();
     await fixture.whenStable();
     expect(router.url).toBe('/board-games');
+  });
+
+  it('shows Log play only for Owned cards and posts only after dialog confirmation', async () => {
+    flushLookups(httpMock);
+    libraryRequest(httpMock).flush([videoGame, boardGame]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const buttons = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')].filter((button) =>
+      button.textContent?.includes('Log play'),
+    ) as HTMLButtonElement[];
+    expect(buttons).toHaveLength(1);
+
+    buttons[0].click();
+    buttons[0].click();
+    fixture.detectChanges();
+
+    expect(text(fixture)).toContain('Confirm when you played');
+    expect(playLogRequests(httpMock)).toHaveLength(0);
+    submitLogDialog(fixture);
+
+    const requests = playLogRequests(httpMock);
+    expect(requests).toHaveLength(1);
+    expect(requests[0].request.body).toEqual({
+      gameId: 'v1',
+      playedAt: new Date('2026-08-24T18:30').toISOString(),
+      durationMinutes: 90,
+    });
+    expect(buttons[0].disabled).toBe(true);
+
+    requests[0].flush({ id: 'log-1', libraryEntryId: 'entry-1', gameId: 'v1', gameType: 'VideoGame', gameName: 'Hades', coverImageUrl: null, playedAt: '2026-08-24T18:30:00Z', durationMinutes: 90, createdAt: '2026-08-24T18:30:00Z' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(text(fixture)).toContain('Play logged.');
+    expect(buttons[0].disabled).toBe(false);
+  });
+
+  it('keeps unrelated Library card Log play actions usable while one card is pending', async () => {
+    const secondOwned = { ...boardGame, id: 'b2', name: 'Catan', acquisitionStatus: 'Owned' as const };
+    flushLookups(httpMock);
+    libraryRequest(httpMock).flush([videoGame, secondOwned]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const buttons = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')].filter((button) =>
+      button.textContent?.includes('Log play'),
+    ) as HTMLButtonElement[];
+
+    buttons[0].click();
+    fixture.detectChanges();
+    submitLogDialog(fixture, '2026-08-24T18:30', '45');
+    fixture.detectChanges();
+    expect(buttons[0].disabled).toBe(true);
+    expect(buttons[1].disabled).toBe(false);
+
+    buttons[1].click();
+    fixture.detectChanges();
+    submitLogDialog(fixture, '2026-08-24T19:00', '');
+    const requests = playLogRequests(httpMock);
+    expect(requests).toHaveLength(2);
+    expect(requests.map((request) => request.request.body.gameId).sort()).toEqual(['b2', 'v1']);
+    expect(requests.map((request) => request.request.body.durationMinutes).sort()).toEqual([45, null]);
+    requests.forEach((request) => request.flush({ id: 'log', libraryEntryId: 'entry', gameId: request.request.body.gameId, gameType: 'VideoGame', gameName: 'Game', coverImageUrl: null, playedAt: '2026-08-24T18:30:00Z', durationMinutes: request.request.body.durationMinutes, createdAt: '2026-08-24T18:30:00Z' }));
+  });
+
+  it('shows readable Log play errors and handles 401', async () => {
+    const auth = TestBed.inject(AuthService);
+    const router = TestBed.inject(Router);
+    flushLookups(httpMock);
+    libraryRequest(httpMock).flush([videoGame]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    buttonByText(fixture, 'Log play').click();
+    fixture.detectChanges();
+    submitLogDialog(fixture);
+    playLogRequests(httpMock)[0].flush({ detail: 'Only owned games can be logged.' }, { status: 400, statusText: 'Bad Request' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(text(fixture)).toContain('Only owned games can be logged.');
+
+    buttonByText(fixture, 'Log play').click();
+    fixture.detectChanges();
+    submitLogDialog(fixture);
+    playLogRequests(httpMock)[0].flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(auth.isAuthenticated()).toBe(false);
+    expect(router.url).toBe('/login');
   });
 });

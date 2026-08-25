@@ -1,0 +1,47 @@
+<section class="play-log page-stack">
+  <header class="play-log__header page-hero">
+    <p class="eyebrow">Play Log</p>
+    <h1>Recent plays from your shelf.</h1>
+    <p>Browse the games you explicitly logged as played, including when they happened and how long they took.</p>
+  </header>
+
+  @if (loading()) {
+    <p class="play-log__status">Loading...</p>
+  } @else if (error()) {
+    <p class="play-log__error" role="alert">{{ error() }}</p>
+    <button type="button" class="button button--secondary" (click)="load()">Try again</button>
+  } @else if (entries().length === 0) {
+    <div class="play-log__empty surface-card">
+      <h2>No plays logged yet.</h2>
+      <p>Use Log play on an Owned Library card or current Random Picker result when you finish playing.</p>
+      <a class="button button--secondary" routerLink="/library">Browse Library</a>
+    </div>
+  } @else {
+    <ul class="play-log__entries" aria-label="Logged plays">
+      @for (entry of entries(); track entry.id) {
+        <li class="play-log-card">
+          @if (entry.coverImageUrl) {
+            <img class="play-log-card__cover" [src]="entry.coverImageUrl" [alt]="entry.gameName + ' cover'" />
+          } @else {
+            <div class="play-log-card__placeholder" aria-hidden="true">No cover</div>
+          }
+          <div class="play-log-card__body">
+            <div class="play-log-card__title-row">
+              <h2>{{ entry.gameName }}</h2>
+              <span class="game-type-chip">{{ entry.gameType === 'VideoGame' ? 'Video game' : 'Board game' }}</span>
+            </div>
+            <p class="play-log-card__time">Played {{ entry.playedAt | date: 'medium' }}</p>
+            @if (durationLabel(entry)) {
+              <p class="play-log-card__duration">Duration: {{ durationLabel(entry) }}</p>
+            }
+            <div class="play-log-card__actions">
+              <button type="button" class="button button--secondary" (click)="edit(entry)">Edit</button>
+            </div>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+  <app-log-play-dialog #logPlayDialog (updateSubmitted)="onUpdateSubmitted($event)" />
+</section>
