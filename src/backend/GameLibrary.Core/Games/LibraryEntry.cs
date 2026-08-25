@@ -1,4 +1,5 @@
 using GameLibrary.Core.Libraries;
+using GameLibrary.Core.PlayLog;
 using GameLibrary.Core.Platforms;
 
 namespace GameLibrary.Core.Games;
@@ -41,4 +42,6 @@ public class LibraryEntry
     public Game Game { get; set; } = null!;
 
     public ICollection<GamePlatform> GamePlatforms { get; set; } = new List<GamePlatform>();
+
+    public ICollection<PlayLogEntry> PlayLogEntries { get; set; } = new List<PlayLogEntry>();
 }

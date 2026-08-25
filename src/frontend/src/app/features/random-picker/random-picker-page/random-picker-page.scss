@@ -136,7 +136,6 @@
 .random-picker-card--history {
   grid-template-columns: 5.5rem 1fr;
   background: color-mix(in srgb, var(--color-surface-raised) 78%, var(--color-page));
-  box-shadow: none;
 }
 
 .random-picker-card__cover,
@@ -147,13 +146,11 @@
   object-fit: cover;
 }
 
-.random-picker-card--current .random-picker-card__cover,
-.random-picker-card--current .random-picker-card__placeholder {
+.random-picker-card--current :is(.random-picker-card__cover, .random-picker-card__placeholder) {
   width: 100%;
 }
 
-.random-picker-card--history .random-picker-card__cover,
-.random-picker-card--history .random-picker-card__placeholder {
+.random-picker-card--history :is(.random-picker-card__cover, .random-picker-card__placeholder) {
   width: 5.5rem;
   border-radius: 0.75rem;
 }
@@ -173,6 +170,26 @@
   color: var(--color-muted);
 }
 
+.random-picker-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.random-picker-card__notice,
+.random-picker-card__error {
+  font-weight: 800;
+}
+
+.random-picker-card__notice {
+  color: var(--color-success) !important;
+}
+
+.random-picker-card__error {
+  color: var(--color-danger) !important;
+}
+
 .random-picker-card__title-row {
   align-items: flex-start;
 
@@ -183,12 +200,6 @@
 
   h3 {
     font-size: 1rem;
-  }
-}
-
-.random-picker__history {
-  h2 {
-    margin-top: 0;
   }
 }
 
@@ -222,8 +233,7 @@
     grid-template-columns: 4.5rem 1fr;
   }
 
-  .random-picker-card--history .random-picker-card__cover,
-  .random-picker-card--history .random-picker-card__placeholder {
+  .random-picker-card--history :is(.random-picker-card__cover, .random-picker-card__placeholder) {
     width: 4.5rem;
   }
 }

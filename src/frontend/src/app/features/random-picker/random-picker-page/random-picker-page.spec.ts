@@ -86,6 +86,10 @@ function pickRequest(httpMock: HttpTestingController): TestRequest {
   return httpMock.expectOne((request) => request.method === 'POST' && request.url.endsWith('/random-picker/pick'));
 }
 
+function playLogRequests(httpMock: HttpTestingController): TestRequest[] {
+  return httpMock.match((request) => request.method === 'POST' && request.url.endsWith('/play-log'));
+}
+
 function text(fixture: ComponentFixture<RandomPickerPage>): string {
   return (fixture.nativeElement as HTMLElement).textContent ?? '';
 }
@@ -98,6 +102,21 @@ function buttonByText(fixture: ComponentFixture<RandomPickerPage>, label: string
     throw new Error(`No button with text "${label}"`);
   }
   return button as HTMLButtonElement;
+}
+
+function submitLogDialog(fixture: ComponentFixture<RandomPickerPage>, playedAt = '2026-08-24T18:30', durationMinutes = '90'): void {
+  const host = (fixture.nativeElement as HTMLElement).querySelector('app-log-play-dialog') as HTMLElement;
+  const playedAtInput = host.querySelector('input[type="datetime-local"]') as HTMLInputElement;
+  const durationInput = host.querySelector('input[type="number"]') as HTMLInputElement;
+
+  playedAtInput.value = playedAt;
+  playedAtInput.dispatchEvent(new Event('input'));
+  durationInput.value = durationMinutes;
+  durationInput.dispatchEvent(new Event('input'));
+  fixture.detectChanges();
+
+  (host.querySelector('button[type="submit"]') as HTMLButtonElement).click();
+  fixture.detectChanges();
 }
 
 function modeSelect(fixture: ComponentFixture<RandomPickerPage>): HTMLSelectElement {
@@ -196,6 +215,7 @@ describe('RandomPickerPage', () => {
     expect(text(fixture)).toContain('Action');
     expect(text(fixture)).toContain('Notes: Fast runs');
     expect(text(fixture)).toContain('1 player');
+    expect(text(fixture)).toContain('Log play');
 
     buttonByText(fixture, 'Another').click();
     const another = pickRequest(httpMock);
@@ -363,5 +383,104 @@ describe('RandomPickerPage', () => {
     fixture.detectChanges();
 
     expect(text(fixture)).toContain('Invalid picker filters: Mode is invalid.');
+  });
+
+  it('logs only after explicit current-result dialog confirmation; Pick and Another do not log', async () => {
+    flushLookups(httpMock);
+    buttonByText(fixture, 'Pick a game').click();
+    expect(playLogRequests(httpMock)).toHaveLength(0);
+    pickRequest(httpMock).flush({ state: 'SUCCESS', result: videoResult });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    buttonByText(fixture, 'Another').click();
+    expect(playLogRequests(httpMock)).toHaveLength(0);
+    pickRequest(httpMock).flush({ state: 'SUCCESS', result: boardResult });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    buttonByText(fixture, 'Log play').click();
+    fixture.detectChanges();
+    expect(text(fixture)).toContain('Confirm when you played');
+    expect(playLogRequests(httpMock)).toHaveLength(0);
+    submitLogDialog(fixture);
+    const requests = playLogRequests(httpMock);
+    expect(requests).toHaveLength(1);
+    expect(requests[0].request.body).toEqual({
+      gameId: 'game-2',
+      playedAt: new Date('2026-08-24T18:30').toISOString(),
+      durationMinutes: 90,
+    });
+    requests[0].flush({ id: 'log-1', libraryEntryId: 'entry-2', gameId: 'game-2', gameType: 'BoardGame', gameName: 'Pandemic', coverImageUrl: null, playedAt: '2026-08-24T18:30:00Z', durationMinutes: 90, createdAt: '2026-08-24T18:30:00Z' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(text(fixture)).toContain('Play logged.');
+  });
+
+  it('prevents duplicate Random Picker Log play posts and keeps Another usable', async () => {
+    flushLookups(httpMock);
+    buttonByText(fixture, 'Pick a game').click();
+    pickRequest(httpMock).flush({ state: 'SUCCESS', result: videoResult });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    buttonByText(fixture, 'Log play').click();
+    fixture.detectChanges();
+    submitLogDialog(fixture);
+    buttonByText(fixture, 'Logging...').click();
+    fixture.detectChanges();
+
+    let requests = playLogRequests(httpMock);
+    expect(requests).toHaveLength(1);
+    expect(buttonByText(fixture, 'Another').disabled).toBe(false);
+
+    buttonByText(fixture, 'Another').click();
+    pickRequest(httpMock).flush({ state: 'SUCCESS', result: boardResult });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    requests[0].flush({ id: 'log-1', libraryEntryId: 'entry-1', gameId: 'game-1', gameType: 'VideoGame', gameName: 'Hades', coverImageUrl: null, playedAt: '2026-08-24T18:30:00Z', durationMinutes: 90, createdAt: '2026-08-24T18:30:00Z' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(text(fixture)).not.toContain('Play logged.');
+    buttonByText(fixture, 'Log play').click();
+    fixture.detectChanges();
+    submitLogDialog(fixture, '2026-08-24T19:00', '');
+    requests = playLogRequests(httpMock);
+    expect(requests).toHaveLength(1);
+    expect(requests[0].request.body).toEqual({
+      gameId: 'game-2',
+      playedAt: new Date('2026-08-24T19:00').toISOString(),
+      durationMinutes: null,
+    });
+    requests[0].flush({ id: 'log-2', libraryEntryId: 'entry-2', gameId: 'game-2', gameType: 'BoardGame', gameName: 'Pandemic', coverImageUrl: null, playedAt: '2026-08-24T18:30:00Z', durationMinutes: null, createdAt: '2026-08-24T18:30:00Z' });
+  });
+
+  it('shows readable Random Picker Log play errors and handles 401', async () => {
+    const auth = TestBed.inject(AuthService);
+    const router = TestBed.inject(Router);
+    flushLookups(httpMock);
+    buttonByText(fixture, 'Pick a game').click();
+    pickRequest(httpMock).flush({ state: 'SUCCESS', result: videoResult });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    buttonByText(fixture, 'Log play').click();
+    fixture.detectChanges();
+    submitLogDialog(fixture);
+    playLogRequests(httpMock)[0].flush({ detail: 'Only owned games can be logged.' }, { status: 400, statusText: 'Bad Request' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(text(fixture)).toContain('Only owned games can be logged.');
+
+    buttonByText(fixture, 'Log play').click();
+    fixture.detectChanges();
+    submitLogDialog(fixture);
+    playLogRequests(httpMock)[0].flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(auth.isAuthenticated()).toBe(false);
+    expect(router.url).toBe('/login');
   });
 });

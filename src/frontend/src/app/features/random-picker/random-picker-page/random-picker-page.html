@@ -186,7 +186,18 @@
         @if (result.notes !== null) {
           <p>Notes: {{ result.notes }}</p>
         }
-        <button type="button" class="button button--secondary" (click)="edit(result)">Edit</button>
+        <div class="random-picker-card__actions">
+          <button type="button" class="button button--secondary" (click)="logPlay(result)" [disabled]="isLogging(result)">
+            {{ isLogging(result) ? 'Logging...' : 'Log play' }}
+          </button>
+          <button type="button" class="button button--secondary" (click)="edit(result)">Edit</button>
+        </div>
+        @if (logSuccess()) {
+          <p class="random-picker-card__notice" role="status">{{ logSuccess() }}</p>
+        }
+        @if (logError()) {
+          <p class="random-picker-card__error" role="alert">{{ logError() }}</p>
+        }
       </div>
       </article>
     } @else {
@@ -223,4 +234,6 @@
       </div>
     </section>
   }
+
+  <app-log-play-dialog #logPlayDialog (createSubmitted)="onLogPlayConfirmed($event)" />
 </section>

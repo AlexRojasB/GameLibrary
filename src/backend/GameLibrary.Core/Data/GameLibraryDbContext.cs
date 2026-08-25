@@ -1,5 +1,6 @@
 using GameLibrary.Core.Games;
 using GameLibrary.Core.Libraries;
+using GameLibrary.Core.PlayLog;
 using GameLibrary.Core.Platforms;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,6 +26,8 @@ public class GameLibraryDbContext : DbContext
     public DbSet<GameGenre> GameGenres => Set<GameGenre>();
 
     public DbSet<GamePlatform> GamePlatforms => Set<GamePlatform>();
+
+    public DbSet<PlayLogEntry> PlayLogEntries => Set<PlayLogEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -220,6 +223,49 @@ public class GameLibraryDbContext : DbContext
             entity.HasMany(le => le.GamePlatforms)
                 .WithOne(gp => gp.LibraryEntry)
                 .HasForeignKey(gp => gp.LibraryEntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(le => le.PlayLogEntries)
+                .WithOne(entry => entry.LibraryEntry)
+                .HasForeignKey(entry => entry.LibraryEntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PlayLogEntry>(entity =>
+        {
+            entity.ToTable("play_log_entries");
+            entity.HasKey(entry => entry.Id)
+                .HasName("pk_play_log_entries");
+
+            entity.Property(entry => entry.Id)
+                .HasColumnName("id");
+
+            entity.Property(entry => entry.LibraryEntryId)
+                .HasColumnName("library_entry_id");
+
+            entity.Property(entry => entry.PlayedAt)
+                .HasColumnName("played_at");
+
+            entity.Property(entry => entry.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.Property(entry => entry.DurationMinutes)
+                .HasColumnName("duration_minutes");
+
+            entity.ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "ck_play_log_entries_duration_minutes_positive",
+                    "duration_minutes IS NULL OR duration_minutes > 0");
+            });
+
+            entity.HasIndex(entry => entry.LibraryEntryId)
+                .HasDatabaseName("ix_play_log_entries_library_entry_id");
+
+            entity.HasOne(entry => entry.LibraryEntry)
+                .WithMany(le => le.PlayLogEntries)
+                .HasForeignKey(entry => entry.LibraryEntryId)
+                .HasConstraintName("fk_play_log_entries_library_entries_library_entry_id")
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

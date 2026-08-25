@@ -1,0 +1,96 @@
+.play-log {
+  max-width: 58rem;
+}
+
+.play-log__entries {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.play-log-card {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.85rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-card);
+}
+
+.play-log-card__cover,
+.play-log-card__placeholder {
+  width: 5.5rem;
+  aspect-ratio: 2 / 3;
+  border-radius: 0.75rem;
+  object-fit: cover;
+}
+
+.play-log-card__placeholder {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at top, rgba(180, 95, 53, 0.18), transparent 7rem),
+    var(--color-accent-soft);
+  color: var(--color-accent-strong);
+  font-weight: 900;
+}
+
+.play-log-card__title-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  h2 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+}
+
+.play-log-card__time,
+.play-log-card__duration {
+  margin: 0.35rem 0 0;
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.play-log-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.play-log__empty {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+
+  h2,
+  p {
+    margin: 0;
+  }
+}
+
+.play-log__error {
+  color: var(--color-danger);
+}
+
+@media (max-width: 42rem) {
+  .play-log-card {
+    grid-template-columns: 4.5rem 1fr;
+  }
+
+  .play-log-card__cover,
+  .play-log-card__placeholder {
+    width: 4.5rem;
+  }
+
+  .play-log-card__title-row {
+    flex-direction: column;
+  }
+}

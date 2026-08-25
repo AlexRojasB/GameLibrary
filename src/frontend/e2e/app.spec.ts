@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const email = 'player@example.com';
 const password = 'password123';
@@ -27,6 +27,33 @@ test('navigates the core Play Shelf flows', async ({ page }) => {
   await expect(page.getByText('Cascadia')).toBeVisible();
 });
 
+test('logs a play from Library and opens Play Log from Home', async ({ page }) => {
+  await page.getByRole('link', { name: 'Library', exact: true }).first().click();
+  await expect(page.getByRole('heading', { name: /browse the shelf/i })).toBeVisible();
+
+  const zeldaCard = page.locator('.library-card').filter({ hasText: 'Zelda: Tears of the Kingdom' });
+  await zeldaCard.getByRole('button', { name: 'Log play' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Zelda: Tears of the Kingdom' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel('Played date/time').fill(await dateTimeLocalOneHourAgo(page));
+  await dialog.getByLabel(/Duration minutes/i).fill('90');
+  await dialog.getByRole('button', { name: 'Log play' }).click();
+  await expect(zeldaCard.getByText('Play logged.')).toBeVisible();
+
+  await page.getByRole('link', { name: 'Home', exact: true }).first().click();
+  await page.locator('.home-card').filter({ hasText: 'Play Log' }).click();
+  await expect(page.getByRole('heading', { name: /recent plays from your shelf/i })).toBeVisible();
+  await expect(page.getByText('Zelda: Tears of the Kingdom')).toBeVisible();
+  await expect(page.getByText('Duration: 1 h 30 min')).toBeVisible();
+
+  const playLogCard = page.locator('.play-log-card').filter({ hasText: 'Zelda: Tears of the Kingdom' });
+  await playLogCard.getByRole('button', { name: 'Edit' }).click();
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel(/Duration minutes/i).fill('120');
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await expect(playLogCard.getByText('Duration: 2 h')).toBeVisible();
+});
+
 test('opens management forms in dialogs', async ({ page }) => {
   await page.getByRole('link', { name: 'Manage' }).first().click();
   await expect(page.getByRole('heading', { name: /keep the shelf tidy/i })).toBeVisible();
@@ -53,3 +80,11 @@ test('picks a game and keeps visible session history', async ({ page }) => {
   await page.getByLabel('Mode').selectOption('BoardGames');
   await expect(page.getByRole('heading', { name: 'Previous picks' })).toBeVisible();
 });
+
+async function dateTimeLocalOneHourAgo(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const date = new Date(Date.now() - 60 * 60 * 1000);
+    const pad = (value: number) => value.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  });
+}

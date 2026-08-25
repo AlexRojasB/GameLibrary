@@ -43,6 +43,7 @@ describe('Home', () => {
 
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('user@example.com');
+    expect(text).toContain('Play Log');
     expect(text).not.toContain('user-1');
   });
 

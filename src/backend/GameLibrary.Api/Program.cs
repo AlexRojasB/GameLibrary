@@ -2,6 +2,7 @@ using GameLibrary.Api.E2E;
 using GameLibrary.Core.Data;
 using GameLibrary.Core.Games;
 using GameLibrary.Core.Libraries;
+using GameLibrary.Core.PlayLog;
 using GameLibrary.Core.Platforms;
 using GameLibrary.Core.RandomPicker;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -17,6 +18,7 @@ builder.Services.AddScoped<PlatformService>();
 builder.Services.AddScoped<VideoGameService>();
 builder.Services.AddScoped<BoardGameService>();
 builder.Services.AddScoped<RandomPickerService>();
+builder.Services.AddScoped<PlayLogService>();
 
 var e2eModeEnabled = E2eTestMode.IsEnabled(builder.Configuration, builder.Environment);
 var connectionString = e2eModeEnabled
