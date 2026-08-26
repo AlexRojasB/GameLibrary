@@ -40,6 +40,21 @@ explicitly user-triggered external cover-image search assistance that returns
 visual candidates for the user to inspect and select. Selecting a candidate only
 fills the existing CoverImageUrl field; normal game saving remains separate.
 
+Feature 011 amendment, 2026-08-25:
+
+The product may offer an optional Steam integration for authenticated users. A
+user may link one Steam account, review games returned by Steam for that linked
+account, and explicitly import selected Steam-owned games as Owned VideoGames in
+their private Library. Steam integration is optional assistance and must not
+replace manual entry. It must not request or store Steam passwords, must not
+grant Game Library authentication, and must not run background synchronization.
+Steam imports must preserve all VideoGame invariants, including Owned
+VideoGames requiring at least one Platform. Imported games use the user's Steam
+Platform, creating it only when needed. Steam playtime returned by Steam is
+external reference data for import review only in this feature; it must not
+create PlayLogEntries, alter Random Picker weighting, or become automatic
+gameplay tracking.
+
 1. Product Vision
 
 Game Library is a responsive Progressive Web App (PWA) for managing a
@@ -765,6 +780,9 @@ Optional cover image URL.
 
 Optional cover image search assistance for choosing a CoverImageUrl.
 
+Optional explicitly user-triggered Steam account linking and selected Steam
+owned-game import for VideoGames.
+
 Library search/filter/sort.
 
 Random Picker for VideoGames.
@@ -802,13 +820,17 @@ Image upload or managed image storage.
 Automatic cover search, cover downloads, image generation, reverse-image search,
 or stored cover-search history.
 
-External platform integrations.
+External platform integrations other than the optional Feature 011 Steam import
+assistance.
 
-Automatic imports.
+Automatic imports or background synchronization. Feature 011 permits only
+explicit user-selected Steam imports after the user reviews candidates.
 
 Achievements.
 
-Automatic playtime.
+Automatic playtime, except that Feature 011 may display Steam-reported playtime
+as external import-review metadata without creating PlayLogEntries or gameplay
+sessions.
 
 Automatic gameplay session tracking.
 

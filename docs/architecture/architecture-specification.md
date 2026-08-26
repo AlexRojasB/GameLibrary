@@ -18,6 +18,17 @@ image-search provider. Provider credentials are server-side secrets and are neve
 sent to Angular. The persisted model remains the existing optional external
 CoverImageUrl, so no application schema change is required.
 
+Feature 011 amendment, 2026-08-25:
+
+Steam integration, when implemented, is backend-mediated and explicit. Angular
+calls the Game Library API for link, status, preview and import operations. The
+API verifies Steam OpenID callback data with Steam, stores the verified SteamID64
+for the caller's Library, and calls Steam Web API from the backend only. Steam Web
+API keys are server-side secrets and are never sent to Angular. Steam linking uses
+browser redirects only for user consent/authentication with Steam; Steam is not an
+application identity provider for Game Library. Automated tests must substitute
+Steam at the provider boundary and must not call real Steam services.
+
 1. Purpose
 
 This document defines the approved technical architecture for the Game
@@ -712,7 +723,48 @@ server-only secrets remain backend/deployment secrets. External provider
 credentials, including cover-image search API keys or subscription tokens, are
 also server-only secrets.
 
-29. Deployment
+Steam Web API keys are external provider credentials and are also server-only
+secrets. Steam passwords, Steam session cookies and Steam access tokens are not
+collected or stored by the application.
+
+29. Steam Integration
+
+An approved feature may provide optional Steam library import assistance through
+the ASP.NET Core API. This integration follows the normal application boundary:
+
+Angular PWA -> Game Library API -> Steam Web API.
+
+Steam OpenID browser redirects are allowed only to verify that the user controls a
+SteamID64 during explicit link flow. Steam OpenID does not replace Supabase Auth;
+all application endpoints still require normal Supabase JWT bearer authentication
+except the dedicated Steam redirect/callback endpoints protected by one-time link
+state.
+
+Rules:
+
+Steam Web API calls are made only by the ASP.NET Core API.
+
+Angular must not call Steam Web API endpoints directly and must not receive Steam
+Web API keys or publisher keys.
+
+Use normal `HttpClient` / `IHttpClientFactory` conventions, server-side
+configuration, short timeouts and predictable ProblemDetails errors for Steam
+unavailability.
+
+Missing Steam provider configuration must not prevent the rest of the application
+from starting or using manual game entry.
+
+Steam integration may add EF Core migrations for a linked Steam account, one-time
+link state, and per-Library Steam AppID duplicate detection. EF Core migrations
+remain the only application schema authority.
+
+Steam import is explicitly user-triggered. Do not add background jobs, scheduled
+sync, webhooks, long-running sync workers, Redis, queues or distributed locks.
+
+Automated tests must use deterministic provider substitution and must not call
+real Steam OpenID or Steam Web API services.
+
+30. Deployment
 
 The MVP assumes managed Supabase hosting is acceptable.
 
@@ -736,7 +788,7 @@ No Kubernetes or distributed platform is required.
 If Supabase managed hosting is later rejected, PostgreSQL/Auth hosting
 can be reconsidered without changing the approved domain model.
 
-30. Explicitly Rejected for MVP
+31. Explicitly Rejected for MVP
 
 Do not introduce without an approved architecture change:
 
@@ -778,6 +830,16 @@ Image-storage infrastructure.
 
 Direct Angular access to external image-search providers or provider credentials.
 
+Direct Angular access to Steam Web API endpoints or Steam Web API credentials.
+
+Using Steam as the Game Library login provider instead of Supabase Auth.
+
+Storing Steam passwords, Steam session cookies or Steam access tokens.
+
+Background Steam library synchronization.
+
+Calling real Steam services from automated tests.
+
 Generic multi-provider search plugin/fallback frameworks.
 
 Persistent Random Picker sessions.
@@ -786,7 +848,7 @@ AI/recommendation infrastructure.
 
 ASP.NET Core Identity.
 
-31. SDD and Agent Workflow
+32. SDD and Agent Workflow
 
 Implementation is driven by feature specifications under specs/.
 
@@ -806,7 +868,7 @@ Report conflicts or ambiguity instead of inventing behavior.
 
 Architecture changes require an explicit architecture-spec update.
 
-32. Initial Feature Delivery Order
+33. Initial Feature Delivery Order
 
 Recommended order:
 
@@ -828,7 +890,7 @@ PWA polish and MVP end-to-end verification.
 
 Each step receives its own feature specification before implementation.
 
-33. Architecture Approval
+34. Architecture Approval
 
 This architecture is approved for MVP feature specification and
 implementation.

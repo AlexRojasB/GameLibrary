@@ -2,6 +2,7 @@ using GameLibrary.Core.Games;
 using GameLibrary.Core.Libraries;
 using GameLibrary.Core.PlayLog;
 using GameLibrary.Core.Platforms;
+using GameLibrary.Core.Steam;
 using Microsoft.EntityFrameworkCore;
 
 namespace GameLibrary.Core.Data;
@@ -28,6 +29,10 @@ public class GameLibraryDbContext : DbContext
     public DbSet<GamePlatform> GamePlatforms => Set<GamePlatform>();
 
     public DbSet<PlayLogEntry> PlayLogEntries => Set<PlayLogEntry>();
+
+    public DbSet<SteamAccount> SteamAccounts => Set<SteamAccount>();
+
+    public DbSet<SteamLinkRequest> SteamLinkRequests => Set<SteamLinkRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -57,6 +62,16 @@ public class GameLibraryDbContext : DbContext
                 .WithOne(le => le.Library)
                 .HasForeignKey(le => le.LibraryId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(l => l.SteamAccount)
+                .WithOne(a => a.Library)
+                .HasForeignKey<SteamAccount>(a => a.LibraryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(l => l.SteamLinkRequests)
+                .WithOne(r => r.Library)
+                .HasForeignKey(r => r.LibraryId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Platform>(entity =>
@@ -191,12 +206,20 @@ public class GameLibraryDbContext : DbContext
             entity.Property(le => le.ProgressPercentage)
                 .HasColumnName("progress_percentage");
 
+            entity.Property(le => le.SteamAppId)
+                .HasColumnName("steam_app_id");
+
             entity.HasIndex(le => le.LibraryId)
                 .HasDatabaseName("ix_library_entries_library_id");
 
             entity.HasIndex(le => le.GameId)
                 .IsUnique()
                 .HasDatabaseName("ix_library_entries_game_id");
+
+            entity.HasIndex(le => new { le.LibraryId, le.SteamAppId })
+                .IsUnique()
+                .HasFilter("steam_app_id IS NOT NULL")
+                .HasDatabaseName("ix_library_entries_library_id_steam_app_id");
 
             entity.ToTable(t =>
             {
@@ -207,6 +230,9 @@ public class GameLibraryDbContext : DbContext
                 t.HasCheckConstraint(
                     "ck_library_entries_owned_status_progress",
                     "acquisition_status = 'Owned' OR (game_status IS NULL AND progress_percentage IS NULL)");
+                t.HasCheckConstraint(
+                    "ck_library_entries_steam_app_id",
+                    "steam_app_id IS NULL OR (steam_app_id BETWEEN 1 AND 4294967295)");
             });
 
             entity.HasOne(le => le.Library)
@@ -340,6 +366,79 @@ public class GameLibraryDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(gp => gp.PlatformId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<SteamAccount>(entity =>
+        {
+            entity.ToTable("steam_accounts");
+            entity.HasKey(a => a.Id)
+                .HasName("pk_steam_accounts");
+
+            entity.Property(a => a.Id)
+                .HasColumnName("id");
+
+            entity.Property(a => a.LibraryId)
+                .HasColumnName("library_id");
+
+            entity.Property(a => a.SteamId64)
+                .HasColumnName("steam_id64")
+                .HasColumnType("text")
+                .IsRequired();
+
+            entity.Property(a => a.LinkedAt)
+                .HasColumnName("linked_at");
+
+            entity.HasIndex(a => a.LibraryId)
+                .IsUnique()
+                .HasDatabaseName("ix_steam_accounts_library_id");
+
+            entity.HasIndex(a => a.SteamId64)
+                .IsUnique()
+                .HasDatabaseName("ix_steam_accounts_steam_id64");
+        });
+
+        modelBuilder.Entity<SteamLinkRequest>(entity =>
+        {
+            entity.ToTable("steam_link_requests");
+            entity.HasKey(r => r.Id)
+                .HasName("pk_steam_link_requests");
+
+            entity.Property(r => r.Id)
+                .HasColumnName("id");
+
+            entity.Property(r => r.LibraryId)
+                .HasColumnName("library_id");
+
+            entity.Property(r => r.StateHash)
+                .HasColumnName("state_hash")
+                .HasMaxLength(64)
+                .IsRequired();
+
+            entity.Property(r => r.CreatedAt)
+                .HasColumnName("created_at");
+
+            entity.Property(r => r.ExpiresAt)
+                .HasColumnName("expires_at");
+
+            entity.Property(r => r.ConsumedAt)
+                .HasColumnName("consumed_at");
+
+            entity.HasIndex(r => r.StateHash)
+                .IsUnique()
+                .HasDatabaseName("ix_steam_link_requests_state_hash");
+
+            entity.HasIndex(r => r.LibraryId)
+                .HasDatabaseName("ix_steam_link_requests_library_id");
+
+            entity.ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "ck_steam_link_requests_state_hash",
+                    "char_length(state_hash) = 64");
+                t.HasCheckConstraint(
+                    "ck_steam_link_requests_expires_at",
+                    "expires_at > created_at");
+            });
         });
     }
 }

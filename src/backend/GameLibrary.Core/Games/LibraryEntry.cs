@@ -37,6 +37,8 @@ public class LibraryEntry
     /// </summary>
     public int? ProgressPercentage { get; set; }
 
+    public long? SteamAppId { get; set; }
+
     public Library Library { get; set; } = null!;
 
     public Game Game { get; set; } = null!;

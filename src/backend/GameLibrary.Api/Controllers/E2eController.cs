@@ -65,6 +65,8 @@ public sealed class E2eController : ControllerBase
         {
             await _db.Database.MigrateAsync(ct);
 
+            await _db.SteamAccounts.ExecuteDeleteAsync(ct);
+            await _db.SteamLinkRequests.ExecuteDeleteAsync(ct);
             await _db.GamePlatforms.ExecuteDeleteAsync(ct);
             await _db.GameGenres.ExecuteDeleteAsync(ct);
             await _db.LibraryEntries.ExecuteDeleteAsync(ct);

@@ -1,5 +1,6 @@
 using GameLibrary.Core.Games;
 using GameLibrary.Core.Platforms;
+using GameLibrary.Core.Steam;
 
 namespace GameLibrary.Core.Libraries;
 
@@ -21,4 +22,8 @@ public class Library
     public ICollection<Platform> Platforms { get; set; } = new List<Platform>();
 
     public ICollection<LibraryEntry> LibraryEntries { get; set; } = new List<LibraryEntry>();
+
+    public SteamAccount? SteamAccount { get; set; }
+
+    public ICollection<SteamLinkRequest> SteamLinkRequests { get; set; } = new List<SteamLinkRequest>();
 }

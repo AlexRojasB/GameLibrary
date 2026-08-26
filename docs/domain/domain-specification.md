@@ -31,6 +31,20 @@ enter the URL directly or choose a URL from optional external cover-search
 assistance, but search candidates, provider metadata and search history are not
 domain entities and are not persisted.
 
+Feature 011 amendment, 2026-08-25:
+
+Steam integration introduces one optional SteamAccount link per Library and an
+optional SteamAppId reference on imported VideoGame LibraryEntries. A SteamAccount
+stores the verified 64-bit SteamID for the user's linked Steam account. It is not
+an application login credential and does not store Steam passwords, Steam session
+cookies or Steam access tokens. A SteamAppId reference is used only to recognize
+and avoid duplicate imports from the same Library; it is not a global shared game
+catalog. Steam import candidates and Steam API responses are not domain entities.
+An imported Steam game is still a normal Owned VideoGame and must satisfy all
+VideoGame LibraryEntry invariants. Steam-reported playtime is external import
+review data in this feature and must not create PlayLogEntries, affect Random
+Picker eligibility or weighting, or become automatic gameplay tracking.
+
 1. Purpose
 
 This document defines the core domain terminology, relationships,
@@ -97,7 +111,36 @@ A Library contains zero or more LibraryEntries.
 
 A Library may contain zero or more PlayLogEntries through its LibraryEntries.
 
+A Library may have zero or one linked SteamAccount when the optional Steam
+integration is used.
+
 A Library is private.
+
+4A. SteamAccount (Feature 011 Amendment)
+
+A SteamAccount records that a Library has been linked to a verified Steam user.
+
+A SteamAccount:
+
+Belongs to exactly one Library.
+
+Stores the verified 64-bit SteamID as SteamID64.
+
+Has a LinkedAt timestamp assigned by the backend.
+
+Rules:
+
+A Library may have zero or one SteamAccount.
+
+A SteamID64 may be linked to at most one Library.
+
+SteamAccount is not a Game Library login credential.
+
+SteamAccount must not store Steam passwords, Steam usernames, Steam session
+cookies or Steam access tokens.
+
+Unlinking a SteamAccount does not delete imported VideoGames, PlayLogEntries,
+Platforms or SteamAppId references on existing LibraryEntries.
 
 5. Game
 
@@ -191,6 +234,9 @@ May contain Notes.
 
 For VideoGames it may additionally contain GameStatus,
 ProgressPercentage and Platforms subject to the rules below.
+
+For Steam-imported VideoGames it may additionally contain a SteamAppId reference
+used to avoid duplicate Steam imports in the same Library.
 
 9A. PlayLogEntry (Feature 009 Amendment)
 
@@ -746,6 +792,8 @@ A Library belongs to exactly one User.
 
 A Library is private.
 
+A Library may have zero or one linked SteamAccount.
+
 A LibraryEntry belongs to exactly one Library.
 
 Each PlayLogEntry belongs to a Library only through its referenced LibraryEntry.
@@ -814,6 +862,11 @@ PlayLogEntries but blocks new PlayLogEntries while non-Owned.
 
 Deleting a LibraryEntry deletes its PlayLogEntries.
 
+SteamAppId on a LibraryEntry, when present, is immutable after the imported
+VideoGame is created and is cleared only by deleting that LibraryEntry.
+
+Within one Library, at most one LibraryEntry may reference a given SteamAppId.
+
 Random shown-result history is temporary and not persisted.
 
 Visible Random Picker result history is temporary, newest first, and not
@@ -845,6 +898,8 @@ User
  | owns
  v
 Library
+ |
+ +-------- may link ------> SteamAccount
  |
  +-------- manages --------> Platform
  |
@@ -904,9 +959,10 @@ PersistentRandomHistory.
 
 RecommendationProfile.
 
-ExternalAccount.
+ExternalAccount, except for the optional Feature 011 SteamAccount link.
 
-ExternalLibrarySync.
+ExternalLibrarySync, except for explicit user-selected Steam imports in Feature
+011. Background synchronization remains outside the MVP.
 
 AIRecommendation.
 

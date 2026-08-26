@@ -1,6 +1,7 @@
 using GameLibrary.Api.E2E;
 using GameLibrary.Api.CoverImages;
 using GameLibrary.Api.Auth;
+using GameLibrary.Api.Steam;
 using GameLibrary.Core.CoverImages;
 using GameLibrary.Core.Data;
 using GameLibrary.Core.Games;
@@ -8,6 +9,7 @@ using GameLibrary.Core.Libraries;
 using GameLibrary.Core.PlayLog;
 using GameLibrary.Core.Platforms;
 using GameLibrary.Core.RandomPicker;
+using GameLibrary.Core.Steam;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -25,7 +27,9 @@ builder.Services.AddScoped<BoardGameService>();
 builder.Services.AddScoped<RandomPickerService>();
 builder.Services.AddScoped<PlayLogService>();
 builder.Services.AddScoped<CoverImageSearchService>();
+builder.Services.AddScoped<SteamIntegrationService>();
 builder.Services.Configure<CoverImageSearchOptions>(builder.Configuration.GetSection("CoverImageSearch"));
+builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection("SteamIntegration"));
 
 var e2eModeEnabled = E2eTestMode.IsEnabled(builder.Configuration, builder.Environment);
 var connectionString = e2eModeEnabled
@@ -49,6 +53,19 @@ else
     });
 }
 
+if (e2eModeEnabled && builder.Configuration.GetValue<bool>("E2E:SteamIntegration:Enabled"))
+{
+    builder.Services.AddScoped<ISteamClient, E2eSteamClient>();
+}
+else
+{
+    builder.Services.AddHttpClient<ISteamClient, SteamClient>((services, client) =>
+    {
+        var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<SteamOptions>>().CurrentValue;
+        client.Timeout = TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 1, 30));
+    });
+}
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -58,6 +75,16 @@ builder.Services.AddRateLimiter(options =>
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true,
+            }));
+    options.AddPolicy("Steam", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.User.GetSupabaseUserId() ?? "anonymous",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0,
                 AutoReplenishment = true,
