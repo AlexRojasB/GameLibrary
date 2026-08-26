@@ -4,7 +4,7 @@ Personal game library web application. Angular PWA frontend, ASP.NET Core Web AP
 
 ## Status
 
-Feature 010 (Cover Image Search) is implemented. The app supports explicit cover-image search assistance in VideoGame and BoardGame Add/Edit dialogs, backed by the Game Library API and optional Brave Search Image API configuration. Manual CoverImageUrl entry remains available and the application works without a Brave API key. Features 001–009 are preserved, including Supabase auth/JWT validation, platform management, VideoGame/BoardGame CRUD, Library browse/search/filter/sort, Random Picker result states/history semantics, Play Shelf UX/PWA/E2E, Play Log, domain invariants, and cross-user isolation.
+Feature 011 (Steam Integration) is implemented. The app supports linking a Steam account via OpenID, previewing owned Steam games, and importing selected titles into the user's library with deterministic concurrency. Features 001–010 are preserved, including Supabase auth/JWT validation, platform management, VideoGame/BoardGame CRUD, Library browse/search/filter/sort, Random Picker result states/history semantics, Play Shelf UX/PWA/E2E, Play Log, domain invariants, cross-user isolation, and cover image search assistance.
 
 ## Documentation
 
@@ -370,7 +370,7 @@ cd src/frontend
 ConnectionStrings__E2E="Host=127.0.0.1;Port=5433;Database=game_library_e2e;Username=postgres;Password=<password>" npm run e2e
 ```
 
-Playwright starts the real ASP.NET Core API with `E2E__Auth__Enabled=true` and `E2E__CoverImageSearch__Enabled=true`, starts Angular with the `e2e` configuration, resets/seeds before each test, then exercises login, shell navigation, Library filters, management dialogs, deterministic cover search, and Random Picker history behavior.
+Playwright starts the real ASP.NET Core API with `E2E__Auth__Enabled=true`, `E2E__CoverImageSearch__Enabled=true`, and `E2E__SteamIntegration__Enabled=true`, starts Angular with the `e2e` configuration, resets/seeds before each test, then exercises login, shell navigation, Library filters, management dialogs, deterministic cover search, Steam link/preview/import journey, and Random Picker history behavior.
 
 ## Play Log (Feature 009)
 
@@ -450,6 +450,54 @@ The endpoint is protected by ASP.NET Core built-in rate limiting: 10 searches pe
 Frontend Add/Edit dialogs keep the manual `Cover image URL` field. `Search cover` is explicitly user-triggered, shows loading/error/zero-result states, renders up to five visual cards, uses source/dimension metadata when available, disables broken-preview candidates, and updates only the existing CoverImageUrl form control when selected. Typing Name or changing Platforms never auto-searches. Changing query-driving context after a completed search clears stale candidates and selection markers without clearing CoverImageUrl, and stale in-flight responses are ignored.
 
 Playwright E2E uses explicit non-Production `E2E__CoverImageSearch__Enabled=true` provider substitution through DI. It is not a public fake-provider endpoint, is unavailable in Production, and does not call Brave or third-party image hosts.
+
+## Steam Integration (Feature 011)
+
+Linking a Steam account verifies identity through Steam OpenID, persists only a SteamID64 and a raw-state transcript (never the OpenID `openid.` parameters), and stores `steam_appid` on `library_entries` for imported games. `ISteamClient` abstracts Steam OpenID verification and `GetOwnedGames`; the backend owns validation, eligibility, and concurrency.
+
+Real Steam configuration is optional. The API and all existing CRUD/library/random-picker/play-log flows start and work without Steam configuration; `GET /steam/status` returns `enabled: false` and `linkAvailable: false` when configuration is missing. Steam integration is hidden in the UI when disabled.
+
+Configure Steam through user-secrets, environment variables, or deployment secrets:
+
+```
+Steam__Enabled=true
+Steam__PublicApiBaseUrl=http://localhost:5218
+Steam__FrontendBaseUrl=http://localhost:4200
+Steam__OpenIdProviderUrl=https://steamcommunity.com/openid/login
+Steam__OpenIdVerifyUrl=https://steamcommunity.com/openid/login
+Steam__FrontendSuccessPath=/manage/steam?steamLink=success
+Steam__FrontendFailurePath=/manage/steam?steamLink=failure
+Steam__WebApiKey=<your-steam-web-api-key>
+Steam__TimeoutSeconds=5
+Steam__LinkStateLifetimeMinutes=10
+```
+
+`Steam__WebApiKey` is required only for preview/import; linking works without it. `Steam__PublicApiBaseUrl` and `Steam__FrontendBaseUrl` are required for linking to function. `Steam__OwnedGamesUrl` defaults to `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/`.
+
+Endpoints (all `[Authorize]` except `GET /steam/link/start/{rawState}`):
+
+| Method | Route | Success | Errors |
+| --- | --- | --- | --- |
+| `GET` | `/steam/status` | `200` with `{ enabled, linkAvailable, importAvailable, linked, steamId64, linkedAt, message }` | `401` |
+| `POST` | `/steam/link-requests` | `200` with `{ startUrl, expiresAt }` | `401`, `409`, `503` |
+| `GET` | `/steam/link/start/{rawState}` | `302` redirect to Steam OpenID or E2E callback | `302` failure redirect |
+| `GET` | `/steam/link/callback` | `302` redirect to frontend success/failure URL | `302` failure redirect |
+| `DELETE` | `/steam/link` | `204` | `401` |
+| `POST` | `/steam/library/preview` | `200` with `{ state, candidates[], message }` | `401`, `404`, `503` |
+| `POST` | `/steam/library/import` | `200` with `{ imported[], alreadyImported[], unavailable[], invalid[] }` | `400`, `401`, `404`, `503` |
+
+Behavior:
+
+- **OpenID verification.** Steam OpenID parameters are validated against `Steam__OpenIdVerifyUrl` with `state` round-trip integrity. Raw state is generated per-request and hashed for DB lookup; only the hash is stored.
+- **Unlink-first relinking.** Linking when a Steam account is already linked returns `409`. The user must unlink first.
+- **Import concurrency.** Per-Library DB-level locking prevents concurrent imports for the same user. Duplicate AppID selection is deduplicated client-side before the lock.
+- **Cover images.** Imported Steam games use placeholder covers; no automatic cover fetching is performed.
+- **Random Picker eligibility.** Imported Steam games with `library_entries.steam_appid` participate in Random Picker like any other Owned game.
+- **Schema.** `AddSteamIntegration` migration adds `steam_accounts`, `steam_link_requests`, nullable `steam_appid` on `library_entries`, and appropriate indexes/constraints.
+
+Frontend: a protected `/manage/steam` route (`features/manage/steam/`) provides the full Steam integration UX. The Manage hub includes a Steam card linking to this route. The page handles linked/unlinked states, preview candidates with selectable checkboxes, import with summary, duplicate-click protection, and error states.
+
+Playwright E2E uses `E2E__SteamIntegration__Enabled=true` with a deterministic `FakeSteamClient` that verifies any OpenID assertion and returns three fixed owned games (Dota 2, Counter-Strike 2, Team Fortress 2).
 
 Verification:
 
@@ -561,8 +609,8 @@ ng build
 
 ## Notes
 
-- The initial migration is intentionally empty: it establishes the EF migration infrastructure and verifies connectivity, not a domain artifact. The `AddPlatformManagement` migration (Feature 003) creates the `libraries` and `platforms` tables with the unique `user_id` index, the unique `(library_id, name_normalized)` index, and the `platforms.library_id → libraries.id` foreign key (`ON DELETE RESTRICT`). The `AddVideoGameManagement` migration (Feature 004) adds `games`, `library_entries`, `genres`, `game_genres`, and `game_platforms`. The `AddBoardGameManagement` migration (Feature 005) adds the four BoardGame columns and their CHECK constraints to the existing `games` table. The `AddPlayLogEntries` migration (Feature 009) adds `play_log_entries` only. Feature 010 adds no migration, table, column, storage bucket, search-history persistence, or image storage.
-- Backend unit tests (`tests/backend/GameLibrary.Core.Tests`) cover the domain/application rules (`VideoGameRules`, `BoardGameRules`, `LibraryFilterRules`, `RandomPickerRules`, `PlayLogRules`, and `CoverImageSearchRules`). Platform, VideoGame, BoardGame, Library, Random Picker, Play Log, and Cover Image Search integration tests run against real PostgreSQL via `ConnectionStrings:Test` and include two-user isolation, duplicate/lifecycle behavior, acquisition transitions, cross-type safety, relational CHECK backstops, literal search semantics, library filter/sort behavior, Random Picker eligibility/result states/shown-history exclusion, Play Log caller scoping, Owned-only logging, cascade deletion, cover-search auth/validation/provider substitution/rate limiting/no-mutation behavior, request validation, and schema assertions. `DatabaseMigrationTests` asserts the `public` schema contains exactly `__EFMigrationsHistory`, `libraries`, `platforms`, `games`, `library_entries`, `genres`, `game_genres`, `game_platforms`, and `play_log_entries` (order-independent).
+- The initial migration is intentionally empty: it establishes the EF migration infrastructure and verifies connectivity, not a domain artifact. The `AddPlatformManagement` migration (Feature 003) creates the `libraries` and `platforms` tables with the unique `user_id` index, the unique `(library_id, name_normalized)` index, and the `platforms.library_id → libraries.id` foreign key (`ON DELETE RESTRICT`). The `AddVideoGameManagement` migration (Feature 004) adds `games`, `library_entries`, `genres`, `game_genres`, and `game_platforms`. The `AddBoardGameManagement` migration (Feature 005) adds the four BoardGame columns and their CHECK constraints to the existing `games` table. The `AddPlayLogEntries` migration (Feature 009) adds `play_log_entries` only. Feature 010 adds no migration, table, column, storage bucket, search-history persistence, or image storage. The `AddSteamIntegration` migration (Feature 011) adds `steam_accounts`, `steam_link_requests`, nullable `steam_appid` on `library_entries`, and appropriate indexes and constraints.
+- Backend unit tests (`tests/backend/GameLibrary.Core.Tests`) cover the domain/application rules (`VideoGameRules`, `BoardGameRules`, `LibraryFilterRules`, `RandomPickerRules`, `PlayLogRules`, `CoverImageSearchRules`, and `SteamIntegrationRules`). Platform, VideoGame, BoardGame, Library, Random Picker, Play Log, Cover Image Search, and Steam integration tests run against real PostgreSQL via `ConnectionStrings:Test` and include two-user isolation, duplicate/lifecycle behavior, acquisition transitions, cross-type safety, relational CHECK backstops, literal search semantics, library filter/sort behavior, Random Picker eligibility/result states/shown-history exclusion, Play Log caller scoping, Owned-only logging, cascade deletion, cover-search auth/validation/provider substitution/rate limiting/no-mutation behavior, Steam link/preview/import endpoint behavior, and schema assertions. `DatabaseMigrationTests` asserts the `public` schema contains exactly `__EFMigrationsHistory`, `libraries`, `platforms`, `games`, `library_entries`, `genres`, `game_genres`, `game_platforms`, `play_log_entries`, `steam_accounts`, and `steam_link_requests` (order-independent).
 - Angular's service worker is active in production builds only; local `ng serve` verification of the PWA relies on `ng build` output.
 - No secrets are committed. Local secret-bearing files (`appsettings.Development.json`, `.env`, `.env.*`) are gitignored; committed configuration contains placeholders only.
 - Authentication adds `@supabase/supabase-js` and `Microsoft.AspNetCore.Authentication.JwtBearer`; the Angular initial-bundle budget warning was raised from 500 kB to 700 kB to accommodate `supabase-js` (the error budget stays 1 MB).

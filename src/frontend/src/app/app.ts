@@ -23,7 +23,7 @@ export class App {
 
   protected isManageActive(): boolean {
     const path = this.router.url.split('?')[0];
-    return ['/manage', '/video-games', '/board-games', '/platforms'].some((route) => path.startsWith(route));
+    return ['/manage', '/manage/steam', '/video-games', '/board-games', '/platforms'].some((route) => path.startsWith(route));
   }
 
   protected async onLogout(): Promise<void> {

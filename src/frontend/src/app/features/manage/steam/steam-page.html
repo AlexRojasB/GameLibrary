@@ -1,0 +1,112 @@
+<section class="steam page-stack">
+  <div class="page-hero">
+    <p class="eyebrow">Steam</p>
+    <h1>Steam Library</h1>
+    <p>Link your Steam account to preview and import your owned games.</p>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="steam-notice steam-notice--error">{{ errorMessage() }}</div>
+  }
+
+  @if (loadingStatus()) {
+    <p class="steam-loading">Loading Steam status…</p>
+  } @else if (!status()) {
+    <p class="steam-loading">Unable to load Steam status.</p>
+  } @else {
+    @if (!status()!.enabled || !status()!.linkAvailable) {
+      <div class="steam-notice steam-notice--warning">
+        Steam integration is not configured. Linking is unavailable.
+      </div>
+    }
+
+    @if (status()!.enabled && status()!.linkAvailable && !status()!.importAvailable) {
+      <div class="steam-notice steam-notice--info">
+        Steam library import is unavailable because Steam Web API access is not configured.
+      </div>
+    }
+
+    @if (status()!.linked) {
+      <div class="steam-card">
+        <div class="steam-card__header">
+          <h2>Linked Steam Account</h2>
+          <span class="steam-card__steamid">SteamID64: {{ status()!.steamId64 }}</span>
+        </div>
+        <div class="steam-card__actions">
+          <button class="btn btn--primary" (click)="onPreview()" [disabled]="previewing() || importing()">
+            {{ previewing() ? 'Loading…' : 'Preview Steam library' }}
+          </button>
+          <button class="btn btn--danger" (click)="onUnlink()" [disabled]="unlinking() || importing()">
+            {{ unlinking() ? 'Unlinking…' : 'Unlink' }}
+          </button>
+        </div>
+      </div>
+    } @else if (status()!.linkAvailable) {
+      <div class="steam-card">
+        <h2>No Steam Account Linked</h2>
+        <p>Link your Steam account to preview and import your owned games.</p>
+        <button class="btn btn--primary" (click)="onLink()" [disabled]="linking()">
+          {{ linking() ? 'Starting…' : 'Link Steam account' }}
+        </button>
+      </div>
+    }
+
+    @if (previewState() === 'NoVisibleGames') {
+      <div class="steam-notice steam-notice--info">
+        {{ previewMessage() ?? 'Steam returned no visible games. Your Steam game details may be private, or this account may have no visible owned or played games.' }}
+      </div>
+    }
+
+    @if (candidates().length > 0) {
+      <div class="steam-preview">
+        <h2>Steam Library Preview</h2>
+        <div class="steam-candidates">
+          @for (candidate of candidates(); track candidate.steamAppId) {
+            <label class="steam-candidate" [class.steam-candidate--imported]="candidate.alreadyImported">
+              <input
+                type="checkbox"
+                [checked]="selected().has(candidate.steamAppId)"
+                [disabled]="candidate.alreadyImported || importing()"
+                (change)="onToggle(candidate.steamAppId)"
+              />
+              <span class="steam-candidate__info">
+                <span class="steam-candidate__name">{{ candidate.name }}</span>
+                <span class="steam-candidate__appid">AppID {{ candidate.steamAppId }}</span>
+                @if (candidate.alreadyImported) {
+                  <span class="steam-candidate__badge">Already imported</span>
+                }
+                @if (candidate.playtimeForeverMinutes != null) {
+                  <span class="steam-candidate__playtime">{{ candidate.playtimeForeverMinutes }} min played</span>
+                }
+              </span>
+            </label>
+          }
+        </div>
+        <button
+          class="btn btn--primary"
+          (click)="onImport()"
+          [disabled]="importing() || !hasSelectedSelectable()"
+        >
+          {{ importing() ? 'Importing…' : 'Import selected' }}
+        </button>
+      </div>
+    }
+
+    @if (importResult()) {
+      <div class="steam-import-result">
+        <h2>Import Summary</h2>
+        <ul>
+          @if (importResult()!.imported.length > 0) {
+            <li>Imported: {{ importResult()!.imported.length }}</li>
+          }
+          @if (importResult()!.alreadyImported.length > 0) {
+            <li>Already imported: {{ importResult()!.alreadyImported.length }}</li>
+          }
+          @if (importResult()!.unavailable.length > 0) {
+            <li>Unavailable: {{ importResult()!.unavailable.length }}</li>
+          }
+        </ul>
+      </div>
+    }
+  }
+</section>

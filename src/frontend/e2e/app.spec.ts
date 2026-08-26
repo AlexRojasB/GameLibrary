@@ -129,6 +129,35 @@ test('picks a game and keeps visible session history', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Previous picks' })).toBeVisible();
 });
 
+test('links Steam account, previews library, and imports selected games', async ({ page }) => {
+  await page.goto('/manage/steam');
+  await expect(page.getByRole('heading', { name: 'Steam Library' })).toBeVisible();
+  await expect(page.getByText('No Steam Account Linked')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Link Steam account' }).click();
+  await expect(page.getByRole('button', { name: 'Starting…' })).toBeVisible();
+
+  await page.waitForURL('**/manage/steam**', { timeout: 15000 });
+  await expect(page.getByText('Linked Steam Account')).toBeVisible();
+  await expect(page.getByText('SteamID64: 76561198000000000')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Preview Steam library' }).click();
+  await expect(page.getByText('Dota 2')).toBeVisible();
+  await expect(page.getByText('Counter-Strike 2')).toBeVisible();
+  await expect(page.getByText('Team Fortress 2')).toBeVisible();
+
+  const candidateCheckboxes = page.locator('.steam-candidate input[type="checkbox"]');
+  await candidateCheckboxes.nth(0).check();
+  await candidateCheckboxes.nth(1).check();
+
+  await page.getByRole('button', { name: 'Import selected' }).click();
+  await expect(page.getByRole('button', { name: 'Importing…' })).toBeVisible();
+
+  await expect(page.getByText('Import Summary')).toBeVisible();
+  await expect(page.getByText('Imported: 2')).toBeVisible();
+  await expect(page.getByText('Already imported: 1')).toBeVisible();
+});
+
 async function dateTimeLocalOneHourAgo(page: Page): Promise<string> {
   return page.evaluate(() => {
     const date = new Date(Date.now() - 60 * 60 * 1000);

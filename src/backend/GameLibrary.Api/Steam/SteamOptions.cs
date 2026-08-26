@@ -65,7 +65,7 @@ public static class SteamOptionsExtensions
         && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
     private static bool IsRelativePath(string? value) =>
-        !string.IsNullOrWhiteSpace(value) && value.StartsWith('/') && !value.StartsWith("//") && !Uri.TryCreate(value, UriKind.Absolute, out _);
+        !string.IsNullOrWhiteSpace(value) && value.StartsWith('/') && !value.StartsWith("//");
 
     private static string Combine(string baseUrl, string path) => baseUrl.TrimEnd('/') + path;
 }

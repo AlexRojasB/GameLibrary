@@ -49,7 +49,7 @@ public sealed class SteamController : ControllerBase
             : "Steam integration is not configured.";
 
         return Ok(new SteamStatusResponse(
-            linkAvailable,
+            options.Enabled,
             linkAvailable,
             importAvailable,
             account.Linked,

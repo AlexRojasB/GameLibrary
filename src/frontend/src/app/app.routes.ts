@@ -11,6 +11,7 @@ import { BoardGamesList } from './features/games/board-games/board-games-list/bo
 import { LibraryPage } from './features/library/library-page/library-page';
 import { RandomPickerPage } from './features/random-picker/random-picker-page/random-picker-page';
 import { ManageHub } from './features/manage/manage-hub';
+import { SteamPage } from './features/manage/steam/steam-page';
 import { PlayLogPage } from './features/play-log/play-log-page/play-log-page';
 
 export const routes: Routes = [
@@ -22,6 +23,7 @@ export const routes: Routes = [
   { path: 'random-picker', component: RandomPickerPage, canActivate: [authGuard] },
   { path: 'play-log', component: PlayLogPage, canActivate: [authGuard] },
   { path: 'manage', component: ManageHub, canActivate: [authGuard] },
+  { path: 'manage/steam', component: SteamPage, canActivate: [authGuard] },
   { path: 'platforms', component: PlatformsList, canActivate: [authGuard] },
   { path: 'video-games', component: VideoGamesList, canActivate: [authGuard] },
   { path: 'board-games', component: BoardGamesList, canActivate: [authGuard] },
