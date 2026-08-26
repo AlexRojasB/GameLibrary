@@ -126,7 +126,7 @@ public static class SteamIntegrationRules
         if (!string.Equals(Value(parameters, "openid.mode"), "id_res", StringComparison.Ordinal)
             || !string.Equals(Value(parameters, "openid.op_endpoint"), expectedProviderUrl, StringComparison.Ordinal)
             || !string.Equals(Value(parameters, "openid.return_to"), expectedReturnTo, StringComparison.Ordinal)
-            || !string.Equals(Value(parameters, "openid.realm"), expectedRealm, StringComparison.Ordinal))
+            || (Value(parameters, "openid.realm") is { Length: > 0 } realm && !string.Equals(realm, expectedRealm, StringComparison.Ordinal)))
         {
             throw new InvalidSteamOpenIdAssertionException();
         }
