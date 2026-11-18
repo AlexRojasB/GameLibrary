@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, model, output, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
@@ -9,6 +9,8 @@ import { Genre } from '../genres';
 import { GenresService } from '../genres.service';
 import { AcquisitionStatus, GameStatus, VideoGame, VideoGameInput } from '../video-game';
 import { CoverImageSearch } from '../cover-image-search/cover-image-search';
+import { CoverDraft, CoverReference } from '../covers/cover-types';
+import { coverUpdateFor } from '../covers/cover-save';
 
 const ACQUISITION_STATUSES: AcquisitionStatus[] = ['Owned', 'Wishlist', 'Interested'];
 const GAME_STATUSES: GameStatus[] = ['Backlog', 'Playing', 'Completed', 'Abandoned', 'WantToPlay'];
@@ -23,6 +25,11 @@ export class VideoGameForm {
   readonly game = input<VideoGame | null>(null);
   readonly submitLabel = input('Save');
   readonly serverError = input('');
+  readonly disabled = input(false);
+  readonly draft = model<CoverDraft>({ intent: 'keep' });
+  readonly savedCover = input<CoverReference | null | undefined>(undefined);
+  protected readonly coverReference = computed(() => this.savedCover() === undefined ? this.game() : this.savedCover());
+  protected readonly coverBusy = signal(false);
 
   readonly submitted = output<VideoGameInput>();
   readonly cancelled = output<void>();
@@ -43,7 +50,7 @@ export class VideoGameForm {
 
   protected readonly form = new FormGroup({
     name: new FormControl('', { nonNullable: true }),
-    coverImageUrl: new FormControl<string | null>(null),
+    isFamilyFriendly: new FormControl(false, { nonNullable: true }),
     acquisitionStatus: new FormControl<AcquisitionStatus>('Owned', { nonNullable: true }),
     platformIds: new FormControl<string[]>([], { nonNullable: true }),
     genreIds: new FormControl<string[]>([], { nonNullable: true }),
@@ -75,7 +82,7 @@ export class VideoGameForm {
         return;
       }
       this.form.controls.name.setValue(game.name, { emitEvent: false });
-      this.form.controls.coverImageUrl.setValue(game.coverImageUrl, { emitEvent: false });
+      this.form.controls.isFamilyFriendly.setValue(game.isFamilyFriendly, { emitEvent: false });
       this.form.controls.acquisitionStatus.setValue(game.acquisitionStatus);
       this.form.controls.platformIds.setValue([...game.platformIds], { emitEvent: false });
       this.form.controls.genreIds.setValue([...game.genreIds], { emitEvent: false });
@@ -96,6 +103,7 @@ export class VideoGameForm {
   }
 
   submit(): void {
+    if (this.disabled() || this.coverBusy()) return;
     const validationError = this.validate();
     if (validationError !== null) {
       if (validationError !== '') {
@@ -109,7 +117,8 @@ export class VideoGameForm {
     const owned = this.isOwned();
     this.submitted.emit({
       name: f.name.value.trim(),
-      coverImageUrl: trimToNull(f.coverImageUrl.value),
+      coverUpdate: this.draft().intent === 'local' ? { intent: 'keep' } : coverUpdateFor(this.draft(), this.coverReference() ?? null),
+      isFamilyFriendly: f.isFamilyFriendly.value,
       acquisitionStatus: f.acquisitionStatus.value,
       platformIds: f.platformIds.value,
       genreIds: f.genreIds.value,
@@ -149,8 +158,8 @@ export class VideoGameForm {
       .map((platform) => platform.name);
   }
 
-  protected setCoverImageUrl(value: string): void {
-    this.form.controls.coverImageUrl.setValue(value);
+  protected changeCoverDraft(value: CoverDraft): void {
+    if (!this.disabled()) this.draft.set(value);
   }
 
   private loadPlatforms(): void {
@@ -203,13 +212,11 @@ export class VideoGameForm {
     }
     f.notes.setErrors(null);
 
-    const cover = trimToNull(f.coverImageUrl.value);
-    if (cover !== null && (cover.length > 2048 || !/^https?:\/\//i.test(cover))) {
-      f.coverImageUrl.markAsTouched();
-      f.coverImageUrl.setErrors({ invalid: true });
-      return '';
+    const draft = this.draft();
+    if (draft.intent === 'external') {
+      const cover = draft.url.trim();
+      if (!cover || cover.length > 2048 || !/^https?:\/\//i.test(cover)) return 'Cover image URL is invalid.';
     }
-    f.coverImageUrl.setErrors(null);
 
     const rating = f.rating.value;
     if (rating !== null && (Number.isNaN(rating) || rating < 1 || rating > 5)) {

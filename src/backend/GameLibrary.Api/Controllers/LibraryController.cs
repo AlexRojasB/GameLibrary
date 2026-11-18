@@ -29,6 +29,7 @@ public class LibraryController : ControllerBase
         [FromQuery] int? playerCount,
         [FromQuery] IReadOnlyList<string>? interactionTypes,
         [FromQuery] IReadOnlyList<string>? gameStatuses,
+        [FromQuery] string? familyFriendlyOnly,
         [FromQuery] string? sort,
         CancellationToken ct)
     {
@@ -48,6 +49,7 @@ public class LibraryController : ControllerBase
             playerCount,
             interactionTypes,
             gameStatuses,
+            familyFriendlyOnly,
             sort);
 
         try
@@ -77,5 +79,7 @@ public class LibraryController : ControllerBase
         item.MinimumPlayers,
         item.MaximumPlayers,
         item.ApproximateDuration,
-        item.InteractionType?.ToString());
+        item.InteractionType?.ToString(),
+        item.IsFamilyFriendly,
+        item.CoverUploadId);
 }

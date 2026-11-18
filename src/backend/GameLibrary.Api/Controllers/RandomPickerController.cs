@@ -47,7 +47,8 @@ public class RandomPickerController : ControllerBase
         r.PlayerCount,
         r.AvailableDuration,
         r.InteractionTypes,
-        r.RatingMin);
+        r.RatingMin,
+        r.FamilyFriendlyOnly);
 
     private static RandomPickerPickResponse ToResponse(RandomPickerResult result) => new(
         result.State switch
@@ -73,5 +74,7 @@ public class RandomPickerController : ControllerBase
         item.MinimumPlayers,
         item.MaximumPlayers,
         item.ApproximateDuration,
-        item.InteractionType?.ToString());
+        item.InteractionType?.ToString(),
+        item.IsFamilyFriendly,
+        item.CoverUploadId);
 }

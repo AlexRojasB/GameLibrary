@@ -54,13 +54,15 @@ public class RandomPickerService
                 g.MinimumPlayers,
                 g.MaximumPlayers,
                 g.ApproximateDuration,
-                g.InteractionType))
+                g.InteractionType,
+                g.IsFamilyFriendly,
+                g.CoverUploadId))
             .SingleAsync(ct);
 
         return new RandomPickerResult(RandomPickerState.Success, selected);
     }
 
-    private static IQueryable<Game> ApplyFilters(IQueryable<Game> query, RandomPickerQuery parsed)
+    internal static IQueryable<Game> ApplyFilters(IQueryable<Game> query, RandomPickerQuery parsed)
     {
         query = parsed.Mode switch
         {
@@ -72,6 +74,11 @@ public class RandomPickerService
         if (parsed.PlatformIds.Count > 0)
         {
             query = query.Where(g => g.LibraryEntry.GamePlatforms.Any(gp => parsed.PlatformIds.Contains(gp.PlatformId)));
+        }
+
+        if (parsed.FamilyFriendlyOnly)
+        {
+            query = query.Where(g => g.IsFamilyFriendly);
         }
 
         if (parsed.GenreIds.Count > 0)

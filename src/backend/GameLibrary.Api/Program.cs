@@ -2,7 +2,9 @@ using GameLibrary.Api.E2E;
 using GameLibrary.Api.CoverImages;
 using GameLibrary.Api.Auth;
 using GameLibrary.Api.Steam;
+using GameLibrary.Api.CoverUploads;
 using GameLibrary.Core.CoverImages;
+using GameLibrary.Core.CoverUploads;
 using GameLibrary.Core.Data;
 using GameLibrary.Core.Games;
 using GameLibrary.Core.Libraries;
@@ -12,6 +14,7 @@ using GameLibrary.Core.RandomPicker;
 using GameLibrary.Core.Steam;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Threading.RateLimiting;
@@ -28,15 +31,36 @@ builder.Services.AddScoped<RandomPickerService>();
 builder.Services.AddScoped<PlayLogService>();
 builder.Services.AddScoped<CoverImageSearchService>();
 builder.Services.AddScoped<SteamIntegrationService>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<CoverImageProcessor>();
+builder.Services.AddScoped<CoverUploadService>();
+var coverCleanupDisabled = CoverCleanupConfiguration.Register(builder.Services, builder.Configuration);
+builder.Services.Configure<CoverUploadOptions>(builder.Configuration.GetSection("CoverUploads"));
 builder.Services.Configure<CoverImageSearchOptions>(builder.Configuration.GetSection("CoverImageSearch"));
 builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection("SteamIntegration"));
 
 var e2eModeEnabled = E2eTestMode.IsEnabled(builder.Configuration, builder.Environment);
-var connectionString = e2eModeEnabled
-    ? builder.Configuration.GetConnectionString("E2E")
-        ?? throw new InvalidOperationException("ConnectionStrings:E2E is required when E2E auth is enabled.")
-    : builder.Configuration.GetConnectionString("Default")
-        ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured.");
+var fakeCovers = builder.Configuration.GetValue<bool>("E2E:CoverUploads:Enabled");
+if (fakeCovers && !(e2eModeEnabled && (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Test"))))
+    throw new InvalidOperationException("E2E cover Storage requires Development/Test and the E2E authentication safety guard.");
+if (fakeCovers)
+{
+    builder.Services.AddSingleton<E2eCoverStorage>();
+    builder.Services.AddSingleton<ICoverStorage>(services => services.GetRequiredService<E2eCoverStorage>());
+}
+else
+{
+    builder.Services.AddHttpClient<ICoverStorage, SupabaseCoverStorage>(client => client.Timeout = TimeSpan.FromSeconds(15))
+        .ConfigurePrimaryHttpMessageHandler(SupabaseCoverStorage.CreateHttpMessageHandler)
+        .RemoveAllLoggers();
+}
+var connectionStringName = e2eModeEnabled ? "E2E" : "Default";
+var connectionString = builder.Configuration.GetConnectionString(connectionStringName);
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException($"ConnectionStrings:{connectionStringName} is not configured.");
+}
+
 builder.Services.AddDbContext<GameLibraryDbContext>(options =>
     options.UseNpgsql(connectionString));
 
@@ -69,6 +93,7 @@ else
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    CoverHttp.ConfigureLimits(options);
     options.AddPolicy("CoverImageSearch", context =>
         RateLimitPartition.GetFixedWindowLimiter(
             context.User.GetSupabaseUserId() ?? "anonymous",
@@ -84,7 +109,7 @@ builder.Services.AddRateLimiter(options =>
             context.User.GetSupabaseUserId() ?? "anonymous",
             _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 5,
+                PermitLimit = e2eModeEnabled ? 20 : 5,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0,
                 AutoReplenishment = true,
@@ -98,7 +123,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .WithExposedHeaders("Retry-After", "Location");
     });
 });
 
@@ -107,6 +133,15 @@ builder.Services
     .AddJwtBearer(options =>
     {
         options.MapInboundClaims = false;
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = context =>
+            {
+                if (context.Principal?.GetSupabaseUserId() is null)
+                    context.Fail("A usable subject claim is required.");
+                return Task.CompletedTask;
+            },
+        };
         if (e2eModeEnabled)
         {
             options.MetadataAddress = string.Empty;
@@ -129,10 +164,43 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-app.UseExceptionHandler(exceptionHandlerApp =>
+if (coverCleanupDisabled)
+    app.Logger.LogWarning("Private QA cover cleanup is disabled. Do not import managed-cover metadata or configure Storage in this mode.");
+
+using (var scope = app.Services.CreateScope())
 {
-    exceptionHandlerApp.Run(async context =>
+    if (scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<CoverUploadOptions>>().Value.Enabled
+        && scope.ServiceProvider.GetRequiredService<ICoverStorage>().StorageNamespace is null)
+        app.Logger.LogWarning("New cover uploads are unavailable: configure trusted private Storage settings before enabling them.");
+}
+
+// Register before exception handling, routing and authentication so challenges/errors are private too.
+app.Use(async (context, next) =>
+{
+    if (CoverHttp.IsPrivate(context))
+        context.Response.OnStarting(() => { CoverHttp.ApplyPrivacy(context); return Task.CompletedTask; });
+    await next();
+});
+
+app.UseExceptionHandler(new ExceptionHandlerOptions
+{
+    AllowStatusCode404Response = true,
+    ExceptionHandler = async context =>
     {
+        var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+        if (exception is CoverException cover)
+        {
+            await CoverHttp.WriteFailureAsync(context, cover);
+            return;
+        }
+        if (CoverHttp.IsPrivate(context))
+        {
+            var status = exception is BadHttpRequestException bad && bad.StatusCode is 400 or 408 or 413 ? bad.StatusCode : 500;
+            await CoverHttp.WriteProblemAsync(context, status,
+                status == 413 ? "Cover image too large" : "An error occurred while processing the request.",
+                null, null, context.RequestAborted);
+            return;
+        }
         await Results.Problem(
                 title: "An error occurred while processing the request.",
                 statusCode: StatusCodes.Status500InternalServerError,
@@ -141,14 +209,15 @@ app.UseExceptionHandler(exceptionHandlerApp =>
                     ["requestId"] = context.TraceIdentifier
                 })
             .ExecuteAsync(context);
-    });
+    },
 });
 
+app.UseRouting();
 app.UseCors("Frontend");
 
 app.UseAuthentication();
-app.UseRateLimiter();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 

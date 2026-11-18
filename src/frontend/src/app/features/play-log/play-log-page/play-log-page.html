@@ -20,11 +20,8 @@
     <ul class="play-log__entries" aria-label="Logged plays">
       @for (entry of entries(); track entry.id) {
         <li class="play-log-card">
-          @if (entry.coverImageUrl) {
-            <img class="play-log-card__cover" [src]="entry.coverImageUrl" [alt]="entry.gameName + ' cover'" />
-          } @else {
-            <div class="play-log-card__placeholder" aria-hidden="true">No cover</div>
-          }
+          <app-cover-image class="play-log-card__cover" imageClass="play-log-card__cover"
+            [coverImageUrl]="entry.coverImageUrl" [coverUploadId]="entry.coverUploadId" [alt]="entry.gameName + ' cover'" />
           <div class="play-log-card__body">
             <div class="play-log-card__title-row">
               <h2>{{ entry.gameName }}</h2>

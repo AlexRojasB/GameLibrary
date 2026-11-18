@@ -1,16 +1,17 @@
 import type { AcquisitionStatus } from '../games/acquisition-status';
 import type { InteractionType } from '../games/board-game';
 import type { GameStatus } from '../games/video-game';
+import type { CoverReference } from '../games/covers/cover-types';
 
 export type LibraryGameType = 'VideoGame' | 'BoardGame';
 
 export type LibrarySort = 'NameAsc' | 'NameDesc' | 'RatingDesc' | 'RatingAsc' | 'RecentlyAdded';
 
-export interface LibraryItem {
+export interface LibraryItem extends CoverReference {
   id: string;
   gameType: LibraryGameType;
   name: string;
-  coverImageUrl: string | null;
+  isFamilyFriendly: boolean;
   createdAt: string;
   acquisitionStatus: AcquisitionStatus;
   rating: number | null;
@@ -35,4 +36,5 @@ export interface LibraryFilterState {
   playerCount: number | null;
   interactionTypes: InteractionType[];
   gameStatuses: GameStatus[];
+  familyFriendlyOnly: boolean;
 }

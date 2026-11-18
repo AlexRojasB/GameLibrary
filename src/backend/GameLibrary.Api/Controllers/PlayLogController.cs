@@ -108,5 +108,6 @@ public class PlayLogController : ControllerBase
         entry.CoverImageUrl,
         entry.PlayedAt,
         entry.CreatedAt,
-        entry.DurationMinutes);
+        entry.DurationMinutes,
+        entry.CoverUploadId);
 }

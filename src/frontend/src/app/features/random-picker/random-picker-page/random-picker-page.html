@@ -32,6 +32,10 @@
     </div>
 
     <form id="random-picker-filters" class="random-picker__controls" [class.is-open]="filtersOpen()" [attr.aria-hidden]="!filtersOpen()">
+      <label class="random-picker__family-filter">
+        <input type="checkbox" [checked]="filters().familyFriendlyOnly" (change)="onFamilyFriendlyOnly($any($event.target).checked)" />
+        Family friendly only
+      </label>
 
     @if (mode() === 'All') {
       <label>
@@ -145,16 +149,16 @@
       </div>
     } @else if (currentResult(); as result) {
       <article class="random-picker-card random-picker-card--current" aria-label="Current pick">
-      @if (result.coverImageUrl) {
-        <img class="random-picker-card__cover" [src]="result.coverImageUrl" [alt]="result.name + ' cover'" />
-      } @else {
-        <div class="random-picker-card__placeholder" aria-hidden="true">No cover</div>
-      }
+      <app-cover-image class="random-picker-card__cover" imageClass="random-picker-card__cover"
+        [coverImageUrl]="result.coverImageUrl" [coverUploadId]="result.coverUploadId" [alt]="result.name + ' cover'" />
       <div class="random-picker-card__body">
         <div class="random-picker-card__title-row">
           <h2>{{ result.name }}</h2>
           <span class="game-type-chip">{{ result.gameType === 'VideoGame' ? 'Video game' : 'Board game' }}</span>
         </div>
+        @if (result.isFamilyFriendly) {
+          <span class="game-type-chip family-friendly-chip">Family friendly</span>
+        }
         @if (result.rating !== null) {
           <p>Rating: {{ result.rating }}</p>
         }
@@ -214,16 +218,16 @@
       <div class="random-picker__history-grid">
         @for (item of historyItems(); track item.libraryEntryId) {
           <article class="random-picker-card random-picker-card--history">
-            @if (item.coverImageUrl) {
-              <img class="random-picker-card__cover" [src]="item.coverImageUrl" [alt]="item.name + ' cover'" />
-            } @else {
-              <div class="random-picker-card__placeholder" aria-hidden="true">No cover</div>
-            }
+            <app-cover-image class="random-picker-card__cover" imageClass="random-picker-card__cover"
+              [coverImageUrl]="item.coverImageUrl" [coverUploadId]="item.coverUploadId" [alt]="item.name + ' cover'" />
             <div class="random-picker-card__body">
               <div class="random-picker-card__title-row">
                 <h3>{{ item.name }}</h3>
                 <span class="game-type-chip">{{ item.gameType === 'VideoGame' ? 'Video game' : 'Board game' }}</span>
               </div>
+              @if (item.isFamilyFriendly) {
+                <span class="game-type-chip family-friendly-chip">Family friendly</span>
+              }
               @for (detail of metadata(item); track detail) {
                 <p>{{ detail }}</p>
               }

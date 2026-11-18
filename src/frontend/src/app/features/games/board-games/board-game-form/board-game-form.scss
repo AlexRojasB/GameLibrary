@@ -24,8 +24,26 @@ form {
   }
 }
 
+.board-game-form__check-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: fit-content;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-raised);
+  font-weight: 700;
+}
+
 .board-game-form__error {
   color: var(--color-danger);
+  margin: 0;
+}
+
+.board-game-form__hint {
+  color: var(--color-muted);
   margin: 0;
 }
 

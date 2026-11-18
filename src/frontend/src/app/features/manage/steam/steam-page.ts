@@ -1,11 +1,10 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import {
   SteamService,
   SteamStatusResponse,
   SteamPreviewCandidate,
-  SteamLibraryPreviewResponse,
   SteamImportResponse,
 } from './steam.service';
 
@@ -32,7 +31,11 @@ export class SteamPage implements OnInit {
   protected readonly importResult = signal<SteamImportResponse | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
 
-  protected readonly hasSelectedSelectable = signal(false);
+  protected readonly hasSelectedSelectable = computed(() => this.getSelectableSelected().length > 0);
+  protected readonly allSelectableSelected = computed(() => {
+    const selectable = this.candidates().filter((c) => !c.alreadyImported);
+    return selectable.length > 0 && selectable.every((c) => this.selected().has(c.steamAppId));
+  });
 
   ngOnInit(): void {
     const queryParams = this.route.snapshot.queryParams;
@@ -78,6 +81,8 @@ export class SteamPage implements OnInit {
   }
 
   protected onUnlink(): void {
+    if (this.unlinking() || this.previewing() || this.importing()) return;
+
     this.unlinking.set(true);
     this.errorMessage.set(null);
     this.steam.unlink().subscribe({
@@ -85,6 +90,7 @@ export class SteamPage implements OnInit {
         this.candidates.set([]);
         this.selected.set(new Set());
         this.previewState.set(null);
+        this.previewMessage.set(null);
         this.importResult.set(null);
         this.loadStatus();
         this.unlinking.set(false);
@@ -97,6 +103,8 @@ export class SteamPage implements OnInit {
   }
 
   protected onPreview(): void {
+    if (this.previewing() || this.importing() || this.unlinking()) return;
+
     this.previewing.set(true);
     this.errorMessage.set(null);
     this.importResult.set(null);
@@ -122,6 +130,9 @@ export class SteamPage implements OnInit {
   }
 
   protected onToggle(steamAppId: number): void {
+    if (this.previewing() || this.importing() || this.unlinking()
+      || !this.candidates().some((c) => c.steamAppId === steamAppId && !c.alreadyImported)) return;
+
     this.selected.update((set) => {
       const next = new Set(set);
       if (next.has(steamAppId)) {
@@ -131,10 +142,23 @@ export class SteamPage implements OnInit {
       }
       return next;
     });
-    this.hasSelectedSelectable.set(this.getSelectableSelected().length > 0);
+  }
+
+  protected onToggleAll(): void {
+    if (this.previewing() || this.importing() || this.unlinking()) return;
+
+    const selectable = this.candidates().filter((c) => !c.alreadyImported);
+
+    if (this.allSelectableSelected()) {
+      this.selected.set(new Set());
+    } else {
+      this.selected.set(new Set(selectable.map((c) => c.steamAppId)));
+    }
   }
 
   protected onImport(): void {
+    if (this.importing() || this.previewing() || this.unlinking()) return;
+
     const appIds = this.getSelectableSelected();
     if (appIds.length === 0) return;
 
@@ -143,6 +167,12 @@ export class SteamPage implements OnInit {
     this.steam.import(appIds).subscribe({
       next: (response) => {
         this.importResult.set(response);
+        const importedIds = new Set([
+          ...response.imported.map((game) => game.steamAppId),
+          ...response.alreadyImported,
+        ]);
+        this.candidates.update((candidates) => candidates.map((candidate) =>
+          importedIds.has(candidate.steamAppId) ? { ...candidate, alreadyImported: true } : candidate));
         this.importing.set(false);
         this.selected.set(new Set());
         this.loadStatus();

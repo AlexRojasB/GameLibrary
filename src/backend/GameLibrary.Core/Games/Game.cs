@@ -22,6 +22,10 @@ public class Game
 
     public string? CoverImageUrl { get; set; }
 
+    public Guid? CoverUploadId { get; set; }
+
+    public bool IsFamilyFriendly { get; set; }
+
     /// <summary>
     /// Required for BoardGame rows and optional for VideoGame rows. When present,
     /// the invariant is <c>1 &lt;= MinimumPlayers &lt;= MaximumPlayers</c>.

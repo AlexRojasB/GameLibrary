@@ -57,6 +57,13 @@
     border-radius: var(--radius-control);
     background: var(--color-surface);
   }
+
+  &__filters .library__family-filter {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+  }
 }
 
 .library__cards {
@@ -82,6 +89,7 @@
   place-items: center;
   width: 100%;
   height: 10rem;
+  aspect-ratio: auto;
   object-fit: cover;
   background:
     radial-gradient(circle at top, rgba(180, 95, 53, 0.18), transparent 7rem),

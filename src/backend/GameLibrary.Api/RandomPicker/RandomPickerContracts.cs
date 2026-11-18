@@ -9,7 +9,8 @@ public sealed record RandomPickerPickRequest(
     int? PlayerCount,
     int? AvailableDuration,
     IReadOnlyList<string>? InteractionTypes,
-    int? RatingMin);
+    int? RatingMin,
+    bool? FamilyFriendlyOnly);
 
 public sealed record RandomPickerPickResponse(
     string State,
@@ -30,4 +31,6 @@ public sealed record RandomPickerItemResponse(
     int? MinimumPlayers,
     int? MaximumPlayers,
     int? ApproximateDuration,
-    string? InteractionType);
+    string? InteractionType,
+    bool IsFamilyFriendly,
+    Guid? CoverUploadId);

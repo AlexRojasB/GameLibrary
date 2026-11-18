@@ -1,12 +1,11 @@
 export type PlayLogGameType = 'VideoGame' | 'BoardGame';
 
-export interface PlayLogEntry {
+export interface PlayLogEntry extends CoverReference {
   id: string;
   libraryEntryId: string;
   gameId: string;
   gameType: PlayLogGameType;
   gameName: string;
-  coverImageUrl: string | null;
   playedAt: string;
   durationMinutes: number | null;
   createdAt: string;
@@ -22,3 +21,4 @@ export interface UpdatePlayLogEntryRequest {
   playedAt: string;
   durationMinutes: number | null;
 }
+import type { CoverReference } from '../games/covers/cover-types';

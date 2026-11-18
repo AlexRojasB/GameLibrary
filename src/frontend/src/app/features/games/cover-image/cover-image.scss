@@ -1,0 +1,41 @@
+:host {
+  display: block;
+  overflow: hidden;
+  min-width: 0;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: inherit;
+}
+
+img,
+.cover-placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.cover-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at top, rgba(180, 95, 53, 0.18), transparent 7rem),
+    var(--color-accent-soft);
+  color: var(--color-accent-strong);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-align: center;
+
+  button {
+    min-height: 44px;
+    max-width: 100%;
+    padding: 0.25rem;
+    white-space: normal;
+  }
+}

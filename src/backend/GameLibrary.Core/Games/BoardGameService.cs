@@ -1,4 +1,5 @@
 using GameLibrary.Core.Data;
+using GameLibrary.Core.CoverUploads;
 using GameLibrary.Core.Libraries;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,7 +20,8 @@ public sealed record BoardGameInput(
     string? AcquisitionStatus,
     int? Rating,
     string? Notes,
-    string? CoverImageUrl);
+    CoverUpdate? CoverUpdate,
+    bool? IsFamilyFriendly = null);
 
 /// <summary>
 /// Read-model projection of a BoardGame (Game + its LibraryEntry). Not an EF
@@ -38,7 +40,9 @@ public sealed record BoardGameView(
     AcquisitionStatus AcquisitionStatus,
     int? Rating,
     string? Notes,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    bool IsFamilyFriendly,
+    Guid? CoverUploadId);
 
 /// <summary>
 /// Authoritative backend enforcement layer for BoardGame operations. Ownership is
@@ -49,12 +53,12 @@ public sealed record BoardGameView(
 public class BoardGameService
 {
     private readonly GameLibraryDbContext _db;
-    private readonly LibraryService _libraries;
+    private readonly CoverUploadService _covers;
 
-    public BoardGameService(GameLibraryDbContext db, LibraryService libraries)
+    public BoardGameService(GameLibraryDbContext db, LibraryService libraries, CoverUploadService covers)
     {
         _db = db;
-        _libraries = libraries;
+        _covers = covers;
     }
 
     public async Task<IReadOnlyList<BoardGameView>> ListAsync(string userId, CancellationToken ct)
@@ -77,14 +81,15 @@ public class BoardGameService
                 g.LibraryEntry.AcquisitionStatus,
                 g.LibraryEntry.Rating,
                 g.LibraryEntry.Notes,
-                g.CreatedAt))
+                g.CreatedAt,
+                g.IsFamilyFriendly,
+                g.CoverUploadId))
             .ToListAsync(ct);
     }
 
     public async Task<BoardGameView> CreateAsync(string userId, BoardGameInput input, CancellationToken ct)
     {
         var name = BoardGameRules.ValidateAndTrimName(input.Name);
-        var coverImageUrl = BoardGameRules.ValidateAndNormalizeCoverImageUrl(input.CoverImageUrl);
         var notes = BoardGameRules.ValidateAndNormalizeNotes(input.Notes);
         var minimumPlayers = BoardGameRules.ValidateMinimumPlayers(input.MinimumPlayers);
         var maximumPlayers = BoardGameRules.ValidateMaximumPlayers(input.MaximumPlayers, minimumPlayers);
@@ -93,7 +98,8 @@ public class BoardGameService
         var acquisitionStatus = BoardGameRules.ParseAcquisitionStatus(input.AcquisitionStatus, isCreate: true);
         BoardGameRules.ValidateRating(input.Rating);
 
-        var library = await _libraries.EnsureAsync(userId, ct);
+        await using var transaction = await _covers.BeginGameMutationAsync(userId, null, ct);
+        var library = await _db.Libraries.SingleAsync(l => l.UserId == userId, ct);
 
         var now = DateTimeOffset.UtcNow;
         var game = new Game
@@ -101,7 +107,7 @@ public class BoardGameService
             Id = Guid.NewGuid(),
             GameType = GameType.BoardGame,
             Name = name,
-            CoverImageUrl = coverImageUrl,
+            IsFamilyFriendly = GameRules.NormalizeFamilyFriendly(input.IsFamilyFriendly),
             MinimumPlayers = minimumPlayers,
             MaximumPlayers = maximumPlayers,
             ApproximateDuration = input.ApproximateDuration,
@@ -123,19 +129,21 @@ public class BoardGameService
 
         game.LibraryEntry = entry;
 
+        await _covers.ApplyAsync(library.Id, game, input.CoverUpdate, isCreate: true, ct);
         _db.Games.Add(game);
         await _db.SaveChangesAsync(ct);
+        await _covers.CommitAsync(transaction, userId, input.CoverUpdate?.UploadId, ct);
 
         return ToView(game, entry);
     }
 
     public async Task<BoardGameView> UpdateAsync(string userId, Guid gameId, BoardGameInput input, CancellationToken ct)
     {
+        await using var transaction = await _covers.BeginGameMutationAsync(userId, gameId, ct);
         var game = await LoadOwnedAsync(userId, gameId, ct);
         var entry = game.LibraryEntry;
 
         var name = BoardGameRules.ValidateAndTrimName(input.Name);
-        var coverImageUrl = BoardGameRules.ValidateAndNormalizeCoverImageUrl(input.CoverImageUrl);
         var notes = BoardGameRules.ValidateAndNormalizeNotes(input.Notes);
         var minimumPlayers = BoardGameRules.ValidateMinimumPlayers(input.MinimumPlayers);
         var maximumPlayers = BoardGameRules.ValidateMaximumPlayers(input.MaximumPlayers, minimumPlayers);
@@ -144,8 +152,9 @@ public class BoardGameService
         var acquisitionStatus = BoardGameRules.ParseAcquisitionStatus(input.AcquisitionStatus, isCreate: false);
         BoardGameRules.ValidateRating(input.Rating);
 
+        await _covers.ApplyAsync(entry.LibraryId, game, input.CoverUpdate, isCreate: false, ct);
         game.Name = name;
-        game.CoverImageUrl = coverImageUrl;
+        game.IsFamilyFriendly = GameRules.NormalizeFamilyFriendly(input.IsFamilyFriendly);
         game.MinimumPlayers = minimumPlayers;
         game.MaximumPlayers = maximumPlayers;
         game.ApproximateDuration = input.ApproximateDuration;
@@ -156,16 +165,17 @@ public class BoardGameService
         entry.Notes = notes;
 
         await _db.SaveChangesAsync(ct);
+        await _covers.CommitAsync(transaction, userId, input.CoverUpdate?.UploadId, ct);
 
         return ToView(game, entry);
     }
 
     public async Task DeleteAsync(string userId, Guid gameId, CancellationToken ct)
     {
+        await using var transaction = await _covers.BeginGameMutationAsync(userId, gameId, ct);
         var game = await LoadOwnedAsync(userId, gameId, ct);
         var entry = game.LibraryEntry;
-
-        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+        await _covers.RetireForDeletionAsync(game, ct);
 
         _db.LibraryEntries.Remove(entry);
         await _db.SaveChangesAsync(ct);
@@ -173,7 +183,7 @@ public class BoardGameService
         _db.Games.Remove(game);
         await _db.SaveChangesAsync(ct);
 
-        await transaction.CommitAsync(ct);
+        await _covers.CommitAsync(transaction, userId, game.CoverUploadId, ct);
     }
 
     /// <summary>
@@ -204,5 +214,7 @@ public class BoardGameService
         entry.AcquisitionStatus,
         entry.Rating,
         entry.Notes,
-        game.CreatedAt);
+        game.CreatedAt,
+        game.IsFamilyFriendly,
+        game.CoverUploadId);
 }

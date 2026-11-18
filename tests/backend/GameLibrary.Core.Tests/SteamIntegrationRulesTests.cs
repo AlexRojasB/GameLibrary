@@ -1,3 +1,4 @@
+using GameLibrary.Core.Games;
 using GameLibrary.Core.Steam;
 
 namespace GameLibrary.Core.Tests;
@@ -70,11 +71,11 @@ public class SteamIntegrationRulesTests
         var longName = new string('x', 101);
         var candidates = SteamIntegrationRules.NormalizeCandidates(
             [
-                new SteamOwnedGame(570, " Dota 2 ", 123),
-                new SteamOwnedGame(0, "Invalid", 1),
-                new SteamOwnedGame(730, "   ", 1),
-                new SteamOwnedGame(440, longName, 1),
-                new SteamOwnedGame(10, "alpha", null),
+                new SteamOwnedGame(570, " Dota 2 ", 123, null, null),
+                new SteamOwnedGame(0, "Invalid", 1, null, null),
+                new SteamOwnedGame(730, "   ", 1, null, null),
+                new SteamOwnedGame(440, longName, 1, null, null),
+                new SteamOwnedGame(10, "alpha", null, null, null),
             ],
             new HashSet<uint> { 570 });
 
@@ -137,6 +138,95 @@ public class SteamIntegrationRulesTests
             ValidOpenIdParameters(),
             "https://steamcommunity.com/openid/login",
             "https://api.example.test/steam/link/callback?state=abc",
+            "https://api.example.test/",
+            steamVerified: true);
+
+        Assert.Equal("76561198000000000", steamId);
+    }
+
+    [Theory]
+    [InlineData(100L, 50L, 50L)]
+    [InlineData(100L, 100L, 0L)]
+    [InlineData(50L, 100L, 0L)]
+    [InlineData(100L, null, 0L)]
+    [InlineData(null, 50L, 0L)]
+    [InlineData(null, null, 0L)]
+    [InlineData(2147483648L, 0L, 2147483648L)]
+    [InlineData(100L, 2147483648L, 0L)]
+    public void CalculatePlaytimeDelta_returns_correct_delta(long? newPlaytime, long? storedPlaytime, long expectedDelta)
+    {
+        var delta = SteamIntegrationRules.CalculatePlaytimeDelta(newPlaytime, storedPlaytime);
+
+        Assert.Equal(expectedDelta, delta);
+    }
+
+    [Theory]
+    [InlineData(100L, 150, 50L, 150L)]
+    [InlineData(100L, 100, 0L, 100L)]
+    [InlineData(100L, 50, 0L, 50L)]
+    [InlineData(100L, null, 0L, 100L)]
+    [InlineData(null, 150, 0L, 150L)]
+    [InlineData(null, null, 0L, null)]
+    [InlineData(2147483648L, 100, 0L, 100L)]
+    public void RefreshPlaytime_calculates_before_replacing_the_baseline(long? previous, int? current, long expectedDelta, long? expectedStored)
+    {
+        var entry = new LibraryEntry { SteamPlaytimeMinutes = previous, GameStatus = GameStatus.Playing, ProgressPercentage = 25 };
+
+        var delta = SteamIntegrationService.RefreshPlaytime(entry, current);
+
+        Assert.Equal(expectedDelta, delta);
+        Assert.Equal(expectedStored, entry.SteamPlaytimeMinutes);
+        Assert.Equal(GameStatus.Playing, entry.GameStatus);
+        Assert.Equal(25, entry.ProgressPercentage);
+    }
+
+    [Fact]
+    public void ValidateOpenIdAssertion_accepts_valid_assertion_with_real_rawstate()
+    {
+        var rawState = SteamIntegrationRules.GenerateRawState();
+        var claimedId = SteamIntegrationRules.ClaimedIdPrefix + "76561198000000000";
+        var parameters = new Dictionary<string, string?>
+        {
+            ["openid.ns"] = SteamIntegrationRules.OpenIdNamespace,
+            ["openid.mode"] = "id_res",
+            ["openid.op_endpoint"] = "https://steamcommunity.com/openid/login",
+            ["openid.claimed_id"] = claimedId,
+            ["openid.identity"] = claimedId,
+            ["openid.return_to"] = "https://api.example.test/steam/link/callback?state=" + Uri.EscapeDataString(rawState),
+            ["openid.realm"] = "https://api.example.test/",
+        };
+
+        var steamId = SteamIntegrationRules.ValidateOpenIdAssertion(
+            parameters,
+            "https://steamcommunity.com/openid/login",
+            "https://api.example.test/steam/link/callback?state=" + Uri.EscapeDataString(rawState),
+            "https://api.example.test/",
+            steamVerified: true);
+
+        Assert.Equal("76561198000000000", steamId);
+    }
+
+    [Fact]
+    public void ValidateOpenIdAssertion_accepts_valid_assertion_with_state_parameter()
+    {
+        var rawState = SteamIntegrationRules.GenerateRawState();
+        var claimedId = SteamIntegrationRules.ClaimedIdPrefix + "76561198000000000";
+        var parameters = new Dictionary<string, string?>
+        {
+            ["state"] = rawState,
+            ["openid.ns"] = SteamIntegrationRules.OpenIdNamespace,
+            ["openid.mode"] = "id_res",
+            ["openid.op_endpoint"] = "https://steamcommunity.com/openid/login",
+            ["openid.claimed_id"] = claimedId,
+            ["openid.identity"] = claimedId,
+            ["openid.return_to"] = "https://api.example.test/steam/link/callback?state=" + Uri.EscapeDataString(rawState),
+            ["openid.realm"] = "https://api.example.test/",
+        };
+
+        var steamId = SteamIntegrationRules.ValidateOpenIdAssertion(
+            parameters,
+            "https://steamcommunity.com/openid/login",
+            "https://api.example.test/steam/link/callback?state=" + Uri.EscapeDataString(rawState),
             "https://api.example.test/",
             steamVerified: true);
 

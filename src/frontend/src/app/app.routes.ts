@@ -6,8 +6,6 @@ import { Login } from './features/auth/login/login';
 import { Register } from './features/auth/register/register';
 import { Home } from './features/auth/home/home';
 import { PlatformsList } from './features/platforms/platforms-list/platforms-list';
-import { VideoGamesList } from './features/games/video-games-list/video-games-list';
-import { BoardGamesList } from './features/games/board-games/board-games-list/board-games-list';
 import { LibraryPage } from './features/library/library-page/library-page';
 import { RandomPickerPage } from './features/random-picker/random-picker-page/random-picker-page';
 import { ManageHub } from './features/manage/manage-hub';
@@ -25,6 +23,6 @@ export const routes: Routes = [
   { path: 'manage', component: ManageHub, canActivate: [authGuard] },
   { path: 'manage/steam', component: SteamPage, canActivate: [authGuard] },
   { path: 'platforms', component: PlatformsList, canActivate: [authGuard] },
-  { path: 'video-games', component: VideoGamesList, canActivate: [authGuard] },
-  { path: 'board-games', component: BoardGamesList, canActivate: [authGuard] },
+  { path: 'video-games', loadComponent: () => import('./features/games/video-games-list/video-games-list').then((module) => module.VideoGamesList), canActivate: [authGuard] },
+  { path: 'board-games', loadComponent: () => import('./features/games/board-games/board-games-list/board-games-list').then((module) => module.BoardGamesList), canActivate: [authGuard] },
 ];

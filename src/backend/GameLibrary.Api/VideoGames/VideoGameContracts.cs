@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace GameLibrary.Api.VideoGames;
 
 /// <summary>
@@ -6,10 +9,11 @@ namespace GameLibrary.Api.VideoGames;
 /// default (Owned) from the update requirement (AcquisitionStatus required).
 /// Fields are nullable at the HTTP boundary because missing/null values are client
 /// validation errors handled by the Core service.
+/// CoverUpdate uses Undefined for omission; explicit JSON null is rejected.
 /// </summary>
 public sealed record CreateVideoGameRequest(
     string? Name,
-    string? CoverImageUrl,
+    JsonElement CoverUpdate,
     string? AcquisitionStatus,
     IReadOnlyList<Guid>? PlatformIds,
     IReadOnlyList<Guid>? GenreIds,
@@ -18,11 +22,16 @@ public sealed record CreateVideoGameRequest(
     int? Rating,
     string? Notes,
     int? MinimumPlayers,
-    int? MaximumPlayers);
+    int? MaximumPlayers,
+    bool? IsFamilyFriendly)
+{
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
 
 public sealed record UpdateVideoGameRequest(
     string? Name,
-    string? CoverImageUrl,
+    JsonElement CoverUpdate,
     string? AcquisitionStatus,
     IReadOnlyList<Guid>? PlatformIds,
     IReadOnlyList<Guid>? GenreIds,
@@ -31,7 +40,12 @@ public sealed record UpdateVideoGameRequest(
     int? Rating,
     string? Notes,
     int? MinimumPlayers,
-    int? MaximumPlayers);
+    int? MaximumPlayers,
+    bool? IsFamilyFriendly)
+{
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
 
 public sealed record VideoGameResponse(
     Guid Id,
@@ -46,4 +60,6 @@ public sealed record VideoGameResponse(
     string? Notes,
     DateTimeOffset CreatedAt,
     int? MinimumPlayers,
-    int? MaximumPlayers);
+    int? MaximumPlayers,
+    bool IsFamilyFriendly,
+    Guid? CoverUploadId);

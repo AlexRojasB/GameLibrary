@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { Component, effect, ElementRef, inject, signal, untracked, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { map } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 
@@ -12,10 +13,14 @@ import { GenresService } from '../genres.service';
 import { VideoGame, VideoGameInput } from '../video-game';
 import { VideoGamesService } from '../video-games.service';
 import { VideoGameForm } from '../video-game-form/video-game-form';
+import { CoverSave, metadataChanged } from '../covers/cover-save';
+import { CoverUploadsService } from '../covers/cover-uploads.service';
+import { CoverImage } from '../cover-image/cover-image';
 
 @Component({
   selector: 'app-video-games-list',
-  imports: [RouterLink, VideoGameForm],
+  imports: [RouterLink, VideoGameForm, CoverImage],
+  providers: [CoverSave],
   templateUrl: './video-games-list.html',
   styleUrl: './video-games-list.scss',
 })
@@ -26,6 +31,9 @@ export class VideoGamesList {
   private readonly genresService = inject(GenresService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  protected readonly coverSave = inject(CoverSave);
+  private readonly coverUploads = inject(CoverUploadsService);
+  private loadGeneration = 0;
 
   protected readonly loading = signal(true);
   protected readonly videoGames = signal<VideoGame[]>([]);
@@ -34,25 +42,47 @@ export class VideoGamesList {
   protected readonly loadError = signal(false);
   protected readonly formOpen = signal(false);
   protected readonly editingGame = signal<VideoGame | null>(null);
-  protected readonly formError = signal('');
   protected readonly notice = signal('');
   private returnFocusTo: HTMLElement | null = null;
 
   constructor() {
+    let account = this.coverSave.account();
+    effect(() => {
+      const current = this.coverSave.account();
+      if (current !== account) {
+        account = current;
+        untracked(() => {
+          ++this.loadGeneration;
+          this.closeForm();
+          this.videoGames.set([]);
+          this.platforms.set([]);
+          this.editingGame.set(null);
+          this.notice.set('');
+          if (current !== null) {
+            this.loadPlatforms();
+            this.load();
+          }
+        });
+      }
+    });
     this.loadPlatforms();
     this.loadGenres();
     this.load();
   }
 
   load(): void {
+    const generation = ++this.loadGeneration;
+    const account = this.coverSave.account();
     this.loading.set(true);
     this.loadError.set(false);
     this.videoGamesService.list().subscribe({
       next: (games) => {
+        if (generation !== this.loadGeneration || account !== this.coverSave.account()) return;
         this.videoGames.set(games);
         this.loading.set(false);
       },
       error: (error: HttpErrorResponse) => {
+        if (generation !== this.loadGeneration || account !== this.coverSave.account()) return;
         this.loading.set(false);
         if (error.status === 401) {
           this.handleSessionExpired();
@@ -64,18 +94,19 @@ export class VideoGamesList {
   }
 
   openCreate(): void {
+    if (!this.coverSave.begin(null)) return;
     this.editingGame.set(null);
-    this.formError.set('');
     this.openForm();
   }
 
   openEdit(game: VideoGame): void {
+    if (!this.coverSave.begin(game)) return;
     this.editingGame.set(game);
-    this.formError.set('');
     this.openForm();
   }
 
   closeForm(): void {
+    this.coverSave.close();
     const dialog = this.formDialog()?.nativeElement;
     if (dialog?.open) {
       if (typeof dialog.close === 'function') {
@@ -85,7 +116,6 @@ export class VideoGamesList {
       }
     }
     this.formOpen.set(false);
-    this.formError.set('');
     this.returnFocusTo?.focus();
     this.returnFocusTo = null;
   }
@@ -103,21 +133,31 @@ export class VideoGamesList {
 
   onSubmit(input: VideoGameInput): void {
     const editing = this.editingGame();
-    if (editing === null) {
-      this.createGame(input);
-    } else {
-      this.updateGame(editing.id, input);
-    }
+    const coverOnly = editing !== null && !metadataChanged(input, editing);
+    this.coverSave.save({
+      gameId: editing?.id ?? null,
+      write: (coverUpdate) => coverOnly && coverUpdate.intent !== 'keep'
+        ? this.coverUploads.update(editing!.id, coverUpdate)
+        : editing === null ? this.videoGamesService.create({ ...input, coverUpdate })
+          : this.videoGamesService.update(editing.id, { ...input, coverUpdate }),
+      refetch: (id) => this.videoGamesService.list().pipe(map((games) => games.find((game) => game.id === id) ?? null)),
+      saved: () => { this.closeForm(); this.load(); },
+      unauthorized: () => this.handleSessionExpired(),
+      missing: () => { this.notice.set('This video game no longer exists.'); this.closeForm(); this.load(); },
+    });
   }
 
   onDelete(game: VideoGame): void {
+    if (this.coverSave.busy() || this.coverSave.recovery()) return;
+    const account = this.coverSave.account();
     const confirmed = window.confirm(`Delete "${game.name}"?`);
     if (!confirmed) {
       return;
     }
     this.videoGamesService.delete(game.id).subscribe({
-      next: () => this.load(),
+      next: () => { if (account === this.coverSave.account()) this.load(); },
       error: (error: HttpErrorResponse) => {
+        if (account !== this.coverSave.account()) return;
         if (error.status === 401) {
           this.handleSessionExpired();
           return;
@@ -159,11 +199,12 @@ export class VideoGamesList {
   }
 
   private openForm(): void {
+    const account = this.coverSave.account();
     this.returnFocusTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.formOpen.set(true);
     queueMicrotask(() => {
       const dialog = this.formDialog()?.nativeElement;
-      if (dialog !== undefined && !dialog.open) {
+      if (this.formOpen() && account === this.coverSave.account() && dialog !== undefined && !dialog.open) {
         if (typeof dialog.showModal === 'function') {
           dialog.showModal();
         } else {
@@ -173,63 +214,11 @@ export class VideoGamesList {
     });
   }
 
-  private createGame(input: VideoGameInput): void {
-    this.videoGamesService.create(input).subscribe({
-      next: () => {
-        this.closeForm();
-        this.load();
-      },
-      error: (error: HttpErrorResponse) => {
-        if (error.status === 401) {
-          this.handleSessionExpired();
-          return;
-        }
-        this.formError.set(this.errorMessage(error, 'Unable to save the video game. Please try again.'));
-      },
-    });
-  }
-
-  private updateGame(id: string, input: VideoGameInput): void {
-    this.videoGamesService.update(id, input).subscribe({
-      next: () => {
-        this.closeForm();
-        this.load();
-      },
-      error: (error: HttpErrorResponse) => {
-        if (error.status === 401) {
-          this.handleSessionExpired();
-          return;
-        }
-        if (error.status === 404) {
-          this.notice.set('This video game no longer exists.');
-          this.closeForm();
-          this.load();
-          return;
-        }
-        this.formError.set(this.errorMessage(error, 'Unable to save the video game. Please try again.'));
-      },
-    });
-  }
-
-  private errorMessage(error: HttpErrorResponse, fallback: string): string {
-    if (error.status === 400) {
-      return this.serverDetail(error) ?? 'Please check the video game details.';
-    }
-    return fallback;
-  }
-
-  private serverDetail(error: HttpErrorResponse): string | null {
-    const body = error.error as { detail?: unknown } | null;
-    if (body !== null && typeof body === 'object' && typeof body.detail === 'string') {
-      return body.detail;
-    }
-    return null;
-  }
-
   private loadPlatforms(): void {
+    const account = this.coverSave.account();
     this.platformsService.list().subscribe({
-      next: (platforms) => this.platforms.set(platforms),
-      error: () => this.loadError.set(true),
+      next: (platforms) => { if (account === this.coverSave.account()) this.platforms.set(platforms); },
+      error: () => { if (account === this.coverSave.account()) this.loadError.set(true); },
     });
   }
 

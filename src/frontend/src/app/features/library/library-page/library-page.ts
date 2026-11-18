@@ -3,6 +3,7 @@ import { Component, OnDestroy, computed, inject, signal, viewChild } from '@angu
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import { CoverImage } from '../../games/cover-image/cover-image';
 import { Genre } from '../../games/genres';
 import { GenresService } from '../../games/genres.service';
 import type { AcquisitionStatus } from '../../games/acquisition-status';
@@ -30,7 +31,7 @@ const SORTS: { value: LibrarySort; label: string }[] = [
 
 @Component({
   selector: 'app-library-page',
-  imports: [RouterLink, LogPlayDialog],
+  imports: [RouterLink, LogPlayDialog, CoverImage],
   templateUrl: './library-page.html',
   styleUrl: './library-page.scss',
 })
@@ -121,6 +122,11 @@ export class LibraryPage implements OnDestroy {
 
   protected onRatingMin(value: string): void {
     this.patchFilters({ ratingMin: value === '' ? null : Number(value) });
+    this.load();
+  }
+
+  protected onFamilyFriendlyOnly(checked: boolean): void {
+    this.patchFilters({ familyFriendlyOnly: checked });
     this.load();
   }
 
@@ -299,6 +305,7 @@ function emptyFilters(): LibraryFilterState {
     playerCount: null,
     interactionTypes: [],
     gameStatuses: [],
+    familyFriendlyOnly: false,
   };
 }
 
@@ -312,7 +319,8 @@ function hasActiveCriteria(filters: LibraryFilterState): boolean {
     filters.ratingMin !== null ||
     filters.playerCount !== null ||
     filters.interactionTypes.length > 0 ||
-    filters.gameStatuses.length > 0
+    filters.gameStatuses.length > 0 ||
+    filters.familyFriendlyOnly
   );
 }
 
@@ -336,6 +344,7 @@ function activeFilterCount(filters: LibraryFilterState): number {
     filters.playerCount !== null,
     filters.interactionTypes.length > 0,
     filters.gameStatuses.length > 0,
+    filters.familyFriendlyOnly,
   ].filter(Boolean).length;
 }
 

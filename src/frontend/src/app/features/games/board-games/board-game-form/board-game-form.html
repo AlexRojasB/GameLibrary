@@ -12,16 +12,14 @@
   </section>
 
   <section class="board-game-form__section">
-    <label for="board-game-form-cover">Cover image URL</label>
-    <input id="board-game-form-cover" type="url" formControlName="coverImageUrl" maxlength="2048" placeholder="https://…" />
-    @if (form.controls.coverImageUrl.errors) {
-      <p class="board-game-form__error" role="alert">Cover image URL is invalid.</p>
-    }
     <app-cover-image-search
       [gameType]="'BoardGame'"
       [gameName]="form.controls.name.value"
-      [coverImageUrl]="form.controls.coverImageUrl.value"
-      (coverImageUrlSelected)="setCoverImageUrl($event)"
+      [draft]="draft()"
+      [savedCover]="coverReference() ?? { coverImageUrl: null, coverUploadId: null }"
+      [disabled]="disabled()"
+      (draftChanged)="changeCoverDraft($event)"
+      (busyChanged)="coverBusy.set($event)"
       (unauthorized)="unauthorized.emit()"
     />
   </section>
@@ -34,6 +32,12 @@
       }
     </select>
   </section>
+
+  <label class="board-game-form__check-card">
+    <input id="board-game-form-family-friendly" type="checkbox" formControlName="isFamilyFriendly" aria-describedby="board-game-form-family-friendly-help" />
+    <span>Family friendly</span>
+  </label>
+  <p id="board-game-form-family-friendly-help" class="board-game-form__hint">Mark this when the game is appropriate for family play.</p>
 
   <fieldset class="board-game-form__group">
     <legend>Play details</legend>
@@ -103,7 +107,7 @@
   }
 
   <div class="board-game-form__actions">
-    <button type="submit" class="button button--primary">{{ submitLabel() }}</button>
+    <button type="submit" class="button button--primary" [disabled]="disabled() || coverBusy()">{{ submitLabel() }}</button>
     <button type="button" class="button button--secondary" (click)="cancelled.emit()">Cancel</button>
   </div>
 </form>

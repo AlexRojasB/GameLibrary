@@ -1,0 +1,54 @@
+<section class="cover-editor" aria-label="Edit local cover">
+  <h4 #heading tabindex="-1">Adjust cover <span>Not saved</span></h4>
+  <div class="cover-editor__toolbar">
+    <button type="button" [attr.aria-pressed]="mode() === 'crop'" (click)="changeMode('crop')">Crop 2:3</button>
+    <button type="button" [attr.aria-pressed]="mode() === 'fit'" (click)="changeMode('fit')">Fit whole image</button>
+    <button type="button" (click)="rotate()">Rotate 90 degrees</button>
+    <button type="button" (click)="reset()">Reset</button>
+  </div>
+  @if (mode() === 'crop') {
+    <app-cover-cropper
+      [localFile]="image().file"
+      [aspectRatio]="2 / 3"
+      [maintainAspectRatio]="true"
+      [turns]="rotation()"
+      [transform]="transform()"
+      (transformChange)="updateTransform($event)"
+      (cropperChange)="cropChanged()"
+      [allowMoveImage]="true"
+      [autoCrop]="false"
+      [onlyScaleDown]="true"
+      [resizeToWidth]="960"
+      [resizeToHeight]="1440"
+      [imageQuality]="90"
+      backgroundColor="#ffffff"
+      format="jpeg"
+      output="blob"
+      imageAltText="Local cover artwork"
+      cropperFrameAriaLabel="Cover crop. Arrow keys move; Shift and arrow keys resize."
+      (cropperReady)="cropReady()"
+      (loadImageFailed)="loadFailed()"
+    />
+    <p>Drag to reposition or resize the crop. Focus the crop and use arrow keys to move, Shift + arrows to resize. The buttons below also reposition the image.</p>
+    <label>Zoom
+      <input type="range" min="1" max="4" step="0.05" [value]="transform().scale ?? 1" (input)="zoom(+$any($event.target).value)" />
+    </label>
+    <div class="cover-editor__toolbar" aria-label="Image position">
+      <button type="button" (click)="move(-5, 0)">Move left</button>
+      <button type="button" (click)="move(5, 0)">Move right</button>
+      <button type="button" (click)="move(0, -5)">Move up</button>
+      <button type="button" (click)="move(0, 5)">Move down</button>
+    </div>
+  } @else {
+    <div class="cover-editor__fit" [class.cover-editor__fit--sideways]="rotation() % 2 !== 0">
+      @if (fitUrl(); as url) { <img [src]="url" [style.transform]="fitStyle()" alt="Whole artwork with white padding" /> }
+    </div>
+    <p>Fit preserves the whole artwork with white padding, without enlarging image pixels.</p>
+  }
+  @if (error()) { <p role="alert">{{ error() }}</p> }
+  @if (exporting()) { <p role="status">Preparing image...</p> }
+  <div class="cover-editor__toolbar">
+    <button type="button" class="button button--primary" [disabled]="exporting() || (mode() === 'crop' && !ready()) || (mode() === 'fit' && !fitUrl())" (click)="useImage()">Use image</button>
+    <button type="button" class="button button--secondary" (click)="cancel()">Cancel editing</button>
+  </div>
+</section>

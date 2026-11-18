@@ -24,8 +24,14 @@
     <ul class="board-games__list">
       @for (game of boardGames(); track game.id) {
         <li class="board-games__item">
+          <div class="board-games__item-cover">
+            <app-cover-image [coverImageUrl]="game.coverImageUrl" [coverUploadId]="game.coverUploadId" alt="" />
+          </div>
           <div class="board-games__item-info">
             <strong>{{ game.name }}</strong>
+            @if (game.isFamilyFriendly) {
+              <span class="game-type-chip family-friendly-chip">Family friendly</span>
+            }
             <span>{{ playerRange(game) }}</span>
             @if (game.approximateDuration !== null) {
               <span>{{ game.approximateDuration }} min</span>
@@ -50,6 +56,16 @@
   @if (notice()) {
     <p class="board-games__notice" role="status">{{ notice() }}</p>
   }
+  @if (!formOpen() && coverSave.message()) {
+    <p role="status">{{ coverSave.message() }}</p>
+  }
+  @if (!formOpen() && coverSave.recovery()) {
+    <button type="button" class="button button--secondary" [disabled]="coverSave.busy()" (click)="coverSave.reconcile()">Check save status</button>
+    @if (coverSave.phase() === 'retry') {
+      <button type="button" class="button button--secondary" (click)="coverSave.retrySameHandle()">Retry same save</button>
+    }
+    <a routerLink="/library">Inspect Library</a>
+  }
 
   <dialog
     #formDialog
@@ -68,12 +84,34 @@
         </header>
         <app-board-game-form
           [game]="editingGame()"
+          [draft]="coverSave.draft()"
+          (draftChange)="coverSave.setDraft($event)"
+          [savedCover]="coverSave.savedCover()"
+          [disabled]="coverSave.blocked()"
           [submitLabel]="editingGame() !== null ? 'Save' : 'Create'"
-          [serverError]="formError()"
+          [serverError]="coverSave.message()"
           (submitted)="onSubmit($event)"
           (cancelled)="closeForm()"
           (unauthorized)="handleSessionExpired()"
         />
+        @if (coverSave.busy()) {
+          <p role="status">{{ coverSave.phase() === 'uploading' ? 'Uploading cover' : coverSave.phase() === 'saving' ? 'Saving game' : coverSave.phase() === 'cancelling' ? 'Canceling staged cover' : 'Checking save status' }}...</p>
+        }
+        @if (coverSave.recovery()) {
+          <button type="button" class="button button--secondary" [disabled]="coverSave.busy()" (click)="coverSave.reconcile()">Check save status</button>
+          @if (coverSave.phase() === 'retry') {
+            <button type="button" class="button button--secondary" (click)="coverSave.retrySameHandle()">Retry same save</button>
+          }
+          <a routerLink="/library">Inspect Library</a>
+        }
+        @if (coverSave.phase() === 'expired') {
+          <button type="button" class="button button--secondary" (click)="coverSave.reupload()">Re-upload</button>
+        }
+        @if (coverSave.phase() === 'conflict') {
+          <app-cover-image [coverImageUrl]="coverSave.currentCover()?.coverImageUrl ?? null" [coverUploadId]="coverSave.currentCover()?.coverUploadId ?? null" alt="Current saved cover" />
+          <button type="button" class="button button--secondary" (click)="coverSave.chooseConflict(false)">Keep current cover</button>
+          <button type="button" class="button button--secondary" (click)="coverSave.chooseConflict(true)">Use pending cover</button>
+        }
       </div>
     }
   </dialog>

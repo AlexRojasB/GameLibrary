@@ -16,4 +16,6 @@ public sealed record LibraryItemResponse(
     int? MinimumPlayers,
     int? MaximumPlayers,
     int? ApproximateDuration,
-    string? InteractionType);
+    string? InteractionType,
+    bool IsFamilyFriendly,
+    Guid? CoverUploadId);

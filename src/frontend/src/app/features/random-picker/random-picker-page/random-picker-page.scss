@@ -73,6 +73,15 @@
   background: var(--color-surface);
 }
 
+.random-picker__controls .random-picker__family-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
 .random-picker__stage {
   display: grid;
   gap: 1rem;

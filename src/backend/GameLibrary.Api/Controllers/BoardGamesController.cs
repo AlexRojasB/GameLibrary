@@ -1,5 +1,6 @@
 using GameLibrary.Api.Auth;
 using GameLibrary.Api.BoardGames;
+using GameLibrary.Api.CoverUploads;
 using GameLibrary.Core.Games;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -52,6 +53,7 @@ public class BoardGamesController : ControllerBase
 
         try
         {
+            CoverUpdateParser.RejectLegacy(request.AdditionalProperties?.Keys.AsEnumerable() ?? []);
             var game = await _boardGames.CreateAsync(userId, ToInput(request), ct);
             return StatusCode(StatusCodes.Status201Created, ToResponse(game));
         }
@@ -77,6 +79,7 @@ public class BoardGamesController : ControllerBase
 
         try
         {
+            CoverUpdateParser.RejectLegacy(request.AdditionalProperties?.Keys.AsEnumerable() ?? []);
             var game = await _boardGames.UpdateAsync(userId, id, ToInput(request), ct);
             return Ok(ToResponse(game));
         }
@@ -115,11 +118,11 @@ public class BoardGamesController : ControllerBase
 
     private static BoardGameInput ToInput(CreateBoardGameRequest r) => new(
         r.Name, r.MinimumPlayers, r.MaximumPlayers, r.ApproximateDuration, r.InteractionType,
-        r.AcquisitionStatus, r.Rating, r.Notes, r.CoverImageUrl);
+        r.AcquisitionStatus, r.Rating, r.Notes, CoverUpdateParser.Parse(r.CoverUpdate, isCreate: true), r.IsFamilyFriendly);
 
     private static BoardGameInput ToInput(UpdateBoardGameRequest r) => new(
         r.Name, r.MinimumPlayers, r.MaximumPlayers, r.ApproximateDuration, r.InteractionType,
-        r.AcquisitionStatus, r.Rating, r.Notes, r.CoverImageUrl);
+        r.AcquisitionStatus, r.Rating, r.Notes, CoverUpdateParser.Parse(r.CoverUpdate, isCreate: false), r.IsFamilyFriendly);
 
     private static BoardGameResponse ToResponse(BoardGameView v) => new(
         v.Id,
@@ -132,5 +135,7 @@ public class BoardGamesController : ControllerBase
         v.AcquisitionStatus.ToString(),
         v.Rating,
         v.Notes,
-        v.CreatedAt);
+        v.CreatedAt,
+        v.IsFamilyFriendly,
+        v.CoverUploadId);
 }

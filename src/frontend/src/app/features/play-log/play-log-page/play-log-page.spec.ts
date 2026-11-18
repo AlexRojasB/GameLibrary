@@ -20,6 +20,7 @@ const olderEntry: PlayLogEntry = {
   gameType: 'VideoGame',
   gameName: 'Hades',
   coverImageUrl: null,
+  coverUploadId: null,
   playedAt: '2026-08-24T18:30:00Z',
   durationMinutes: null,
   createdAt: '2026-08-24T18:30:00Z',
@@ -32,6 +33,7 @@ const newerEntry: PlayLogEntry = {
   gameType: 'BoardGame',
   gameName: 'Cascadia',
   coverImageUrl: 'https://example.com/cascadia.jpg',
+  coverUploadId: null,
   playedAt: '2026-08-25T18:30:00Z',
   durationMinutes: 90,
   createdAt: '2026-08-25T18:30:00Z',
@@ -147,6 +149,7 @@ describe('PlayLogPage', () => {
     expect(body).not.toContain('2026-08-24T18:30:00Z');
     expect(cardByGame(fixture, 'Hades').textContent).not.toContain('Duration:');
   });
+
 
   it('shows error and retries', async () => {
     playLogRequest(httpMock).flush('Server Error', { status: 500, statusText: 'Server Error' });

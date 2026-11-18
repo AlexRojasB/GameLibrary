@@ -98,6 +98,11 @@ Supabase PostgreSQL.
 
 Supabase Auth.
 
+Feature 013 permits a private Supabase Storage bucket for managed game covers only.
+Its approved specification defines the narrow upload/proxy/cleanup boundary and
+conditional image-processing dependencies; this is not approval of general media
+storage or direct browser Storage access.
+
 Backend Boundaries
 
 GameLibrary.Api
@@ -181,6 +186,12 @@ Do not implement direct Angular access to application database tables.
 
 RLS is not part of the MVP application security model.
 
+Storage default-deny/access configuration is separate. For Feature 013, only the
+backend may read/write/delete private cover objects. Managed image bytes are served
+by an authenticated API proxy with a fresh Library/state check on every request,
+including conditional/HEAD handling; do not expose signed links or JWT query tokens.
+Use private,no-store for content and errors, and no persistent/shared image cache.
+
 Database Rules
 
 EF Core migrations are the single source of truth for the application
@@ -201,6 +212,9 @@ Manually create/edit application tables in the Supabase dashboard.
 Add a second Supabase migration workflow for the application schema.
 
 Modify Supabase-managed auth.* schema.
+
+Manage Supabase storage.* tables through EF or direct SQL. Use supported Storage
+APIs for bucket/object operations; application cover metadata remains EF-owned.
 
 Use EF Core InMemory as a substitute for important PostgreSQL
 integration tests.
@@ -348,19 +362,42 @@ specification says otherwise.
 
 Cover Images
 
-Cover images are optional external URLs.
+Cover images are optional. Game.CoverImageUrl stores external manual/search/Steam
+URLs only. Approved Feature 013 adds nullable Game.CoverUploadId and the narrow
+cover_uploads lifecycle table for one private uploaded cover per Game. At most one
+reference may be set. Never store image bytes, Base64, Blob/proxy or signed URLs in
+CoverImageUrl or expose server Storage credentials to the browser.
 
-Do not implement:
+Feature 013 permits device selection/capture, local crop/adjustment, backend-only
+5 MiB uploads, bounded validation/JPEG re-encoding, authenticated API byte delivery,
+and bounded cleanup inside the existing API. Browser HttpClient obtains authorized
+Blobs; revoke local object URLs on source/account changes and destruction. External
+images retain their existing behavior and must not receive application Bearer tokens.
 
-Image uploads.
+Use explicit coverUpdate intent. Omission means keep, never clear. Explicit changes
+require the approved optimistic precondition. User-selected covers beat Steam;
+atomic Steam fill is allowed only when both cover references are null. Retire objects
+with the SQL mutation, delete only after commit, and never delete a referenced
+object or infer ownership from a URL. Preserve immutable namespace/claimed_game_id
+and reconcile unknown COMMIT outcomes before retries; exceptions do not prove rollback.
 
-Object storage.
+SkiaSharp/native Linux assets, libjpeg-turbo 3.2.1 exclusively for JPEG
+prevalidation, and ngx-image-cropper are permitted only within Feature 013, subject
+to its native-runtime and Angular integration gates. JPEG uses bounded structural
+checks, full TurboJPEG STOPONWARNING validation, then existing Skia normalization.
+The approved bounded-normalization policy does not promise exhaustive JPEG
+conformance. Unreported decoder-tolerated coefficient anomalies may be normalized
+only after all existing structural, diagnostic and resource checks pass. This does
+not relax rejection of truncation, malformed headers/tables, animation or limit
+violations. Never suppress warnings, bypass validation, or store original upload
+bytes; only fresh canonical output may reach Storage. No entropy engine/native
+fork is approved. Do not substitute marker checks for the pipeline. Target
+the specified Noble/glibc linux/amd64 .NET 10 image family; do not substitute a
+different codec/platform or claim compatibility without executing the gates.
 
-Image resizing pipelines.
-
-CDN infrastructure.
-
-Use a placeholder when no usable cover URL exists.
+Do not add galleries, HEIC conversion, AI image processing, generic media frameworks,
+on-demand transformation/CDN infrastructure, direct Storage mutations from Angular,
+or offline upload queues. Use a placeholder when no usable cover is available.
 
 Testing Rules
 

@@ -1,7 +1,23 @@
-Product Specification v0.5 --- Game Library
+Product Specification v0.7 --- Game Library
 
 Status: Approved
-Version: 0.5
+Version: 0.7
+
+Feature 013 amendment, 2026-10-28 -- Approved design:
+
+One optional private uploaded cover per VideoGame or BoardGame is approved, with
+device selection/mobile capture, local preview/crop/zoom/reposition, 90-degree
+rotation, replacement and removal. Manual external URLs and explicit Cover Image
+Search remain available in the same selector. Section 15 defines the approved
+privacy, limits, save/recovery and Steam-precedence behavior; section 31 retains
+the exclusions outside this narrow exception.
+
+Approval is of the design, not implementation or release readiness. No code,
+migrations, dependencies, bucket or other resources are created by this amendment.
+Implementation tests, real Storage permission checks, native-runtime codec smoke
+tests, mobile/accessibility review and bundle-budget verification remain future
+gates. The Feature 013 specification and agent instructions must match these
+approved higher-authority decisions before implementation begins.
 
 Manual review amendment, 2026-08-19:
 
@@ -34,13 +50,16 @@ navigation remains Home, Library, Pick and Manage.
 
 Feature 010 amendment, 2026-08-24:
 
-CoverImageUrl remains the persisted cover model. Users may continue to manually
-paste, edit and clear cover image URLs. The product may also offer optional,
-explicitly user-triggered external cover-image search assistance that returns
+Historically, Feature 010 used CoverImageUrl as the persisted cover model; its
+URL-only scope is not a prohibition on the later Feature 013 amendment. Users may
+continue to manually paste, edit and clear cover image URLs. The product may also
+offer optional, explicitly user-triggered external cover-image search assistance that returns
 visual candidates for the user to inspect and select. Selecting a candidate only
 fills the existing CoverImageUrl field; normal game saving remains separate.
+Under Feature 013, that explicit choice is saved using external/remove coverUpdate
+intent, not by inferring intent from the historical URL field alone.
 
-Feature 011 amendment, 2026-08-25:
+Feature 011 amendment, 2026-08-25; updated 2026-08-28:
 
 The product may offer an optional Steam integration for authenticated users. A
 user may link one Steam account, review games returned by Steam for that linked
@@ -50,10 +69,27 @@ replace manual entry. It must not request or store Steam passwords, must not
 grant Game Library authentication, and must not run background synchronization.
 Steam imports must preserve all VideoGame invariants, including Owned
 VideoGames requiring at least one Platform. Imported games use the user's Steam
-Platform, creating it only when needed. Steam playtime returned by Steam is
-external reference data for import review only in this feature; it must not
-create PlayLogEntries, alter Random Picker weighting, or become automatic
-gameplay tracking.
+Platform, creating it only when needed. Steam playtime returned by Steam may be
+persisted on the imported LibraryEntry as the latest known accumulated Steam
+playtime total in minutes. This value is external reference data only: it is not
+Play Log data, must not create PlayLogEntries, must not alter GameStatus,
+ProgressPercentage or Random Picker weighting, and must not become automatic
+gameplay tracking. Steam-provided cover data may populate CoverImageUrl only
+when a reliable supported Steam image source is available and BOTH CoverImageUrl
+and CoverUploadId are null, using an atomic empty-cover check. Neither an external
+URL nor a managed cover may be overwritten by Steam refresh/import behavior.
+Feature 010 cover search remains available as the fallback or replacement path.
+
+Feature 012 amendment, 2026-08-28:
+
+Games may be explicitly classified as Family Friendly. This applies equally to
+VideoGames and BoardGames and is a simple yes/no indication of whether the user
+considers the game appropriate for family play. It is not an age-rating system and
+does not model content warnings, parental controls, minimum age or ratings such as
+ESRB/PEGI. New manually created games and Steam-imported games default to not
+family-friendly unless the user explicitly classifies them otherwise. The Library
+and Random Picker may filter to family-friendly games only without changing
+existing ownership, mode, shown-history or other filter semantics.
 
 1. Product Vision
 
@@ -120,6 +156,9 @@ BoardGame
 
 A video game and a board game with the same name are distinct games.
 
+Every Game has an explicit IsFamilyFriendly classification indicating whether the
+user considers it appropriate for family play.
+
 5. Acquisition Status
 
 Every LibraryEntry has one acquisition status:
@@ -141,7 +180,9 @@ A VideoGame contains game-level information:
 
 Name.
 
-Optional cover image URL.
+Optional cover: external image URL or private uploaded image (section 15).
+
+Family Friendly classification.
 
 Optional minimum number of players.
 
@@ -303,7 +344,9 @@ Optional approximate duration in minutes.
 
 Optional interaction type.
 
-Optional cover image URL.
+Optional cover: external image URL or private uploaded image (section 15).
+
+Family Friendly classification.
 
 Its LibraryEntry contains:
 
@@ -327,8 +370,8 @@ Competitive
 
 InteractionType is optional.
 
-Categories such as Family, Party, Solo and Complexity are outside the
-MVP.
+Categories such as Party, Solo and Complexity are outside the MVP. Family Friendly
+is a separate yes/no classification, not a BoardGame category taxonomy.
 
 Solo eligibility is represented by MinimumPlayers = 1.
 
@@ -356,18 +399,83 @@ Notes apply to the game as a whole and are not platform-specific.
 
 Cover images are optional.
 
-For the MVP, a cover is stored only as an optional image URL.
+Each Game has at most one current cover: an external CoverImageUrl, a managed
+CoverUploadId, or neither. CoverImageUrl remains external-only in the database
+AND API responses; it is null for a managed cover. Existing external URLs remain
+unchanged. Managed covers use private Supabase Storage bucket game-covers, not
+image bytes/Base64 in PostgreSQL or a public image URL.
 
-The user may manually paste, edit or clear that URL. The UI may optionally help
-the user find a cover by making an explicit authenticated search request and
-letting the user select one returned image URL.
+The user may manually paste, edit or explicitly clear an external URL. The unified
+selector keeps the external URL input visible/editable, offers explicit cover
+search, device upload and a mobile rear-camera capture hint with file-selection
+fallback, and supports replacing one source with another. Camera/chooser/editor
+cancellation preserves the prior draft and saved cover. No live camera stream is
+required, and a Game is not silently created merely to stage a cover.
 
 Cover search is assistance only. It must not automatically run while browsing,
 typing or opening forms, and it must not automatically save a game.
 
-There is no image upload or managed image storage in the MVP.
+JPEG, PNG and static WebP may be selected locally. Local editing supports fixed
+2:3 crop, zoom, reposition, reset and 90-degree rotation. BoardGames default to
+Fit whole image with white padding so square artwork is preserved; VideoGames
+default to Crop. Both modes produce 2:3 output without upscaling image content.
+No HEIC conversion, AI editing, remote-image copying, gallery or image history is
+included. Selection/cropping remains local until final Create/Save.
 
-Games without a cover URL use a UI placeholder.
+The API accepts one multipart image of at most 5 MiB, independently validates and
+sanitizes it, strips EXIF/GPS and other metadata, and stores only canonical JPEG
+of at most 2 MiB and 960 x 1440 pixels. Client cropping is not trusted validation.
+Approved JPEG compatibility policy, 2026-10-29: validation is bounded normalization,
+not exhaustive standards conformance. Decoder-tolerated coefficient anomalies
+without diagnostics may be normalized only after the existing structural/resource
+checks pass. Truncation, invalid headers/tables, decoder warnings/errors and other
+rejected categories remain rejected; original uploaded bytes are never the stored cover.
+Durable admission is limited to 250 MiB of objects/reservations per Library and
+ten unclaimed unexpired uploads. Pending deletion remains conservatively charged
+until safe purge. These limits are NOT a global provider/spending cap; enabling
+uploads requires provider quota/egress monitoring and an owner-approved budget.
+
+Private bytes are delivered only by the authenticated ASP.NET Core endpoint
+GET /cover-uploads/{id}/content, with JWT and Library authorization on every
+request. No signed URLs are generated/exposed, no Storage redirects are returned,
+and no tokens are placed in query strings. Angular fetches a Blob using
+HttpClient with Bearer authentication and displays a component-local object URL,
+revoked on logout/account change, source change and component destruction.
+Responses, including errors, use Cache-Control: private, no-store, without
+validators or 304 responses. No CDN delivery, service-worker image cache or
+persistent client cache is permitted. This prevents application cache reuse, not
+recall of bytes already downloaded by an authorized user; logout does not revoke
+an otherwise valid JWT at the identity provider.
+
+Create/Save stages a new upload, then claims it atomically with Game and
+LibraryEntry persistence. Upload alone does not save the cover. Cover changes use
+explicit optional coverUpdate intents: keep, external, upload or remove. Omission
+means keep, never clear; null/malformed intent is rejected with 400. On Create,
+keep leaves no cover. Explicit changes on existing games require an expectedCover
+snapshot of the nullable external URL/upload ID; stale comparison returns 409
+without partial mutation. Metadata-only saves preserve the current cover, even
+if it changed in another tab. Intent must not be inferred from value equality.
+Cover-only changes do not alter unrelated metadata.
+
+Known upload/save failures preserve the saved cover and other form edits where
+possible. A lost response or COMMIT acknowledgement exception is NOT proof of
+rollback: reconcile fresh primary data using the same upload handle, never blind
+Create or delete a possibly committed attachment. A bounded immutable first-claim
+receipt survives cover retirement/Game deletion until safe purge; missing/purged
+evidence requires explicit Library inspection/user resolution, not a claim of
+general exactly-once game creation.
+
+Explicit external/search/upload choices take precedence over Steam. Steam may fill
+only when both current references are null, checked atomically. Remove saves no
+cover and no old fallback or immediate enrichment; a later EXPLICIT Steam
+operation may fill an otherwise empty cover. Replacement/removal/Game deletion
+journals managed retirement in the SQL transaction, with physical deletion only
+after commit and bounded retries in the existing API process. Never delete an
+active referenced cover or an external URL target. Cleanup may be delayed while
+the API/provider is unavailable; no immediate-erasure guarantee is made.
+
+Games without a usable external or managed cover use a UI placeholder. Rendering
+failure does not erase the saved selection or alter Random Picker history.
 
 16. Quick Add --- Video Game
 
@@ -385,6 +493,8 @@ If AcquisitionStatus is Wishlist or Interested, the game can be
 saved without a Platform.
 
 All other metadata, including optional player counts, may be completed later.
+Family Friendly is shown in the Add/Edit flow and defaults to false unless the
+user explicitly marks the game as family-friendly.
 
 17. Quick Add --- Board Game
 
@@ -399,6 +509,8 @@ Maximum players.
 AcquisitionStatus, defaulting to Owned.
 
 All other metadata may be completed later.
+Family Friendly is shown in the Add/Edit flow and defaults to false unless the
+user explicitly marks the game as family-friendly.
 
 18. Library Screen
 
@@ -425,6 +537,8 @@ Game type.
 Acquisition status.
 
 Rating.
+
+Family friendly only.
 
 VideoGame-specific:
 
@@ -461,6 +575,9 @@ until a future approved Library filtering amendment says otherwise.
 
 Missing optional metadata does not satisfy an active filter
 requiring that metadata.
+
+Family friendly only matches games with IsFamilyFriendly = true. When it is not
+active, both family-friendly and non-family-friendly games are included.
 
 Sorting
 
@@ -503,6 +620,8 @@ Optional scalar filters:
 
 Number of players.
 
+Family friendly only.
+
 Multiple values within one filter use OR. Different filter types combine
 using AND.
 
@@ -514,6 +633,7 @@ MinimumPlayers <= P <= MaximumPlayers.
 
 A VideoGame without player-count metadata does not satisfy an active player
 count filter.
+Family friendly only matches VideoGames with IsFamilyFriendly = true.
 
 21. Board Game Random Mode
 
@@ -525,6 +645,8 @@ Available duration.
 
 InteractionType as multi-select.
 
+Family friendly only.
+
 For player count P:
 
 MinimumPlayers <= P <= MaximumPlayers
@@ -535,6 +657,7 @@ ApproximateDuration <= D
 
 Multiple InteractionType values use OR. Different filter types combine
 using AND.
+Family friendly only matches BoardGames with IsFamilyFriendly = true.
 
 22. All Random Mode
 
@@ -543,7 +666,8 @@ pool.
 
 Type-specific filters are not available.
 
-The MVP includes common minimum-Rating and player-count filters in All mode.
+The MVP includes common minimum-Rating, player-count and family-friendly-only
+filters in All mode.
 
 For player count P, both VideoGames and BoardGames match using:
 
@@ -551,6 +675,7 @@ MinimumPlayers <= P <= MaximumPlayers.
 
 Any candidate missing player-count metadata does not satisfy an active player
 count filter.
+Family friendly only matches candidates with IsFamilyFriendly = true.
 
 No weighting by game type is applied.
 
@@ -776,7 +901,11 @@ Notes.
 
 Owned / Wishlist / Interested.
 
-Optional cover image URL.
+Optional external cover image URL or single private uploaded cover.
+
+Local cover selection/capture, crop/Fit, 90-degree rotation and explicit removal.
+
+Family Friendly classification.
 
 Optional cover image search assistance for choosing a CoverImageUrl.
 
@@ -815,10 +944,14 @@ Favorites.
 
 Custom genres.
 
-Image upload or managed image storage.
+Image upload or managed storage beyond the single private game-cover flow in
+section 15: galleries, image history, arbitrary media, public sharing or uploads.
 
-Automatic cover search, cover downloads, image generation, reverse-image search,
-or stored cover-search history.
+Automatic cover search, copying/downloading external search covers into managed
+storage, image generation, reverse-image search, HEIC conversion or stored
+cover-search history. Authenticated delivery of the user's own managed cover is
+permitted by section 15; CDN delivery and persistent/offline private-image caching
+are not.
 
 External platform integrations other than the optional Feature 011 Steam import
 assistance.
@@ -828,9 +961,9 @@ explicit user-selected Steam imports after the user reviews candidates.
 
 Achievements.
 
-Automatic playtime, except that Feature 011 may display Steam-reported playtime
-as external import-review metadata without creating PlayLogEntries or gameplay
-sessions.
+Automatic playtime, except that Feature 011 may persist Steam-reported
+accumulated playtime as external reference data on Steam-imported LibraryEntries
+without creating PlayLogEntries or gameplay sessions.
 
 Automatic gameplay session tracking.
 

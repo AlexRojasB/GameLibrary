@@ -12,6 +12,7 @@ public sealed record LibraryQueryRequest(
     int? PlayerCount,
     IReadOnlyList<string>? InteractionTypes,
     IReadOnlyList<string>? GameStatuses,
+    string? FamilyFriendlyOnly,
     string? Sort);
 
 public enum LibrarySort
@@ -33,6 +34,7 @@ public sealed record LibraryQuery(
     int? PlayerCount,
     IReadOnlyList<InteractionType> InteractionTypes,
     IReadOnlyList<GameStatus> GameStatuses,
+    bool FamilyFriendlyOnly,
     LibrarySort Sort);
 
 public sealed record LibraryItemView(
@@ -51,4 +53,6 @@ public sealed record LibraryItemView(
     int? MinimumPlayers,
     int? MaximumPlayers,
     int? ApproximateDuration,
-    InteractionType? InteractionType);
+    InteractionType? InteractionType,
+    bool IsFamilyFriendly,
+    Guid? CoverUploadId);

@@ -69,8 +69,16 @@
   &-preview {
     margin-bottom: 1rem;
 
-    h2 {
-      margin: 0 0 0.75rem;
+    &__header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.75rem;
+
+      h2 {
+        margin: 0;
+      }
     }
   }
 
@@ -179,6 +187,15 @@
 
     &:hover:not(:disabled) {
       filter: brightness(1.08);
+    }
+  }
+
+  &--secondary {
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    color: var(--color-accent-strong);
+
+    &:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--color-accent) 18%, transparent);
     }
   }
 

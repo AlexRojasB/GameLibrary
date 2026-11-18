@@ -138,7 +138,12 @@ public class SteamIntegrationService
     {
         var account = await LoadAccountAsync(userId, ct);
         var rawGames = await _steam.GetOwnedGamesAsync(new SteamOwnedGamesQuery(account.SteamId64, null), ct);
-        var alreadyImported = await ImportedAppIdsAsync(account.LibraryId, rawGames.Select(g => g.SteamAppId).ToList(), ct);
+        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+        await _db.Database.ExecuteSqlInterpolatedAsync($"SELECT id FROM libraries WHERE id = {account.LibraryId} FOR UPDATE", ct);
+        var appIds = rawGames.Select(g => g.SteamAppId).Distinct().ToList();
+        var alreadyImported = await RefreshExistingSteamEntriesAsync(account.LibraryId, appIds, rawGames, ct);
+        await _db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
         var candidates = SteamIntegrationRules.NormalizeCandidates(rawGames, alreadyImported);
         return candidates.Count == 0
             ? new SteamLibraryPreview("NoVisibleGames", [], "Steam returned no visible games. Your Steam game details may be private, or this account may have no visible owned or played games.")
@@ -164,7 +169,9 @@ public class SteamIntegrationService
         await using var transaction = await _db.Database.BeginTransactionAsync(ct);
         await _db.Database.ExecuteSqlInterpolatedAsync($"SELECT id FROM libraries WHERE id = {account.LibraryId} FOR UPDATE", ct);
 
-        var alreadyImported = await ImportedAppIdsAsync(account.LibraryId, selected, ct);
+        var alreadyImported = await RefreshExistingSteamEntriesAsync(account.LibraryId, selected, rawGames, ct);
+        invalid.RemoveAll(alreadyImported.Contains);
+        unavailable.RemoveAll(alreadyImported.Contains);
         var newCandidates = selected
             .Where(appId => !alreadyImported.Contains(appId) && !unavailable.Contains(appId) && !invalid.Contains(appId))
             .Select(appId => normalizedByAppId[appId])
@@ -189,12 +196,17 @@ public class SteamIntegrationService
         var imported = new List<SteamImportedGame>();
         foreach (var candidate in newCandidates)
         {
+            var rawGame = rawGames.First(g => g.SteamAppId == candidate.SteamAppId);
+            var coverUrl = BuildSteamCoverUrl(candidate.SteamAppId, rawGame.ImgLogoUrl);
+            var playtime = rawGame.PlaytimeForeverMinutes;
+
             var game = new Game
             {
                 Id = Guid.NewGuid(),
                 GameType = GameType.VideoGame,
                 Name = candidate.Name,
-                CoverImageUrl = null,
+                CoverImageUrl = coverUrl,
+                IsFamilyFriendly = false,
                 MinimumPlayers = null,
                 MaximumPlayers = null,
                 CreatedAt = now,
@@ -206,6 +218,7 @@ public class SteamIntegrationService
                 GameId = game.Id,
                 AcquisitionStatus = AcquisitionStatus.Owned,
                 SteamAppId = candidate.SteamAppId,
+                SteamPlaytimeMinutes = playtime,
             };
 
             game.LibraryEntry = entry;
@@ -236,17 +249,63 @@ public class SteamIntegrationService
         return account ?? throw new SteamAccountNotLinkedException();
     }
 
-    private async Task<IReadOnlySet<uint>> ImportedAppIdsAsync(Guid libraryId, IReadOnlyList<uint> appIds, CancellationToken ct)
+    private async Task<IReadOnlySet<uint>> RefreshExistingSteamEntriesAsync(
+        Guid libraryId, IReadOnlyList<uint> requestedAppIds, IReadOnlyList<SteamOwnedGame> rawGames, CancellationToken ct)
     {
-        var selected = appIds.Select(id => (long)id).ToList();
-        var imported = await _db.LibraryEntries
-            .Where(le => le.LibraryId == libraryId && le.SteamAppId != null && selected.Contains(le.SteamAppId.Value))
-            .Select(le => le.SteamAppId!.Value)
+        var rawByAppId = rawGames
+            .Where(g => g.SteamAppId >= 1)
+            .GroupBy(g => g.SteamAppId)
+            .ToDictionary(g => g.Key, g => g.First());
+        if (requestedAppIds.Count == 0)
+        {
+            return new HashSet<uint>();
+        }
+
+        var appIds = requestedAppIds.Select(id => (long)id).ToList();
+        var entries = await _db.LibraryEntries
+            .Include(le => le.Game)
+            .Where(le => le.LibraryId == libraryId && le.SteamAppId != null && appIds.Contains(le.SteamAppId.Value))
             .ToListAsync(ct);
 
-        return imported.Select(id => (uint)id).ToHashSet();
+        foreach (var entry in entries)
+        {
+            if (!rawByAppId.TryGetValue((uint)entry.SteamAppId!.Value, out var rawGame))
+            {
+                continue;
+            }
+
+            RefreshPlaytime(entry, rawGame.PlaytimeForeverMinutes);
+
+            var coverUrl = BuildSteamCoverUrl(rawGame.SteamAppId, rawGame.ImgLogoUrl);
+            if (coverUrl is not null)
+            {
+                await _db.Games.Where(g => g.Id == entry.GameId && g.LibraryEntry.LibraryId == libraryId
+                    && g.CoverImageUrl == null && g.CoverUploadId == null)
+                    .ExecuteUpdateAsync(setters => setters.SetProperty(g => g.CoverImageUrl, coverUrl), ct);
+            }
+        }
+
+        return entries.Select(e => (uint)e.SteamAppId!.Value).ToHashSet();
+    }
+
+    internal static long RefreshPlaytime(LibraryEntry entry, int? current)
+    {
+        var delta = SteamIntegrationRules.CalculatePlaytimeDelta(current, entry.SteamPlaytimeMinutes);
+        entry.SteamPlaytimeMinutes = current ?? entry.SteamPlaytimeMinutes;
+        // This per-refresh delta is transient, not pending or automatically logged playtime.
+        return delta;
     }
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>
         ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
+
+    private static string? BuildSteamCoverUrl(uint steamAppId, string? imgLogoUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imgLogoUrl))
+        {
+            return null;
+        }
+
+        return $"https://cdn.akamai.steamstatic.com/steam/apps/{steamAppId}/{imgLogoUrl}.jpg";
+    }
 }

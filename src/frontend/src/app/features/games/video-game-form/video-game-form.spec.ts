@@ -1,15 +1,20 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { provideRouter } from '@angular/router';
+import { By } from '@angular/platform-browser';
 
 import { Platform } from '../../platforms/platform';
+import { AuthService } from '../../../core/auth/auth.service';
+import { createTestSession } from '../../../core/auth/testing/supabase-client.mock';
 
 import { Genre } from '../genres';
 import { VideoGame, VideoGameInput } from '../video-game';
 
 import { VideoGameForm } from './video-game-form';
+import { CoverImageSearch } from '../cover-image-search/cover-image-search';
 
 const steam: Platform = { id: 'p1', name: 'Steam' };
 const xbox: Platform = { id: 'p2', name: 'Xbox' };
@@ -19,6 +24,8 @@ const ownedGame: VideoGame = {
   id: '1',
   name: 'Hades',
   coverImageUrl: null,
+  coverUploadId: null,
+  isFamilyFriendly: false,
   acquisitionStatus: 'Owned',
   platformIds: ['p1'],
   genreIds: ['g1'],
@@ -38,13 +45,15 @@ describe('VideoGameForm', () => {
   function configure(game: VideoGame | null = null): void {
     TestBed.configureTestingModule({
       imports: [VideoGameForm],
-      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting(),
+        { provide: AuthService, useValue: { session: signal(createTestSession()), clearLocalSession: vi.fn() } }],
     });
     fixture = TestBed.createComponent(VideoGameForm);
     fixture.componentRef.setInput('game', game);
     fixture.componentRef.setInput('submitLabel', 'Save');
     fixture.detectChanges();
     httpMock = TestBed.inject(HttpTestingController);
+    httpMock.expectOne((request) => request.url.endsWith('/cover-uploads/options')).flush({ enabled: false });
   }
 
   function flushOptions(platforms: Platform[] = [], genres: Genre[] = [action]): void {
@@ -108,6 +117,11 @@ describe('VideoGameForm', () => {
 
     const platformCheckbox = (fixture.nativeElement as HTMLElement).querySelector('.game-form__platform') as HTMLInputElement;
     expect(platformCheckbox.checked).toBe(true);
+    const familyFriendly = (fixture.nativeElement as HTMLElement).querySelector('#game-form-family-friendly') as HTMLInputElement;
+    expect(familyFriendly.checked).toBe(false);
+    expect(familyFriendly.labels?.[0].textContent?.trim()).toBe('Family friendly');
+    expect((fixture.nativeElement as HTMLElement).querySelector(`#${familyFriendly.getAttribute('aria-describedby')}`)?.textContent)
+      .toContain('appropriate for family play');
 
     const emitted = collectSubmitted();
     setName('  Hades  ');
@@ -116,7 +130,8 @@ describe('VideoGameForm', () => {
     expect(emitted).toEqual([
       {
         name: 'Hades',
-        coverImageUrl: null,
+        coverUpdate: { intent: 'keep' },
+        isFamilyFriendly: false,
         acquisitionStatus: 'Owned',
         platformIds: ['p1'],
         genreIds: [],
@@ -138,6 +153,7 @@ describe('VideoGameForm', () => {
     const orderedIds = [
       'game-form-name',
       'game-form-cover',
+      'game-form-family-friendly',
       'game-form-acquisition',
       'game-form-status',
       'game-form-minimum-players',
@@ -145,7 +161,7 @@ describe('VideoGameForm', () => {
       'game-form-notes',
     ];
     const positions = orderedIds.map((id) => {
-      const element = root.querySelector(`#${id}`);
+      const element = id === 'game-form-cover' ? root.querySelector('app-cover-image-search input[type="url"]') : root.querySelector(`#${id}`);
       if (element === null) {
         throw new Error(`Missing #${id}`);
       }
@@ -159,7 +175,7 @@ describe('VideoGameForm', () => {
     configure();
     flushOptions([steam], [action]);
 
-    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.game-form__check-card').length).toBe(2);
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.game-form__checks .game-form__check-card').length).toBe(2);
   });
 
   it('renders cover search in add mode without searching automatically', () => {
@@ -223,7 +239,8 @@ describe('VideoGameForm', () => {
     expect(emitted).toEqual([
       {
         name: 'Stardew Valley',
-        coverImageUrl: null,
+        coverUpdate: { intent: 'keep' },
+        isFamilyFriendly: false,
         acquisitionStatus: 'Wishlist',
         platformIds: [],
         genreIds: [],
@@ -290,6 +307,35 @@ describe('VideoGameForm', () => {
     expect(emitted[0].notes).toBe('Roguelike');
     expect(emitted[0].minimumPlayers).toBe(1);
     expect(emitted[0].maximumPlayers).toBe(2);
+  });
+
+  it('submits true when Family friendly is selected on Add', () => {
+    configure();
+    flushOptions([steam], [action]);
+    const emitted = collectSubmitted();
+    setName('Family game');
+    const checkbox = (fixture.nativeElement as HTMLElement).querySelector('#game-form-family-friendly') as HTMLInputElement;
+    checkbox.click();
+    fixture.detectChanges();
+    submit();
+
+    expect(emitted[0].isFamilyFriendly).toBe(true);
+  });
+
+  it.each([false, true])('initializes Family friendly to %s on Edit and saves its opposite', (value) => {
+    configure({ ...ownedGame, isFamilyFriendly: value });
+    flushOptions([steam], [action]);
+    const emitted = collectSubmitted();
+    const checkbox = (fixture.nativeElement as HTMLElement).querySelector('#game-form-family-friendly') as HTMLInputElement;
+    expect(checkbox.checked).toBe(value);
+    submit();
+    expect(emitted[0].isFamilyFriendly).toBe(value);
+
+    checkbox.click();
+    fixture.detectChanges();
+    submit();
+
+    expect(emitted[1]).toEqual({ ...emitted[0], isFamilyFriendly: !value });
   });
 
   it('submits optional player counts when both are provided', () => {
@@ -404,7 +450,7 @@ describe('VideoGameForm', () => {
     notesInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    const coverInput = (fixture.nativeElement as HTMLElement).querySelector('#game-form-cover') as HTMLInputElement;
+    const coverInput = (fixture.nativeElement as HTMLElement).querySelector('app-cover-image-search input[type="url"]') as HTMLInputElement;
     coverInput.value = '  https://example.com/img.png  ';
     coverInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
@@ -413,7 +459,7 @@ describe('VideoGameForm', () => {
     submit();
 
     expect(emitted[0].notes).toBe('fun');
-    expect(emitted[0].coverImageUrl).toBe('https://example.com/img.png');
+    expect(emitted[0].coverUpdate).toEqual({ intent: 'external', url: 'https://example.com/img.png' });
   });
 
   it('accepts a cover URL whose raw length exceeds 2048 but trimmed value is within limit', () => {
@@ -422,7 +468,7 @@ describe('VideoGameForm', () => {
     const emitted = collectSubmitted();
 
     const base = 'https://example.com/' + 'a'.repeat(2048 - 'https://example.com/'.length);
-    const coverInput = (fixture.nativeElement as HTMLElement).querySelector('#game-form-cover') as HTMLInputElement;
+    const coverInput = (fixture.nativeElement as HTMLElement).querySelector('app-cover-image-search input[type="url"]') as HTMLInputElement;
     coverInput.value = ` ${base} `;
     coverInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
@@ -431,7 +477,7 @@ describe('VideoGameForm', () => {
     submit();
 
     expect(emitted.length).toBe(1);
-    expect(emitted[0].coverImageUrl).toBe(base);
+    expect(emitted[0].coverUpdate).toEqual({ intent: 'external', url: base });
   });
 
   it('rejects a cover URL that is not http(s)', () => {
@@ -439,7 +485,7 @@ describe('VideoGameForm', () => {
     flushOptions([steam], [action]);
     const emitted = collectSubmitted();
 
-    const coverInput = (fixture.nativeElement as HTMLElement).querySelector('#game-form-cover') as HTMLInputElement;
+    const coverInput = (fixture.nativeElement as HTMLElement).querySelector('app-cover-image-search input[type="url"]') as HTMLInputElement;
     coverInput.value = 'not-a-url';
     coverInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
@@ -494,5 +540,52 @@ describe('VideoGameForm', () => {
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Rating must be between 1 and 5.');
     expect(emitted).toEqual([]);
+  });
+
+  it('keeps a saved managed cover on metadata-only submit, and explicitly removes it with the full snapshot', () => {
+    configure({ ...ownedGame, coverUploadId: 'managed' });
+    flushOptions([steam]);
+    const emitted = collectSubmitted();
+    setName('Other edits');
+    submit();
+    expect(emitted[0].coverUpdate).toEqual({ intent: 'keep' });
+    expect(emitted[0]).not.toHaveProperty('coverImageUrl');
+    const selector = fixture.debugElement.query(By.directive(CoverImageSearch)).componentInstance as CoverImageSearch;
+    expect(selector.savedCover()?.coverUploadId).toBe('managed');
+    selector.draftChanged.emit({ intent: 'remove' });
+    submit();
+    expect(emitted[1].coverUpdate).toEqual({ intent: 'remove', expectedCover: { coverImageUrl: null, coverUploadId: 'managed' } });
+  });
+
+  it('a refreshed cover snapshot does not reinitialize metadata or infer keep from equal external values', () => {
+    configure({ ...ownedGame, coverImageUrl: 'https://example.test/a.jpg' });
+    flushOptions([steam]);
+    const emitted = collectSubmitted();
+    setName('Unsaved edits');
+    fixture.componentInstance.draft.set({ intent: 'external', url: 'https://example.test/a.jpg' });
+    fixture.componentRef.setInput('savedCover', { coverImageUrl: null, coverUploadId: 'newer' });
+    fixture.detectChanges();
+    submit();
+    expect(emitted[0].name).toBe('Unsaved edits');
+    expect(emitted[0].coverUpdate).toEqual({
+      intent: 'external', url: 'https://example.test/a.jpg', expectedCover: { coverImageUrl: null, coverUploadId: 'newer' },
+    });
+  });
+
+  it('blocks submit while the selector is preparing/editor-open or the parent is saving', () => {
+    configure(ownedGame);
+    flushOptions([steam]);
+    const emitted = collectSubmitted();
+    const selector = fixture.debugElement.query(By.directive(CoverImageSearch)).componentInstance as CoverImageSearch;
+    selector.busyChanged.emit(true);
+    fixture.componentInstance.submit();
+    expect(emitted).toEqual([]);
+    selector.busyChanged.emit(false);
+    fixture.componentRef.setInput('disabled', true);
+    fixture.componentInstance.submit();
+    expect(emitted).toEqual([]);
+    fixture.componentRef.setInput('disabled', false);
+    fixture.componentInstance.submit();
+    expect(emitted).toHaveLength(1);
   });
 });

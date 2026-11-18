@@ -25,7 +25,8 @@ public sealed record RandomPickerRequest(
     int? PlayerCount,
     int? AvailableDuration,
     IReadOnlyList<string>? InteractionTypes,
-    int? RatingMin);
+    int? RatingMin,
+    bool? FamilyFriendlyOnly = null);
 
 public sealed record RandomPickerQuery(
     RandomPickerMode Mode,
@@ -36,7 +37,8 @@ public sealed record RandomPickerQuery(
     int? PlayerCount,
     int? AvailableDuration,
     IReadOnlyList<InteractionType> InteractionTypes,
-    int? RatingMin);
+    int? RatingMin,
+    bool FamilyFriendlyOnly);
 
 public sealed record RandomPickerResult(
     RandomPickerState State,
@@ -57,4 +59,6 @@ public sealed record RandomPickerItemView(
     int? MinimumPlayers,
     int? MaximumPlayers,
     int? ApproximateDuration,
-    InteractionType? InteractionType);
+    InteractionType? InteractionType,
+    bool IsFamilyFriendly,
+    Guid? CoverUploadId);

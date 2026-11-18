@@ -17,6 +17,7 @@ const emptyFilters: LibraryFilterState = {
   playerCount: null,
   interactionTypes: [],
   gameStatuses: [],
+  familyFriendlyOnly: false,
 };
 
 const item: LibraryItem = {
@@ -24,6 +25,8 @@ const item: LibraryItem = {
   gameType: 'VideoGame',
   name: 'Hades',
   coverImageUrl: null,
+  coverUploadId: null,
+  isFamilyFriendly: true,
   createdAt: '2026-08-17T00:00:00Z',
   acquisitionStatus: 'Owned',
   rating: 5,
@@ -80,6 +83,7 @@ describe('LibraryService', () => {
           playerCount: 2,
           interactionTypes: ['Cooperative'],
           gameStatuses: ['Playing', 'Completed'],
+          familyFriendlyOnly: true,
         },
         'RatingDesc',
       )
@@ -91,6 +95,7 @@ describe('LibraryService', () => {
     expect(req.request.params.get('ratingMin')).toBe('4');
     expect(req.request.params.get('playerCount')).toBe('2');
     expect(req.request.params.get('sort')).toBe('RatingDesc');
+    expect(req.request.params.get('familyFriendlyOnly')).toBe('true');
     expect(req.request.params.getAll('acquisitionStatuses')).toEqual(['Owned', 'Wishlist']);
     expect(req.request.params.getAll('platformIds')).toEqual(['p1', 'p2']);
     expect(req.request.params.getAll('genreIds')).toEqual(['g1']);

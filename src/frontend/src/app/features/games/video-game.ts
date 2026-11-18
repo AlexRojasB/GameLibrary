@@ -1,4 +1,5 @@
 import type { AcquisitionStatus } from './acquisition-status';
+import type { CoverUpdate } from './covers/cover-types';
 
 export type { AcquisitionStatus };
 
@@ -8,6 +9,8 @@ export interface VideoGame {
   id: string;
   name: string;
   coverImageUrl: string | null;
+  coverUploadId: string | null;
+  isFamilyFriendly: boolean;
   acquisitionStatus: AcquisitionStatus;
   platformIds: string[];
   genreIds: string[];
@@ -22,7 +25,8 @@ export interface VideoGame {
 
 export interface VideoGameInput {
   name: string;
-  coverImageUrl: string | null;
+  coverUpdate?: CoverUpdate;
+  isFamilyFriendly: boolean;
   acquisitionStatus: AcquisitionStatus;
   platformIds: string[];
   genreIds: string[];

@@ -151,4 +151,16 @@ public static class SteamIntegrationRules
             .TrimEnd('=')
             .Replace('+', '-')
             .Replace('/', '_');
+
+    public static long CalculatePlaytimeDelta(long? newPlaytimeMinutes, long? storedPlaytimeMinutes)
+    {
+        if (newPlaytimeMinutes is null || storedPlaytimeMinutes is null)
+        {
+            return 0;
+        }
+
+        return newPlaytimeMinutes > storedPlaytimeMinutes
+            ? newPlaytimeMinutes.Value - storedPlaytimeMinutes.Value
+            : 0;
+    }
 }

@@ -74,7 +74,8 @@ public static class RandomPickerRules
             ValidatePlayerCount(request.PlayerCount),
             ValidateAvailableDuration(request.AvailableDuration),
             ParseInteractionTypes(request.InteractionTypes),
-            ValidateRatingMin(request.RatingMin));
+            ValidateRatingMin(request.RatingMin),
+            request.FamilyFriendlyOnly == true);
 
         ValidateModeFilterCompatibility(query);
         return query;

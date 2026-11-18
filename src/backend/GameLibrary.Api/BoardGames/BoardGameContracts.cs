@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace GameLibrary.Api.BoardGames;
 
 /// <summary>
@@ -7,7 +10,8 @@ namespace GameLibrary.Api.BoardGames;
 /// Fields are nullable at the HTTP boundary because missing/null values are client
 /// validation errors handled by the Core service. BoardGames never use Platforms,
 /// Genres, GameStatus, or ProgressPercentage, so those fields are intentionally
-/// absent; extra properties in a request body are ignored by model binding.
+/// absent; unrelated extra properties are ignored, but legacy cover writes are rejected.
+/// CoverUpdate uses Undefined for omission; explicit JSON null is rejected.
 /// </summary>
 public sealed record CreateBoardGameRequest(
     string? Name,
@@ -18,7 +22,12 @@ public sealed record CreateBoardGameRequest(
     string? AcquisitionStatus,
     int? Rating,
     string? Notes,
-    string? CoverImageUrl);
+    JsonElement CoverUpdate,
+    bool? IsFamilyFriendly)
+{
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
 
 public sealed record UpdateBoardGameRequest(
     string? Name,
@@ -29,7 +38,12 @@ public sealed record UpdateBoardGameRequest(
     string? AcquisitionStatus,
     int? Rating,
     string? Notes,
-    string? CoverImageUrl);
+    JsonElement CoverUpdate,
+    bool? IsFamilyFriendly)
+{
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalProperties { get; init; }
+}
 
 public sealed record BoardGameResponse(
     Guid Id,
@@ -42,4 +56,6 @@ public sealed record BoardGameResponse(
     string AcquisitionStatus,
     int? Rating,
     string? Notes,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    bool IsFamilyFriendly,
+    Guid? CoverUploadId);

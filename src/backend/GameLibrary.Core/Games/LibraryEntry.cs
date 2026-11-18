@@ -39,6 +39,8 @@ public class LibraryEntry
 
     public long? SteamAppId { get; set; }
 
+    public long? SteamPlaytimeMinutes { get; set; }
+
     public Library Library { get; set; } = null!;
 
     public Game Game { get; set; } = null!;

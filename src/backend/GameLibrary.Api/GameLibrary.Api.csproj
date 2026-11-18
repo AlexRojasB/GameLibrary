@@ -5,10 +5,14 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>cc20e15e-ecab-401e-8c43-4c737cf441cd</UserSecretsId>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
+    <PackageReference Include="SkiaSharp" Version="[4.154.0]" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="[4.154.0]" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -18,5 +22,20 @@
   <ItemGroup>
     <ProjectReference Include="..\GameLibrary.Core\GameLibrary.Core.csproj" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <CoverNativeRid Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</CoverNativeRid>
+    <CoverNativeRid Condition="'$(CoverNativeRid)' == ''">$(NETCoreSdkRuntimeIdentifier)</CoverNativeRid>
+    <CoverNativeName Condition="'$(CoverNativeRid)' == 'linux-x64'">libgamelibrary-turbojpeg.so</CoverNativeName>
+    <CoverNativeName Condition="'$(CoverNativeRid)' == 'osx-x64' Or '$(CoverNativeRid)' == 'osx-arm64'">libgamelibrary-turbojpeg.dylib</CoverNativeName>
+    <CoverNativeAsset>$(MSBuildThisFileDirectory)obj/cover-native/3.2.1/$(CoverNativeRid)/$(CoverNativeName)</CoverNativeAsset>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(CoverNativeName)' != ''">
+    <Content Include="$(CoverNativeAsset)" Link="$(CoverNativeName)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../../tools/cover-native/THIRD-PARTY-NOTICES.txt" Link="cover-native-notices.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="VerifyCoverNativeAsset" BeforeTargets="PrepareForBuild" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Error Condition="'$(CoverNativeName)' == '' Or !Exists('$(CoverNativeAsset)')" Text="Prepare the pinned JPEG validator first: bash tools/cover-native/prepare.sh $(CoverNativeRid). Production target is linux-x64." />
+  </Target>
 
 </Project>

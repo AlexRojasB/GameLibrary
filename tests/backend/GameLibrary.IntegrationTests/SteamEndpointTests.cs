@@ -34,6 +34,8 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         _factory.FakeSteam.Reset();
         await using var db = CreateDbContext();
         await db.Database.MigrateAsync();
+        await db.SteamAccounts.ExecuteDeleteAsync();
+        await db.SteamLinkRequests.ExecuteDeleteAsync();
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -113,7 +115,6 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         var startUrl = body.GetProperty("startUrl").GetString();
         Assert.NotNull(startUrl);
         Assert.Contains("/steam/link/start/", startUrl!);
-        Assert.Contains("state=", startUrl);
         Assert.True(body.GetProperty("expiresAt").GetDateTimeOffset() > DateTimeOffset.UtcNow);
     }
 
@@ -158,7 +159,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
     [Fact]
     public async Task LinkStart_with_unknown_state_redirects_to_failure()
     {
-        var client = _factory.CreateClient();
+        var client = RedirectClient();
 
         var response = await client.GetAsync("/steam/link/start/unknown-state");
 
@@ -180,12 +181,13 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         var callbackParams = BuildCallbackParams(rawState);
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = _factory.CreateClient();
+        var client = RedirectClient();
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         var location = response.Headers.Location?.ToString() ?? "";
-        Assert.Contains("/manage/steam?steamLink=success", location);
+        Assert.Contains("/manage/steam", location);
+        Assert.Contains("steamLink=success", location);
 
         await using var db = CreateDbContext();
         var library = await db.Libraries.SingleAsync(l => l.UserId == sub);
@@ -205,7 +207,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         var callbackParams = BuildCallbackParams(rawState);
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = _factory.CreateClient();
+        var client = RedirectClient();
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -226,7 +228,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         var callbackParams = BuildCallbackParams(rawState);
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = _factory.CreateClient();
+        var client = RedirectClient();
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -237,7 +239,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
     [Fact]
     public async Task LinkCallback_rejects_missing_state()
     {
-        var client = _factory.CreateClient();
+        var client = RedirectClient();
 
         var response = await client.GetAsync("/steam/link/callback", HttpCompletionOption.ResponseHeadersRead);
 
@@ -257,7 +259,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         callbackParams["openid.identity"] = callbackParams["openid.claimed_id"];
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = _factory.CreateClient();
+        var client = RedirectClient();
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -278,7 +280,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         callbackParams["openid.mode"] = "checkid_setup";
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = _factory.CreateClient();
+        var client = RedirectClient();
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -296,7 +298,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         callbackParams["openid.op_endpoint"] = "https://evil.example/openid";
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = _factory.CreateClient();
+        var client = RedirectClient();
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -314,7 +316,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         callbackParams["openid.return_to"] = _factory.PublicApiBaseUrl + "/steam/link/callback?state=wrong";
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = _factory.CreateClient();
+        var client = RedirectClient();
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -332,7 +334,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         callbackParams["openid.realm"] = "https://evil.example.test/";
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = _factory.CreateClient();
+        var client = RedirectClient();
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -350,7 +352,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         callbackParams["openid.identity"] = "https://steamcommunity.com/openid/id/76561198000000001";
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = _factory.CreateClient();
+        var client = RedirectClient();
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -368,7 +370,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         var callbackParams = BuildCallbackParams(rawState);
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = _factory.CreateClient();
+        var client = RedirectClient();
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -387,8 +389,8 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         var callbackParams = BuildCallbackParams(rawState);
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client1 = _factory.CreateClient();
-        var client2 = _factory.CreateClient();
+        var client1 = RedirectClient();
+        var client2 = RedirectClient();
         var response1 = await client1.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
         var response2 = await client2.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
@@ -520,9 +522,9 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         var sub = NewSub();
         await LinkSteamAccount(sub);
         _factory.FakeSteam.SetOwnedGames([
-            new SteamOwnedGame(570, " Dota 2 ", 123),
-            new SteamOwnedGame(0, "Invalid", 1),
-            new SteamOwnedGame(730, "Counter-Strike 2", null),
+            new SteamOwnedGame(570, " Dota 2 ", 123, null, null),
+            new SteamOwnedGame(0, "Invalid", 1, null, null),
+            new SteamOwnedGame(730, "Counter-Strike 2", null, null, null),
         ]);
         var client = ClientFor(sub);
 
@@ -563,7 +565,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         var sub = NewSub();
         await LinkSteamAccount(sub);
         await ImportGames(sub, [570]);
-        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 123), new SteamOwnedGame(730, "CS2", null)]);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 123, null, null), new SteamOwnedGame(730, "CS2", null, null, null)]);
         var client = ClientFor(sub);
 
         var response = await client.PostAsync("/steam/library/preview", null);
@@ -657,8 +659,8 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         var sub = NewSub();
         await LinkSteamAccount(sub);
         _factory.FakeSteam.SetOwnedGames([
-            new SteamOwnedGame(570, "Dota 2", 123),
-            new SteamOwnedGame(730, "Counter-Strike 2", 456),
+            new SteamOwnedGame(570, "Dota 2", 123, null, null),
+            new SteamOwnedGame(730, "Counter-Strike 2", 456, null, null),
         ]);
         var client = ClientFor(sub);
 
@@ -685,6 +687,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
             Assert.Equal(AcquisitionStatus.Owned, entry.AcquisitionStatus);
             Assert.NotNull(entry.SteamAppId);
             Assert.Equal(GameType.VideoGame, entry.Game.GameType);
+            Assert.False(entry.Game.IsFamilyFriendly);
             Assert.Null(entry.Game.CoverImageUrl);
             Assert.Null(entry.GameStatus);
             Assert.Null(entry.ProgressPercentage);
@@ -703,7 +706,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         var sub = NewSub();
         await LinkSteamAccount(sub);
         await ImportGames(sub, [570]);
-        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", null), new SteamOwnedGame(730, "CS2", null)]);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", null, null, null), new SteamOwnedGame(730, "CS2", null, null, null)]);
         var client = ClientFor(sub);
 
         var response = await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570, 730 } });
@@ -720,7 +723,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
     {
         var sub = NewSub();
         await LinkSteamAccount(sub);
-        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", null)]);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", null, null, null)]);
         var client = ClientFor(sub);
 
         var response = await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570, 999 } });
@@ -735,13 +738,13 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
     {
         var sub = NewSub();
         await LinkSteamAccount(sub);
-        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 123)]);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 123, null, null)]);
         var client = ClientFor(sub);
 
         await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
 
         await using var db = CreateDbContext();
-        Assert.Equal(0, await db.PlayLogEntries.CountAsync());
+        Assert.Equal(0, await CountPlayLogEntriesAsync(db, sub));
     }
 
     [Fact]
@@ -762,7 +765,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
             await db.SaveChangesAsync();
         }
 
-        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", null)]);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", null, null, null)]);
         var client = ClientFor(sub);
 
         var response = await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
@@ -781,7 +784,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
     {
         var sub = NewSub();
         await LinkSteamAccount(sub);
-        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", null)]);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", null, null, null)]);
         var client = ClientFor(sub);
 
         var response = await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
@@ -792,6 +795,465 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         Assert.Equal(570, imported.GetProperty("steamAppId").GetInt64());
         Assert.Equal("Dota 2", imported.GetProperty("name").GetString());
         Assert.False(imported.GetProperty("videoGameId").GetGuid() == Guid.Empty);
+    }
+
+    #endregion
+
+    #region Steam Playtime & Cover Enhancements
+
+    [Fact]
+    public async Task Preview_and_import_wait_for_the_same_library_refresh_lock()
+    {
+        var sub = NewSub();
+        await LinkSteamAccount(sub);
+        await ImportGames(sub, [570]);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Game 570", 150, null, null)]);
+
+        await using var guard = CreateDbContext();
+        var library = await guard.Libraries.SingleAsync(l => l.UserId == sub);
+        await using var transaction = await guard.Database.BeginTransactionAsync();
+        await guard.Database.ExecuteSqlInterpolatedAsync($"SELECT id FROM libraries WHERE id = {library.Id} FOR UPDATE");
+        var blocker = await guard.Database.SqlQuery<int>($"SELECT pg_backend_pid() AS \"Value\"").SingleAsync();
+        var preview = ClientFor(sub).PostAsync("/steam/library/preview", null);
+        var import = ClientFor(sub).PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+
+        await using var observer = CreateDbContext();
+        var waiting = 0;
+        var deadline = DateTime.UtcNow.AddSeconds(15);
+        while (waiting < 2 && DateTime.UtcNow < deadline)
+        {
+            // The second queued row lock can wait on the first waiter, not directly on the guard.
+            waiting = await observer.Database.SqlQuery<int>($"""
+                SELECT COUNT(*)::int AS "Value" FROM pg_stat_activity
+                WHERE datname = current_database() AND EXISTS (
+                    SELECT 1 FROM unnest(pg_blocking_pids(pid)) AS blockers(blocking_pid)
+                    WHERE blocking_pid = {blocker} OR {blocker} = ANY(pg_blocking_pids(blocking_pid)))
+                """).SingleAsync();
+            if (waiting < 2) await Task.Delay(20);
+        }
+        Assert.Equal(2, waiting);
+        Assert.False(preview.IsCompleted);
+        Assert.False(import.IsCompleted);
+        var entry = await guard.LibraryEntries.SingleAsync(e => e.LibraryId == library.Id);
+        entry.SteamPlaytimeMinutes = 120;
+        await guard.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        var responses = await Task.WhenAll(preview, import);
+        Assert.All(responses, response => Assert.Equal(HttpStatusCode.OK, response.StatusCode));
+        await using var after = CreateDbContext();
+        var stored = await after.LibraryEntries.SingleAsync(e => e.LibraryId == library.Id);
+        Assert.Equal(150L, stored.SteamPlaytimeMinutes);
+        Assert.Equal(0, await CountPlayLogEntriesAsync(after, sub));
+    }
+
+    [Theory]
+    [InlineData("preview", 100L, 150, 150L)]
+    [InlineData("preview", 100L, 100, 100L)]
+    [InlineData("preview", 100L, 50, 50L)]
+    [InlineData("preview", 100L, null, 100L)]
+    [InlineData("preview", null, 150, 150L)]
+    [InlineData("preview", null, null, null)]
+    [InlineData("import", 100L, 150, 150L)]
+    [InlineData("import", 100L, 100, 100L)]
+    [InlineData("import", 100L, 50, 50L)]
+    [InlineData("import", 100L, null, 100L)]
+    [InlineData("import", null, 150, 150L)]
+    [InlineData("import", null, null, null)]
+    public async Task Refresh_uses_the_persisted_baseline_without_changing_manual_data_or_logging(
+        string operation, long? previous, int? current, long? expected)
+    {
+        var sub = NewSub();
+        await LinkSteamAccount(sub);
+        await ImportGames(sub, [570]);
+        await using (var db = CreateDbContext())
+        {
+            var entry = await db.LibraryEntries.Include(e => e.Game).SingleAsync(e => e.Library.UserId == sub);
+            entry.SteamPlaytimeMinutes = previous;
+            entry.GameStatus = GameStatus.Playing;
+            entry.ProgressPercentage = 25;
+            entry.Game.IsFamilyFriendly = true;
+            entry.Game.CoverImageUrl = "https://manual.example/cover.jpg";
+            await db.SaveChangesAsync();
+        }
+
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Steam name", current, null, "new_logo")]);
+        var client = ClientFor(sub);
+        var response = operation == "preview"
+            ? await client.PostAsync("/steam/library/preview", null)
+            : await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+        response.EnsureSuccessStatusCode();
+
+        await using var after = CreateDbContext();
+        var stored = await after.LibraryEntries.Include(e => e.Game).SingleAsync(e => e.Library.UserId == sub);
+        Assert.Equal(expected, stored.SteamPlaytimeMinutes);
+        Assert.Equal(GameStatus.Playing, stored.GameStatus);
+        Assert.Equal(25, stored.ProgressPercentage);
+        Assert.True(stored.Game.IsFamilyFriendly);
+        Assert.Equal("Game 570", stored.Game.Name);
+        Assert.Equal("https://manual.example/cover.jpg", stored.Game.CoverImageUrl);
+        Assert.Equal(0, await CountPlayLogEntriesAsync(after, sub));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Import_already_imported_takes_precedence_over_missing_or_invalid_provider_data(bool invalidMetadata)
+    {
+        var sub = NewSub();
+        await LinkSteamAccount(sub);
+        await ImportGames(sub, [570]);
+        await using (var db = CreateDbContext())
+        {
+            var entry = await db.LibraryEntries.SingleAsync(e => e.Library.UserId == sub);
+            entry.SteamPlaytimeMinutes = 100;
+            await db.SaveChangesAsync();
+        }
+        _factory.FakeSteam.SetOwnedGames(invalidMetadata
+            ? [new SteamOwnedGame(570, " ", 150, null, null)]
+            : []);
+
+        var response = await ClientFor(sub).PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570, 730 } });
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Empty(result.GetProperty("imported").EnumerateArray());
+        Assert.Equal(570L, Assert.Single(result.GetProperty("alreadyImported").EnumerateArray()).GetInt64());
+        Assert.Equal(730L, Assert.Single(result.GetProperty("unavailable").EnumerateArray()).GetInt64());
+        Assert.Empty(result.GetProperty("invalid").EnumerateArray());
+        await using var after = CreateDbContext();
+        var stored = await after.LibraryEntries.SingleAsync(e => e.Library.UserId == sub);
+        Assert.Equal(invalidMetadata ? 150L : 100L, stored.SteamPlaytimeMinutes);
+        Assert.Equal(1, await after.Platforms.CountAsync(p => p.Library.UserId == sub));
+        Assert.Equal(0, await CountPlayLogEntriesAsync(after, sub));
+    }
+
+    [Fact]
+    public async Task Import_missing_provider_app_does_not_expose_another_librarys_import()
+    {
+        var owner = NewSub();
+        await LinkSteamAccount(owner);
+        await ImportGames(owner, [570]);
+        await ClientFor(owner).DeleteAsync("/steam/link");
+        var caller = NewSub();
+        await LinkSteamAccount(caller);
+        _factory.FakeSteam.SetOwnedGames([]);
+
+        var response = await ClientFor(caller).PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Empty(result.GetProperty("imported").EnumerateArray());
+        Assert.Empty(result.GetProperty("alreadyImported").EnumerateArray());
+        Assert.Empty(result.GetProperty("invalid").EnumerateArray());
+        Assert.Equal(570L, Assert.Single(result.GetProperty("unavailable").EnumerateArray()).GetInt64());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Steam_refresh_and_reimport_preserve_manually_edited_family_friendly(bool classification)
+    {
+        var sub = NewSub();
+        await LinkSteamAccount(sub);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 100, null, "logo")]);
+        var client = ClientFor(sub);
+        var import = await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+        import.EnsureSuccessStatusCode();
+        var games = (await client.GetFromJsonAsync<JsonElement[]>("/video-games"))!;
+        var game = Assert.Single(games);
+        Assert.False(game.GetProperty("isFamilyFriendly").GetBoolean());
+        var gameId = game.GetProperty("id").GetGuid();
+        var edit = await client.PutAsJsonAsync($"/video-games/{gameId}", new
+        {
+            name = "Manually edited", acquisitionStatus = "Owned",
+            platformIds = game.GetProperty("platformIds").EnumerateArray().Select(p => p.GetGuid()).ToArray(),
+            isFamilyFriendly = classification,
+        });
+        edit.EnsureSuccessStatusCode();
+
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Steam name", 150, null, "new_logo")]);
+        var preview = await client.PostAsync("/steam/library/preview", null);
+        preview.EnsureSuccessStatusCode();
+        await AssertClassification();
+
+        var reimport = await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+        reimport.EnsureSuccessStatusCode();
+        var result = await reimport.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Empty(result.GetProperty("imported").EnumerateArray());
+        Assert.Equal(570, Assert.Single(result.GetProperty("alreadyImported").EnumerateArray()).GetInt64());
+        await AssertClassification();
+
+        async Task AssertClassification()
+        {
+            var current = Assert.Single((await client.GetFromJsonAsync<JsonElement[]>("/video-games"))!);
+            Assert.Equal(classification, current.GetProperty("isFamilyFriendly").GetBoolean());
+            await using var db = CreateDbContext();
+            var stored = await db.Games.Include(g => g.LibraryEntry).SingleAsync(g => g.Id == gameId);
+            Assert.Equal(classification, stored.IsFamilyFriendly);
+            Assert.Equal("Manually edited", stored.Name);
+            Assert.Equal(150L, stored.LibraryEntry.SteamPlaytimeMinutes);
+        }
+    }
+
+    [Fact]
+    public async Task Import_stores_steam_playtime_in_library_entry()
+    {
+        var sub = NewSub();
+        await LinkSteamAccount(sub);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 123, null, "logo_hash_123")]);
+        var client = ClientFor(sub);
+
+        await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+
+        await using var db = CreateDbContext();
+        var library = await db.Libraries.SingleAsync(l => l.UserId == sub);
+        var entry = await db.LibraryEntries.SingleAsync(le => le.LibraryId == library.Id);
+        Assert.Equal(123L, entry.SteamPlaytimeMinutes);
+    }
+
+    [Fact]
+    public async Task Import_uses_steam_logo_url_for_cover_when_available()
+    {
+        var sub = NewSub();
+        await LinkSteamAccount(sub);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 123, null, "logo_hash_123")]);
+        var client = ClientFor(sub);
+
+        await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+
+        await using var db = CreateDbContext();
+        var library = await db.Libraries.SingleAsync(l => l.UserId == sub);
+        var game = await db.Games.SingleAsync(g => g.LibraryEntry.LibraryId == library.Id);
+        Assert.Equal("https://cdn.akamai.steamstatic.com/steam/apps/570/logo_hash_123.jpg", game.CoverImageUrl);
+    }
+
+    [Fact]
+    public async Task Import_does_not_overwrite_manually_assigned_cover()
+    {
+        var sub = NewSub();
+        await LinkSteamAccount(sub);
+
+        await using (var db = CreateDbContext())
+        {
+            var lib = await db.Libraries.SingleAsync(l => l.UserId == sub);
+            var steamPlatform = new Core.Platforms.Platform { Id = Guid.NewGuid(), LibraryId = lib.Id, Name = "Steam" };
+            db.Platforms.Add(steamPlatform);
+            var g = new Game
+            {
+                Id = Guid.NewGuid(),
+                GameType = GameType.VideoGame,
+                Name = "Dota 2",
+                CoverImageUrl = "https://manual.example/cover.jpg",
+                CreatedAt = DateTimeOffset.UtcNow,
+            };
+            var entry = new LibraryEntry
+            {
+                Id = Guid.NewGuid(),
+                LibraryId = lib.Id,
+                GameId = g.Id,
+                AcquisitionStatus = AcquisitionStatus.Owned,
+                SteamAppId = 570,
+            };
+            g.LibraryEntry = entry;
+            entry.GamePlatforms.Add(new Core.Games.GamePlatform { LibraryEntryId = entry.Id, PlatformId = steamPlatform.Id });
+            db.Games.Add(g);
+            await db.SaveChangesAsync();
+        }
+
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 123, null, "logo_hash_123")]);
+        var client = ClientFor(sub);
+
+        var response = await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Contains(570L, body.GetProperty("alreadyImported").EnumerateArray().Select(e => e.GetInt64()));
+
+        await using var afterDb = CreateDbContext();
+        var lib2 = await afterDb.Libraries.SingleAsync(l => l.UserId == sub);
+        var g2 = await afterDb.Games.SingleAsync(ga => ga.LibraryEntry.LibraryId == lib2.Id);
+        Assert.Equal("https://manual.example/cover.jpg", g2.CoverImageUrl);
+    }
+
+    [Fact]
+    public async Task Reimport_same_game_calculates_playtime_delta()
+    {
+        var sub = NewSub();
+        await LinkSteamAccount(sub);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 100, null, "logo_hash_123")]);
+        var client = ClientFor(sub);
+
+        await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 150, null, "logo_hash_123")]);
+
+        var response = await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Contains(570L, body.GetProperty("alreadyImported").EnumerateArray().Select(e => e.GetInt64()));
+        Assert.Equal(50, SteamIntegrationRules.CalculatePlaytimeDelta(150, 100));
+
+        await using var db = CreateDbContext();
+        var library = await db.Libraries.SingleAsync(l => l.UserId == sub);
+        var entry = await db.LibraryEntries.SingleAsync(le => le.LibraryId == library.Id);
+        Assert.Equal(150L, entry.SteamPlaytimeMinutes);
+        Assert.Equal(0, await CountPlayLogEntriesAsync(db, sub));
+    }
+
+    [Fact]
+    public async Task Reimport_same_game_with_unchanged_playtime_keeps_total_and_delta_zero()
+    {
+        var sub = NewSub();
+        await LinkSteamAccount(sub);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 100, null, "logo_hash_123")]);
+        var client = ClientFor(sub);
+
+        await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+
+        var response = await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(0, SteamIntegrationRules.CalculatePlaytimeDelta(100, 100));
+
+        await using var db = CreateDbContext();
+        var library = await db.Libraries.SingleAsync(l => l.UserId == sub);
+        var entry = await db.LibraryEntries.SingleAsync(le => le.LibraryId == library.Id);
+        Assert.Equal(100L, entry.SteamPlaytimeMinutes);
+        Assert.Equal(0, await CountPlayLogEntriesAsync(db, sub));
+    }
+
+    [Fact]
+    public async Task Reimport_same_game_with_decreased_playtime_updates_baseline_and_delta_zero()
+    {
+        var sub = NewSub();
+        await LinkSteamAccount(sub);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 100, null, "logo_hash_123")]);
+        var client = ClientFor(sub);
+
+        await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 50, null, "logo_hash_123")]);
+
+        var response = await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(0, SteamIntegrationRules.CalculatePlaytimeDelta(50, 100));
+
+        await using var db = CreateDbContext();
+        var library = await db.Libraries.SingleAsync(l => l.UserId == sub);
+        var entry = await db.LibraryEntries.SingleAsync(le => le.LibraryId == library.Id);
+        Assert.Equal(50L, entry.SteamPlaytimeMinutes);
+        Assert.Equal(0, await CountPlayLogEntriesAsync(db, sub));
+    }
+
+    [Fact]
+    public async Task Import_missing_steam_playtime_stores_null()
+    {
+        var sub = NewSub();
+        await LinkSteamAccount(sub);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", null, null, "logo_hash_123")]);
+        var client = ClientFor(sub);
+
+        var response = await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        await using var db = CreateDbContext();
+        var library = await db.Libraries.SingleAsync(l => l.UserId == sub);
+        var entry = await db.LibraryEntries.SingleAsync(le => le.LibraryId == library.Id);
+        Assert.Null(entry.SteamPlaytimeMinutes);
+    }
+
+    [Fact]
+    public async Task Reimport_same_game_with_missing_playtime_preserves_existing_total()
+    {
+        var sub = NewSub();
+        await LinkSteamAccount(sub);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 100, null, "logo_hash_123")]);
+        var client = ClientFor(sub);
+
+        await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", null, null, "logo_hash_123")]);
+
+        var response = await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(0, SteamIntegrationRules.CalculatePlaytimeDelta(null, 100));
+
+        await using var db = CreateDbContext();
+        var library = await db.Libraries.SingleAsync(l => l.UserId == sub);
+        var entry = await db.LibraryEntries.SingleAsync(le => le.LibraryId == library.Id);
+        Assert.Equal(100L, entry.SteamPlaytimeMinutes);
+        Assert.Equal(0, await CountPlayLogEntriesAsync(db, sub));
+    }
+
+    [Fact]
+    public async Task Preview_refreshes_already_imported_steam_playtime()
+    {
+        var sub = NewSub();
+        await LinkSteamAccount(sub);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 100, null, "logo_hash_123")]);
+        var client = ClientFor(sub);
+
+        await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 150, null, "logo_hash_123")]);
+
+        var response = await client.PostAsync("/steam/library/preview", null);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        await using var db = CreateDbContext();
+        var library = await db.Libraries.SingleAsync(l => l.UserId == sub);
+        var entry = await db.LibraryEntries.SingleAsync(le => le.LibraryId == library.Id);
+        Assert.Equal(150L, entry.SteamPlaytimeMinutes);
+        Assert.Equal(0, await CountPlayLogEntriesAsync(db, sub));
+    }
+
+    [Fact]
+    public async Task Reimport_does_not_create_play_log_entries()
+    {
+        var sub = NewSub();
+        await LinkSteamAccount(sub);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 100, null, "logo_hash_123")]);
+        var client = ClientFor(sub);
+
+        await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 150, null, "logo_hash_123")]);
+
+        await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+
+        await using var db = CreateDbContext();
+        Assert.Equal(0, await CountPlayLogEntriesAsync(db, sub));
+    }
+
+    [Fact]
+    public async Task Import_without_steam_logo_uses_no_cover()
+    {
+        var sub = NewSub();
+        await LinkSteamAccount(sub);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 123, null, null)]);
+        var client = ClientFor(sub);
+
+        await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+
+        await using var db = CreateDbContext();
+        var library = await db.Libraries.SingleAsync(l => l.UserId == sub);
+        var game = await db.Games.SingleAsync(g => g.LibraryEntry.LibraryId == library.Id);
+        Assert.Null(game.CoverImageUrl);
+    }
+
+    [Fact]
+    public async Task Import_with_steam_icon_but_no_logo_uses_no_cover()
+    {
+        var sub = NewSub();
+        await LinkSteamAccount(sub);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Dota 2", 123, "icon_hash_123", null)]);
+        var client = ClientFor(sub);
+
+        await client.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new long[] { 570 } });
+
+        await using var db = CreateDbContext();
+        var library = await db.Libraries.SingleAsync(l => l.UserId == sub);
+        var game = await db.Games.SingleAsync(g => g.LibraryEntry.LibraryId == library.Id);
+        Assert.Null(game.CoverImageUrl);
     }
 
     #endregion
@@ -845,6 +1307,9 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         return client;
     }
 
+    private HttpClient RedirectClient() =>
+        _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
     private GameLibraryDbContext CreateDbContext()
     {
         var options = new DbContextOptionsBuilder<GameLibraryDbContext>()
@@ -861,18 +1326,26 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
 
         var linkBody = await response.Content.ReadFromJsonAsync<JsonElement>();
         var startUrl = linkBody.GetProperty("startUrl").GetString()!;
-        var rawState = startUrl.Split("state=")[1];
+        // startUrl format: https://api.example.test/steam/link/start/{rawState}
+        var rawState = startUrl.Split("/steam/link/start/")[1];
 
         var callbackParams = BuildCallbackParams(rawState);
         var callbackUrl = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
-        var callbackResponse = await client.GetAsync(callbackUrl, HttpCompletionOption.ResponseHeadersRead);
+        var callbackClient = RedirectClient();
+        var callbackResponse = await callbackClient.GetAsync(callbackUrl, HttpCompletionOption.ResponseHeadersRead);
         Assert.Equal(HttpStatusCode.Redirect, callbackResponse.StatusCode);
     }
 
     private async Task<string> CreateRawState(string sub, bool expired = false)
     {
         await using var db = CreateDbContext();
-        var library = await db.Libraries.SingleAsync(l => l.UserId == sub);
+        var library = await db.Libraries.SingleOrDefaultAsync(l => l.UserId == sub);
+        if (library is null)
+        {
+            library = new Core.Libraries.Library { Id = Guid.NewGuid(), UserId = sub };
+            db.Libraries.Add(library);
+            await db.SaveChangesAsync();
+        }
         var rawState = Core.Steam.SteamIntegrationRules.GenerateRawState();
         var stateHash = Core.Steam.SteamIntegrationRules.HashState(rawState);
         var now = DateTimeOffset.UtcNow;
@@ -887,6 +1360,9 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         await db.SaveChangesAsync();
         return rawState;
     }
+
+    private static Task<int> CountPlayLogEntriesAsync(GameLibraryDbContext db, string sub) =>
+        db.PlayLogEntries.CountAsync(e => e.LibraryEntry.Library.UserId == sub);
 
     private async Task ConsumeState(string sub, string rawState)
     {

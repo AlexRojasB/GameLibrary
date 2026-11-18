@@ -13,9 +13,9 @@ public sealed class E2eSteamClient : ISteamClient
     {
         IReadOnlyList<SteamOwnedGame> games =
         [
-            new(570, "Dota 2", 1234),
-            new(730, "Counter-Strike 2", 456),
-            new(440, "Team Fortress 2", 789),
+            new(570, "Dota 2", 1234, null, null),
+            new(730, "Counter-Strike 2", 456, null, null),
+            new(440, "Team Fortress 2", 789, null, null),
         ];
 
         if (query.AppIdsFilter is { Count: > 0 })

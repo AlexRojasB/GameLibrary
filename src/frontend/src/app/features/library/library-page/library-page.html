@@ -74,6 +74,11 @@
         </select>
       </label>
 
+      <label class="library__family-filter">
+        <input type="checkbox" [checked]="filters().familyFriendlyOnly" (change)="onFamilyFriendlyOnly($any($event.target).checked)" />
+        Family friendly only
+      </label>
+
     @if (showVideoFilters()) {
       <fieldset>
         <legend>Video game filters</legend>
@@ -145,16 +150,16 @@
     <ul class="library__cards">
       @for (item of items(); track item.id) {
         <li class="library-card">
-          @if (item.coverImageUrl) {
-            <img class="library-card__cover" [src]="item.coverImageUrl" [alt]="item.name + ' cover'" />
-          } @else {
-            <div class="library-card__placeholder" aria-hidden="true">No cover</div>
-          }
+          <app-cover-image class="library-card__cover" imageClass="library-card__cover"
+            [coverImageUrl]="item.coverImageUrl" [coverUploadId]="item.coverUploadId" [alt]="item.name + ' cover'" />
           <div class="library-card__body">
             <div class="library-card__title-row">
               <h2>{{ item.name }}</h2>
               <span class="game-type-chip library-card__type">{{ item.gameType === 'VideoGame' ? 'Video game' : 'Board game' }}</span>
             </div>
+            @if (item.isFamilyFriendly) {
+              <span class="game-type-chip family-friendly-chip">Family friendly</span>
+            }
             <p>{{ item.acquisitionStatus }}</p>
             @if (item.rating !== null) {
               <p>Rating: {{ item.rating }}</p>

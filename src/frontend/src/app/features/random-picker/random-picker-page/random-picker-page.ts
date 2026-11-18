@@ -1,8 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, computed, DestroyRef, inject, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import { CoverImage } from '../../games/cover-image/cover-image';
 import type { InteractionType } from '../../games/board-game';
 import { Genre } from '../../games/genres';
 import { GenresService } from '../../games/genres.service';
@@ -32,7 +34,7 @@ const MODES: { value: RandomPickerMode; label: string }[] = [
 
 @Component({
   selector: 'app-random-picker-page',
-  imports: [LogPlayDialog],
+  imports: [LogPlayDialog, CoverImage],
   templateUrl: './random-picker-page.html',
   styleUrl: './random-picker-page.scss',
 })
@@ -44,6 +46,8 @@ export class RandomPickerPage {
   private readonly playLogService = inject(PlayLogService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+  private pickGeneration = 0;
 
   protected readonly mode = signal<RandomPickerMode>('All');
   protected readonly filters = signal<RandomPickerFilters>(emptyFilters());
@@ -93,6 +97,10 @@ export class RandomPickerPage {
 
   protected onRatingMin(value: string): void {
     this.patchFilters({ ratingMin: value === '' ? null : Number(value) });
+  }
+
+  protected onFamilyFriendlyOnly(checked: boolean): void {
+    this.patchFilters({ familyFriendlyOnly: checked });
   }
 
   protected onPlayerCount(value: string): void {
@@ -238,11 +246,15 @@ export class RandomPickerPage {
   }
 
   private sendPick(): void {
+    const generation = ++this.pickGeneration;
     this.loading.set(true);
     this.error.set('');
 
-    this.randomPicker.pick(this.request()).subscribe({
+    this.randomPicker.pick(this.request()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
+        if (generation !== this.pickGeneration) {
+          return;
+        }
         this.loading.set(false);
         this.currentState.set(response.state);
         this.currentResult.set(response.result);
@@ -257,6 +269,9 @@ export class RandomPickerPage {
         }
       },
       error: (error: HttpErrorResponse) => {
+        if (generation !== this.pickGeneration) {
+          return;
+        }
         this.loading.set(false);
         if (error.status === 401) {
           this.handleSessionExpired();
@@ -282,6 +297,9 @@ export class RandomPickerPage {
   }
 
   private clearDisplayedResult(): void {
+    // Pending picks no longer describe the current filters or shown-history pool.
+    this.pickGeneration++;
+    this.loading.set(false);
     this.currentResult.set(null);
     this.currentState.set(null);
     this.error.set('');
@@ -348,11 +366,12 @@ function emptyFilters(): RandomPickerFilters {
     availableDuration: null,
     interactionTypes: [],
     ratingMin: null,
+    familyFriendlyOnly: false,
   };
 }
 
 function filtersForMode(mode: RandomPickerMode, current: RandomPickerFilters): RandomPickerFilters {
-  const empty = emptyFilters();
+  const empty = { ...emptyFilters(), familyFriendlyOnly: current.familyFriendlyOnly };
   if (mode === 'VideoGames') {
     return {
       ...empty,
@@ -392,12 +411,13 @@ function activeFilterCount(mode: RandomPickerMode, filters: RandomPickerFilters)
       filters.genreIds.length > 0,
       filters.gameStatuses.length > 0,
       filters.playerCount !== null,
+      filters.familyFriendlyOnly,
     ].filter(Boolean).length;
   }
   if (mode === 'BoardGames') {
-    return [filters.playerCount !== null, filters.availableDuration !== null, filters.interactionTypes.length > 0].filter(Boolean).length;
+    return [filters.playerCount !== null, filters.availableDuration !== null, filters.interactionTypes.length > 0, filters.familyFriendlyOnly].filter(Boolean).length;
   }
-  return [filters.ratingMin !== null, filters.playerCount !== null].filter(Boolean).length;
+  return [filters.ratingMin !== null, filters.playerCount !== null, filters.familyFriendlyOnly].filter(Boolean).length;
 }
 
 function selectedValues(event: Event): string[] {

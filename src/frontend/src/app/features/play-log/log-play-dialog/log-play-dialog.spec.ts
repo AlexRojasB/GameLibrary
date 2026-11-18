@@ -91,6 +91,7 @@ describe('LogPlayDialog', () => {
       gameType: 'VideoGame',
       gameName: 'Hades',
       coverImageUrl: null,
+      coverUploadId: null,
       playedAt: '2026-08-24T18:30:00Z',
       durationMinutes: 90,
       createdAt: '2026-08-24T19:00:00Z',

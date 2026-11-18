@@ -9,7 +9,7 @@ import { VideoGamesService } from './video-games.service';
 
 const input: VideoGameInput = {
   name: 'Hades',
-  coverImageUrl: null,
+  isFamilyFriendly: true,
   acquisitionStatus: 'Owned',
   platformIds: ['p1'],
   genreIds: ['g1'],
@@ -21,7 +21,7 @@ const input: VideoGameInput = {
   maximumPlayers: 2,
 };
 
-const game: VideoGame = { id: '1', ...input, createdAt: '2026-08-17T00:00:00Z' };
+const game: VideoGame = { id: '1', ...input, coverImageUrl: null, coverUploadId: null, createdAt: '2026-08-17T00:00:00Z' };
 
 describe('VideoGamesService', () => {
   let service: VideoGamesService;
@@ -83,5 +83,20 @@ describe('VideoGamesService', () => {
     req.flush(null, { status: 204, statusText: 'No Content' });
 
     expect(completed).toBe(true);
+  });
+
+  it('writes only explicit cover intent, never legacy read-model references', () => {
+    const expectedCover = { coverImageUrl: null, coverUploadId: 'managed' };
+    service.update('1', { ...input, ...expectedCover, coverUpdate: { intent: 'remove', expectedCover } }).subscribe();
+    const request = httpMock.expectOne(`${environment.apiBaseUrl}/video-games/1`);
+    expect(request.request.body).toEqual({ ...input, coverUpdate: { intent: 'remove', expectedCover } });
+    request.flush(game);
+  });
+
+  it('omits the expected snapshot on Create without changing explicit intent', () => {
+    service.create({ ...input, coverUpdate: { intent: 'external', url: 'https://example.test/a.jpg', expectedCover: game } }).subscribe();
+    const request = httpMock.expectOne(`${environment.apiBaseUrl}/video-games`);
+    expect(request.request.body.coverUpdate).toEqual({ intent: 'external', url: 'https://example.test/a.jpg' });
+    request.flush(game);
   });
 });

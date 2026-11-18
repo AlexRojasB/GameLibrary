@@ -6,6 +6,7 @@ import { provideRouter } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 
 import { SteamPage } from './steam-page';
+import { SteamPreviewCandidate } from './steam.service';
 
 describe('SteamPage', () => {
   let fixture: ComponentFixture<SteamPage>;
@@ -209,6 +210,114 @@ describe('SteamPage', () => {
     expect(importBtn.disabled).toBe(true);
   });
 
+  it('select all follows partial and full selection and excludes already-imported candidates', () => {
+    loadPreview();
+
+    expect(button('.btn--secondary').textContent).toContain('Select all');
+    checkboxesAll()[0].click();
+    fixture.detectChanges();
+    expect(button('.btn--secondary').textContent).toContain('Select all');
+
+    clickButton('.btn--secondary');
+    fixture.detectChanges();
+    expect(checkboxesAll().map((cb) => cb.checked)).toEqual([true, true, false]);
+    expect(button('.btn--secondary').textContent).toContain('Deselect all');
+    expect(importButton().disabled).toBe(false);
+
+    checkboxesAll()[1].click();
+    fixture.detectChanges();
+    expect(button('.btn--secondary').textContent).toContain('Select all');
+    checkboxesAll()[1].click();
+    fixture.detectChanges();
+    expect(button('.btn--secondary').textContent).toContain('Deselect all');
+
+    clickButton('.btn--secondary');
+    fixture.detectChanges();
+    expect(checkboxesAll().every((cb) => !cb.checked)).toBe(true);
+    expect(button('.btn--secondary').textContent).toContain('Select all');
+    expect(importButton().disabled).toBe(true);
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/import`);
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/preview`);
+  });
+
+  it('cannot select imported or absent candidates through the UI or handlers', () => {
+    loadPreview([
+      { steamAppId: 440, name: 'TF2', playtimeForeverMinutes: null, alreadyImported: true },
+    ]);
+
+    checkboxesAll()[0].click();
+    fixture.componentInstance['onToggle'](440);
+    fixture.componentInstance['onToggle'](999);
+    clickButton('.btn--secondary');
+    fixture.detectChanges();
+
+    expect(checkboxesAll()[0].disabled).toBe(true);
+    expect(checkboxesAll()[0].checked).toBe(false);
+    expect(fixture.componentInstance['selected']().size).toBe(0);
+    expect(button('.btn--secondary').textContent).toContain('Select all');
+    expect(importButton().disabled).toBe(true);
+    fixture.componentInstance['onImport']();
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/import`);
+  });
+
+  it.each([
+    { state: 'Success', candidates: [
+      { steamAppId: 10, name: 'New candidate', playtimeForeverMinutes: null, alreadyImported: false },
+    ] },
+    { state: 'Success', candidates: [] },
+    { state: 'NoVisibleGames', candidates: [] },
+  ])('preview resets selection-derived state for $state with $candidates.length candidates', (response) => {
+    loadPreview();
+    clickButton('.btn--secondary');
+    fixture.detectChanges();
+    expect(fixture.componentInstance['allSelectableSelected']()).toBe(true);
+
+    clickButton('.steam-card__actions .btn--primary');
+    fixture.detectChanges();
+    expect(fixture.componentInstance['hasSelectedSelectable']()).toBe(false);
+    expect(fixture.componentInstance['allSelectableSelected']()).toBe(false);
+    expect(button('.btn--secondary').disabled).toBe(true);
+    expect(checkboxesAll().every((cb) => !cb.checked && cb.disabled)).toBe(true);
+    expect(importButton().disabled).toBe(true);
+
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/library/preview`).flush({ ...response, message: null });
+    fixture.detectChanges();
+    expect(fixture.componentInstance['hasSelectedSelectable']()).toBe(false);
+    expect(fixture.componentInstance['allSelectableSelected']()).toBe(false);
+    if (response.candidates.length > 0) {
+      expect(button('.btn--secondary').textContent).toContain('Select all');
+      expect(importButton().disabled).toBe(true);
+      expect(checkboxesAll()[0].checked).toBe(false);
+    } else {
+      expect(checkboxesAll()).toHaveLength(0);
+    }
+  });
+
+  it('guards duplicate previews and blocks import, selection and unlink while preview is pending', () => {
+    loadPreview();
+    const previewButton = button('.steam-card__actions .btn--primary');
+    previewButton.click();
+    previewButton.click();
+    fixture.componentInstance['onPreview']();
+    fixture.componentInstance['onToggle'](570);
+    fixture.componentInstance['onToggleAll']();
+    fixture.componentInstance['onImport']();
+    fixture.componentInstance['onUnlink']();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['selected']().size).toBe(0);
+    expect(previewButton.disabled).toBe(true);
+    expect(button('.btn--danger').disabled).toBe(true);
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/import`);
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/link`);
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/library/preview`).flush({
+      state: 'Success', candidates: [], message: null,
+    });
+    fixture.detectChanges();
+    expect(previewButton.disabled).toBe(false);
+    expect(button('.btn--danger').disabled).toBe(false);
+  });
+
   it('no-visible-games state renders privacy text', () => {
     fixture.detectChanges();
     httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(linkedStatus());
@@ -268,6 +377,125 @@ describe('SteamPage', () => {
     expect(text()).toContain('Import Summary');
     expect(text()).toContain('Imported: 2');
     expect(text()).toContain('Already imported: 1');
+    expect(checkboxesAll().every((cb) => cb.disabled && !cb.checked)).toBe(true);
+    expect(importButton().disabled).toBe(true);
+    expect(button('.btn--secondary').textContent).toContain('Select all');
+    expect(fixture.componentInstance['allSelectableSelected']()).toBe(false);
+    fixture.componentInstance['onToggle'](570);
+    fixture.componentInstance['onToggleAll']();
+    fixture.componentInstance['onImport']();
+    expect(fixture.componentInstance['selected']().size).toBe(0);
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/import`);
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/preview`);
+  });
+
+  it('disables imported and alreadyImported results but leaves unavailable and invalid candidates selectable', () => {
+    loadPreview([
+      { steamAppId: 570, name: 'Dota 2', playtimeForeverMinutes: null, alreadyImported: false },
+      { steamAppId: 730, name: 'CS2', playtimeForeverMinutes: null, alreadyImported: false },
+      { steamAppId: 10, name: 'Unavailable', playtimeForeverMinutes: null, alreadyImported: false },
+      { steamAppId: 20, name: 'Invalid', playtimeForeverMinutes: null, alreadyImported: false },
+      { steamAppId: 440, name: 'TF2', playtimeForeverMinutes: null, alreadyImported: true },
+    ]);
+    clickButton('.btn--secondary');
+    fixture.detectChanges();
+    importButton().click();
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/library/import`).flush({
+      imported: [{ steamAppId: 570, videoGameId: 'game-570', name: 'Dota 2' }],
+      alreadyImported: [730], unavailable: [10], invalid: [20],
+    });
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(linkedStatus());
+    fixture.detectChanges();
+
+    expect(checkboxesAll().map((cb) => cb.disabled)).toEqual([true, true, false, false, true]);
+    expect(checkboxesAll().every((cb) => !cb.checked)).toBe(true);
+    expect(importButton().disabled).toBe(true);
+    expect(button('.btn--secondary').textContent).toContain('Select all');
+    expect(text()).toContain('Imported: 1');
+    expect(text()).toContain('Already imported: 1');
+    expect(text()).toContain('Unavailable: 1');
+    expect(text()).toContain('Invalid: 1');
+
+    clickButton('.btn--secondary');
+    fixture.detectChanges();
+    expect(checkboxesAll().map((cb) => cb.checked)).toEqual([false, false, true, true, false]);
+    importButton().click();
+    const retry = httpMock.expectOne(`${environment.apiBaseUrl}/steam/library/import`);
+    expect(retry.request.body).toEqual({ steamAppIds: [10, 20] });
+    retry.flush({ imported: [], alreadyImported: [], unavailable: [10], invalid: [20] });
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(linkedStatus());
+  });
+
+  it('re-preview after import clears the summary and uses fresh candidate flags with no selection', () => {
+    loadPreview();
+    checkboxesAll()[0].click();
+    fixture.detectChanges();
+    importButton().click();
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/library/import`).flush({
+      imported: [{ steamAppId: 570, videoGameId: 'game-570', name: 'Dota 2' }],
+      alreadyImported: [], unavailable: [], invalid: [],
+    });
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(linkedStatus());
+    fixture.detectChanges();
+    expect(text()).toContain('Import Summary');
+
+    clickButton('.steam-card__actions .btn--primary');
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/library/preview`).flush({
+      state: 'Success', message: null,
+      candidates: [
+        { steamAppId: 570, name: 'Dota 2', playtimeForeverMinutes: null, alreadyImported: true },
+        { steamAppId: 730, name: 'CS2', playtimeForeverMinutes: null, alreadyImported: false },
+      ],
+    });
+    fixture.detectChanges();
+    expect(text()).not.toContain('Import Summary');
+    expect(checkboxesAll().map((cb) => cb.disabled)).toEqual([true, false]);
+    expect(checkboxesAll().every((cb) => !cb.checked)).toBe(true);
+    expect(importButton().disabled).toBe(true);
+    expect(button('.btn--secondary').textContent).toContain('Select all');
+  });
+
+  it('unlink clears preview, summary and selection-derived state and blocks overlapping actions', () => {
+    loadPreview();
+    checkboxesAll()[0].click();
+    fixture.detectChanges();
+    importButton().click();
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/library/import`).flush({
+      imported: [{ steamAppId: 570, videoGameId: 'game-570', name: 'Dota 2' }],
+      alreadyImported: [], unavailable: [], invalid: [],
+    });
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(linkedStatus());
+    fixture.detectChanges();
+    clickButton('.btn--secondary');
+    fixture.detectChanges();
+    expect(fixture.componentInstance['allSelectableSelected']()).toBe(true);
+
+    clickButton('.btn--danger');
+    fixture.componentInstance['onUnlink']();
+    fixture.componentInstance['onPreview']();
+    fixture.componentInstance['onImport']();
+    fixture.componentInstance['onToggle'](730);
+    fixture.componentInstance['onToggleAll']();
+    fixture.detectChanges();
+    expect(button('.steam-card__actions .btn--primary').disabled).toBe(true);
+    expect(importButton().disabled).toBe(true);
+    expect(button('.btn--secondary').disabled).toBe(true);
+    expect(checkboxesAll().every((cb) => cb.disabled)).toBe(true);
+    expect([...fixture.componentInstance['selected']()]).toEqual([730]);
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/preview`);
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/import`);
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/link`).flush(null);
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(defaultStatus());
+    fixture.detectChanges();
+
+    expect(text()).toContain('No Steam Account Linked');
+    expect(text()).not.toContain('Steam Library Preview');
+    expect(text()).not.toContain('Import Summary');
+    expect(fixture.componentInstance['selected']().size).toBe(0);
+    expect(fixture.componentInstance['hasSelectedSelectable']()).toBe(false);
+    expect(fixture.componentInstance['allSelectableSelected']()).toBe(false);
+    expect(fixture.componentInstance['previewState']()).toBeNull();
+    expect(fixture.componentInstance['previewMessage']()).toBeNull();
   });
 
   it('import loading has duplicate-click protection', () => {
@@ -290,10 +518,22 @@ describe('SteamPage', () => {
 
     const importBtn = importButton();
     importBtn.click();
+    importBtn.click();
+    fixture.componentInstance['onImport']();
+    fixture.componentInstance['onPreview']();
+    fixture.componentInstance['onUnlink']();
+    fixture.componentInstance['onToggle'](570);
+    fixture.componentInstance['onToggleAll']();
     fixture.detectChanges();
 
     expect(importBtn.textContent).toContain('Importing');
     expect(importBtn.disabled).toBe(true);
+    expect(checkboxesAll()[0].checked).toBe(true);
+    expect(checkboxesAll()[0].disabled).toBe(true);
+    expect(button('.btn--secondary').disabled).toBe(true);
+    expect(button('.steam-card__actions .btn--primary').disabled).toBe(true);
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/preview`);
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/link`);
 
     httpMock.expectOne(`${environment.apiBaseUrl}/steam/library/import`).flush({
       imported: [], alreadyImported: [], unavailable: [], invalid: [],
@@ -301,7 +541,9 @@ describe('SteamPage', () => {
     httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(linkedStatus());
     fixture.detectChanges();
 
-    expect(importBtn.disabled).toBe(false);
+    expect(importBtn.disabled).toBe(true);
+    expect(checkboxesAll()[0].checked).toBe(false);
+    expect(checkboxesAll()[0].disabled).toBe(false);
   });
 
   it('provider errors allow retry', () => {
@@ -332,6 +574,49 @@ describe('SteamPage', () => {
     fixture.detectChanges();
 
     expect(text()).toContain('Steam did not respond in time');
+    expect(checkboxesAll()[0].checked).toBe(true);
+    expect(checkboxesAll()[0].disabled).toBe(false);
+    expect(importButton().disabled).toBe(false);
+    expect(button('.btn--secondary').textContent).toContain('Deselect all');
+
+    importButton().click();
+    fixture.detectChanges();
+    expect(text()).not.toContain('Steam did not respond in time');
+    const retry = httpMock.expectOne(`${environment.apiBaseUrl}/steam/library/import`);
+    expect(retry.request.body).toEqual({ steamAppIds: [570] });
+    retry.flush({ imported: [], alreadyImported: [570], unavailable: [], invalid: [] });
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(linkedStatus());
+    fixture.detectChanges();
+    expect(checkboxesAll()[0].disabled).toBe(true);
+    expect(importButton().disabled).toBe(true);
+  });
+
+  it('preview errors release pending controls and allow an explicit retry', () => {
+    loadPreview();
+    clickButton('.btn--secondary');
+    fixture.detectChanges();
+    clickButton('.steam-card__actions .btn--primary');
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/library/preview`).flush(
+      { detail: 'Steam did not respond in time. Please try again.' },
+      { status: 503, statusText: 'Service Unavailable' },
+    );
+    fixture.detectChanges();
+
+    expect(text()).toContain('Steam did not respond in time');
+    expect(button('.steam-card__actions .btn--primary').disabled).toBe(false);
+    expect(button('.btn--secondary').disabled).toBe(false);
+    expect(button('.btn--secondary').textContent).toContain('Select all');
+    expect(importButton().disabled).toBe(true);
+    expect(checkboxesAll().every((cb) => !cb.checked)).toBe(true);
+
+    clickButton('.steam-card__actions .btn--primary');
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/library/preview`).flush({
+      state: 'NoVisibleGames', candidates: [], message: null,
+    });
+    fixture.detectChanges();
+    expect(text()).not.toContain('Steam did not respond in time');
+    expect(text()).toContain('Your Steam game details may be private');
+    expect(checkboxesAll()).toHaveLength(0);
   });
 
   it('401 shows error message', () => {
@@ -346,6 +631,21 @@ describe('SteamPage', () => {
 
   function text(): string {
     return (fixture.nativeElement as HTMLElement).textContent ?? '';
+  }
+
+  function loadPreview(candidates: SteamPreviewCandidate[] = [
+    { steamAppId: 570, name: 'Dota 2', playtimeForeverMinutes: null, alreadyImported: false },
+    { steamAppId: 730, name: 'CS2', playtimeForeverMinutes: null, alreadyImported: false },
+    { steamAppId: 440, name: 'TF2', playtimeForeverMinutes: null, alreadyImported: true },
+  ]): void {
+    fixture.detectChanges();
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(linkedStatus());
+    fixture.detectChanges();
+    clickButton('.steam-card__actions .btn--primary');
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/library/preview`).flush({
+      state: 'Success', candidates, message: null,
+    });
+    fixture.detectChanges();
   }
 
   function button(selector: string): HTMLButtonElement {

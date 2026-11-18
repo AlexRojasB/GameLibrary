@@ -5,7 +5,17 @@
   border: 1px solid var(--color-line);
   border-radius: var(--radius-control);
   background: color-mix(in srgb, var(--color-surface-raised) 82%, var(--color-accent-soft));
+  min-width: 0;
+
+  button, input, select { min-height: 44px; min-width: 44px; max-width: 100%; }
+  button { white-space: normal; }
 }
+
+.cover-search__url { display: grid; gap: 0.35rem; min-width: 0; }
+.cover-search__url input { width: 100%; box-sizing: border-box; }
+.cover-search__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.cover-search__candidate { display: grid; gap: 0.25rem; min-width: 0; align-content: start; }
+.cover-search__candidate a { display: grid; align-items: center; min-height: 44px; font-size: 0.85rem; }
 
 .cover-search__heading {
   display: flex;
@@ -40,6 +50,46 @@
 
 .cover-search__error {
   color: var(--color-danger);
+}
+
+.cover-search__selected {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 2 / 3;
+  max-width: 12rem;
+  margin: 0 auto;
+  border-radius: calc(var(--radius-control) * 0.75);
+  overflow: hidden;
+  background: var(--color-accent-soft);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.cover-search__clear {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+  color: var(--color-ink);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--color-shadow) 30%, transparent);
+
+  &:hover {
+    background: var(--color-surface);
+  }
 }
 
 .cover-search__gallery {

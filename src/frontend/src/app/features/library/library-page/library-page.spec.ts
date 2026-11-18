@@ -19,6 +19,8 @@ const videoGame: LibraryItem = {
   gameType: 'VideoGame',
   name: 'Hades',
   coverImageUrl: null,
+  coverUploadId: null,
+  isFamilyFriendly: false,
   createdAt: '2026-08-17T00:00:00Z',
   acquisitionStatus: 'Owned',
   rating: 5,
@@ -38,6 +40,8 @@ const boardGame: LibraryItem = {
   gameType: 'BoardGame',
   name: 'Pandemic',
   coverImageUrl: 'https://example.com/pandemic.jpg',
+  coverUploadId: null,
+  isFamilyFriendly: true,
   createdAt: '2026-08-18T00:00:00Z',
   acquisitionStatus: 'Wishlist',
   rating: 4,
@@ -171,6 +175,83 @@ describe('LibraryPage', () => {
     expect(body).toContain('Cooperative');
     expect(body).toContain('No cover');
     expect(body).toContain('Log play');
+  });
+
+
+  it('renders the positive Family friendly chip only for true values on both game types', async () => {
+    flushLookups(httpMock);
+    libraryRequest(httpMock).flush([
+      videoGame,
+      boardGame,
+      { ...videoGame, id: 'v2', isFamilyFriendly: true },
+      { ...boardGame, id: 'b2', isFamilyFriendly: false },
+    ]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const cards = [...(fixture.nativeElement as HTMLElement).querySelectorAll('.library-card')];
+    expect(cards.map((card) => card.querySelector('.family-friendly-chip')?.textContent ?? null))
+      .toEqual([null, 'Family friendly', 'Family friendly', null]);
+    expect(text(fixture)).not.toContain('Not family friendly');
+  });
+
+  it('refetches on Family friendly changes for every game type and clears the common filter', async () => {
+    flushLookups(httpMock);
+    const initial = libraryRequest(httpMock);
+    expect(initial.request.params.has('familyFriendlyOnly')).toBe(false);
+    initial.flush([]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    buttonByText(fixture, 'Advanced filters').click();
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    const checkbox = root.querySelector('.library__family-filter input') as HTMLInputElement;
+    expect(checkbox.checked).toBe(false);
+    expect(checkbox.labels?.[0].textContent).toContain('Family friendly only');
+    checkbox.click();
+    const active = libraryRequest(httpMock);
+    expect(active.request.params.get('familyFriendlyOnly')).toBe('true');
+    active.flush([]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(text(fixture)).toContain('1 filter active');
+    expect(text(fixture)).toContain('No games match your search and filters');
+
+    const gameType = [...root.querySelectorAll('select')].find((select) =>
+      [...select.options].some((option) => option.value === 'VideoGame'),
+    ) as HTMLSelectElement;
+    for (const type of ['VideoGame', 'BoardGame', '']) {
+      gameType.value = type;
+      gameType.dispatchEvent(new Event('change'));
+      const req = libraryRequest(httpMock);
+      expect(req.request.params.get('gameType')).toBe(type || null);
+      expect(req.request.params.get('familyFriendlyOnly')).toBe('true');
+      req.flush([]);
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(checkbox.checked).toBe(true);
+    }
+
+    checkbox.click();
+    const inactive = libraryRequest(httpMock);
+    expect(inactive.request.params.has('familyFriendlyOnly')).toBe(false);
+    inactive.flush([]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(text(fixture)).toContain('No filters active');
+    expect(text(fixture)).toContain('No games in your library yet');
+
+    checkbox.click();
+    libraryRequest(httpMock).flush([]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    buttonByText(fixture, 'Clear filters').click();
+    const cleared = libraryRequest(httpMock);
+    expect(cleared.request.params.has('familyFriendlyOnly')).toBe(false);
+    cleared.flush([]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(checkbox.checked).toBe(false);
   });
 
   it('distinguishes empty library from no results', async () => {

@@ -1,0 +1,1 @@
+Deliberately invalid native asset for the fail-closed smoke target only.

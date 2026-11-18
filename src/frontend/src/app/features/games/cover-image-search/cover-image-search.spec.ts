@@ -1,10 +1,14 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
+import { provideRouter } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 
 import { CoverImageSearch } from './cover-image-search';
+import { AuthService } from '../../../core/auth/auth.service';
+import { CoverDraft } from '../covers/cover-types';
 
 describe('CoverImageSearch', () => {
   let fixture: ComponentFixture<CoverImageSearch>;
@@ -13,15 +17,25 @@ describe('CoverImageSearch', () => {
   function configure(inputs: { gameType?: 'VideoGame' | 'BoardGame'; gameName?: string; coverImageUrl?: string | null; platforms?: string[] } = {}): void {
     TestBed.configureTestingModule({
       imports: [CoverImageSearch],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]), { provide: AuthService, useValue: { session: signal(null) } }],
     });
     fixture = TestBed.createComponent(CoverImageSearch);
     fixture.componentRef.setInput('gameType', inputs.gameType ?? 'VideoGame');
     fixture.componentRef.setInput('gameName', inputs.gameName ?? 'Hades');
-    fixture.componentRef.setInput('coverImageUrl', inputs.coverImageUrl ?? null);
+    fixture.componentRef.setInput('savedCover', { coverImageUrl: inputs.coverImageUrl ?? null, coverUploadId: null });
     fixture.componentRef.setInput('selectedPlatformNames', inputs.platforms ?? []);
     fixture.detectChanges();
     httpMock = TestBed.inject(HttpTestingController);
+    httpMock.expectOne(`${environment.apiBaseUrl}/cover-uploads/options`).flush({ enabled: false });
+    fixture.detectChanges();
+  }
+
+  function reflectDraft(value: string): void {
+    fixture.componentRef.setInput('draft', value ? { intent: 'external', url: value } : { intent: 'remove' });
+  }
+
+  function selectedUrl(draft: CoverDraft): string {
+    return draft.intent === 'external' ? draft.url : '';
   }
 
   function searchButton(): HTMLButtonElement {
@@ -105,15 +119,26 @@ describe('CoverImageSearch', () => {
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('.cover-search-card').length).toBe(5);
   });
 
-  it('selecting a candidate updates CoverImageUrl output and selected marker', () => {
+  it('preserves source attribution and offers a safe source-page link outside the selection button', () => {
+    configure();
+    clickSearch();
+    flushCandidates();
+    const link = fixture.nativeElement.querySelector('.cover-search__gallery a') as HTMLAnchorElement;
+    expect(fixture.nativeElement.textContent).toContain('Source 1');
+    expect(link.href).toBe('https://source.example/1');
+    expect(link.rel).toContain('noopener');
+    expect(link.closest('button')).toBeNull();
+  });
+
+  it('selecting a candidate emits an external draft and selected marker', () => {
     configure();
     const selected: string[] = [];
-    fixture.componentInstance.coverImageUrlSelected.subscribe((value) => selected.push(value));
+    fixture.componentInstance.draftChanged.subscribe((value) => selected.push(selectedUrl(value)));
 
     clickSearch();
     flushCandidates(2);
     ((fixture.nativeElement as HTMLElement).querySelector('.cover-search-card') as HTMLButtonElement).click();
-    fixture.componentRef.setInput('coverImageUrl', selected[0]);
+    reflectDraft(selected[0]);
     fixture.detectChanges();
 
     expect(selected).toEqual(['https://example.com/1.jpg']);
@@ -123,19 +148,110 @@ describe('CoverImageSearch', () => {
   it('manual URL modification clears selected marker while preserving the gallery', () => {
     configure();
     const selected: string[] = [];
-    fixture.componentInstance.coverImageUrlSelected.subscribe((value) => selected.push(value));
+    fixture.componentInstance.draftChanged.subscribe((value) => selected.push(selectedUrl(value)));
 
     clickSearch();
     flushCandidates(2);
     ((fixture.nativeElement as HTMLElement).querySelector('.cover-search-card') as HTMLButtonElement).click();
-    fixture.componentRef.setInput('coverImageUrl', selected[0]);
+    reflectDraft(selected[0]);
     fixture.detectChanges();
 
-    fixture.componentRef.setInput('coverImageUrl', 'https://manual.example/cover.jpg');
+    reflectDraft('https://manual.example/cover.jpg');
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('.cover-search-card').length).toBe(2);
     expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Selected');
+  });
+
+  it('selecting a candidate shows the selected cover preview and clear button', () => {
+    configure();
+    const selected: string[] = [];
+    fixture.componentInstance.draftChanged.subscribe((value) => selected.push(selectedUrl(value)));
+
+    clickSearch();
+    flushCandidates(2);
+    ((fixture.nativeElement as HTMLElement).querySelector('.cover-search-card') as HTMLButtonElement).click();
+    reflectDraft(selected[0]);
+    fixture.detectChanges();
+
+    const selectedCover = fixture.nativeElement.querySelector('.cover-search__selected') as HTMLElement;
+    expect(selectedCover).not.toBeNull();
+    expect(selectedCover.querySelector('img')).toBeTruthy();
+    expect(selectedCover.querySelector('img')?.getAttribute('src')).toBe(selected[0]);
+    expect(selectedCover.querySelector('.cover-search__clear')).toBeTruthy();
+  });
+
+  it('clear button emits explicit removal and clears the accepted draft preview', () => {
+    configure();
+    const selectedValues: string[] = [];
+    fixture.componentInstance.draftChanged.subscribe((value) => selectedValues.push(selectedUrl(value)));
+
+    clickSearch();
+    flushCandidates(1);
+    ((fixture.nativeElement as HTMLElement).querySelector('.cover-search-card') as HTMLButtonElement).click();
+    reflectDraft(selectedValues[0]);
+    fixture.detectChanges();
+
+    const clearBtn = fixture.nativeElement.querySelector('.cover-search__clear') as HTMLButtonElement;
+    clearBtn.click();
+    fixture.detectChanges();
+
+    expect(selectedValues).toContain('');
+
+    // Simulate the parent retaining the explicit removal draft.
+    reflectDraft('');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.cover-search__selected')).toBeNull();
+  });
+
+  it('selected cover preview remains visible when gallery is cleared by name change', () => {
+    configure({ gameName: 'Resident Evil 4' });
+    let coverImageUrl = '';
+    fixture.componentInstance.draftChanged.subscribe((value) => (coverImageUrl = selectedUrl(value)));
+
+    clickSearch();
+    flushCandidates(1);
+    ((fixture.nativeElement as HTMLElement).querySelector('.cover-search-card') as HTMLButtonElement).click();
+    reflectDraft(coverImageUrl);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.cover-search__selected')).not.toBeNull();
+
+    fixture.componentRef.setInput('gameName', 'Resident Evil 5');
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.cover-search-card').length).toBe(0);
+    expect(fixture.nativeElement.querySelector('.cover-search__selected')).not.toBeNull();
+    expect((fixture.nativeElement.querySelector('.cover-search__selected img') as HTMLImageElement)?.src).toBe('https://example.com/1.jpg');
+  });
+
+  it('selected cover preview remains visible when gallery is cleared by platform change', () => {
+    configure({ platforms: ['Switch'] });
+    let coverImageUrl = '';
+    fixture.componentInstance.draftChanged.subscribe((value) => (coverImageUrl = selectedUrl(value)));
+
+    clickSearch();
+    flushCandidates(1);
+    ((fixture.nativeElement as HTMLElement).querySelector('.cover-search-card') as HTMLButtonElement).click();
+    reflectDraft(coverImageUrl);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.cover-search__selected')).not.toBeNull();
+
+    fixture.componentRef.setInput('selectedPlatformNames', ['Steam']);
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.cover-search-card').length).toBe(0);
+    expect(fixture.nativeElement.querySelector('.cover-search__selected')).not.toBeNull();
+  });
+
+  it('initial saved external reference shows selected cover preview without gallery', () => {
+    configure({ coverImageUrl: 'https://initial.example/cover.jpg' });
+
+    expect(fixture.nativeElement.querySelector('.cover-search__selected')).not.toBeNull();
+    expect((fixture.nativeElement.querySelector('.cover-search__selected img') as HTMLImageElement)?.src).toBe('https://initial.example/cover.jpg');
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.cover-search-card').length).toBe(0);
   });
 
   it('shows zero results as a non-error state', () => {
@@ -245,12 +361,12 @@ describe('CoverImageSearch', () => {
   it('name changes clear stale gallery and selected marker without changing selected URL value', () => {
     configure({ gameName: 'Resident Evil 4' });
     let coverImageUrl = '';
-    fixture.componentInstance.coverImageUrlSelected.subscribe((value) => (coverImageUrl = value));
+    fixture.componentInstance.draftChanged.subscribe((value) => (coverImageUrl = selectedUrl(value)));
 
     clickSearch();
     flushCandidates(1);
     ((fixture.nativeElement as HTMLElement).querySelector('.cover-search-card') as HTMLButtonElement).click();
-    fixture.componentRef.setInput('coverImageUrl', coverImageUrl);
+    reflectDraft(coverImageUrl);
     fixture.detectChanges();
 
     fixture.componentRef.setInput('gameName', 'Resident Evil 5');

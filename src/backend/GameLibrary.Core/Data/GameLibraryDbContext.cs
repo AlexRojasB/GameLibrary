@@ -1,18 +1,53 @@
 using GameLibrary.Core.Games;
+using GameLibrary.Core.CoverUploads;
 using GameLibrary.Core.Libraries;
 using GameLibrary.Core.PlayLog;
 using GameLibrary.Core.Platforms;
 using GameLibrary.Core.Steam;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace GameLibrary.Core.Data;
 
 public class GameLibraryDbContext : DbContext
 {
+    private readonly DbContextOptions<GameLibraryDbContext> _options;
     public GameLibraryDbContext(DbContextOptions<GameLibraryDbContext> options)
         : base(options)
     {
+        _options = options;
     }
+
+    // A separate connection/tracker is required for bootstrap and unknown-COMMIT reconciliation.
+    internal GameLibraryDbContext CreatePrimaryContext() => new(_options);
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        ValidateCoverReceipts();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        ValidateCoverReceipts();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void ValidateCoverReceipts()
+    {
+        foreach (var entry in ChangeTracker.Entries<CoverUpload>().Where(e => e.State == EntityState.Modified))
+        {
+            var receipt = entry.Property(u => u.ClaimedGameId);
+            var retired = entry.Property(u => u.RetiredAt);
+            var state = entry.Property(u => u.State);
+            if (receipt.OriginalValue is not null && receipt.CurrentValue != receipt.OriginalValue
+                || retired.OriginalValue is not null && retired.CurrentValue != retired.OriginalValue
+                || state.OriginalValue == CoverUploadState.DeletePending && state.CurrentValue != CoverUploadState.DeletePending)
+                throw new InvalidOperationException("Cover claim receipts and retirement are immutable.");
+        }
+    }
+
+    public DbSet<CoverUpload> CoverUploads => Set<CoverUpload>();
 
     public DbSet<Library> Libraries => Set<Library>();
 
@@ -122,6 +157,16 @@ public class GameLibraryDbContext : DbContext
             entity.Property(g => g.CoverImageUrl)
                 .HasColumnName("cover_image_url");
 
+            entity.Property(g => g.CoverUploadId).HasColumnName("cover_upload_id");
+            entity.HasOne<CoverUpload>().WithOne().HasForeignKey<Game>(g => g.CoverUploadId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(g => g.CoverUploadId).IsUnique().HasFilter("cover_upload_id IS NOT NULL")
+                .HasDatabaseName("ix_games_cover_upload_id");
+
+            entity.Property(g => g.IsFamilyFriendly)
+                .HasColumnName("is_family_friendly")
+                .HasDefaultValue(false);
+
             entity.Property(g => g.MinimumPlayers)
                 .HasColumnName("minimum_players");
 
@@ -141,6 +186,7 @@ public class GameLibraryDbContext : DbContext
 
             entity.ToTable(t =>
             {
+                t.HasCheckConstraint("ck_games_cover_exclusive", "cover_image_url IS NULL OR cover_upload_id IS NULL");
                 t.HasCheckConstraint(
                     "ck_games_game_type",
                     "game_type IN ('VideoGame', 'BoardGame')");
@@ -171,6 +217,35 @@ public class GameLibraryDbContext : DbContext
                 .WithOne(gg => gg.Game)
                 .HasForeignKey(gg => gg.GameId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CoverUpload>(entity =>
+        {
+            entity.ToTable("cover_uploads", t =>
+            {
+                t.HasCheckConstraint("ck_cover_uploads_byte_size", "byte_size BETWEEN 1 AND 2097152");
+                t.HasCheckConstraint("ck_cover_uploads_state", "state IN ('Uploading', 'Ready', 'Attached', 'DeletePending')");
+                t.HasCheckConstraint("ck_cover_uploads_shape", "(state IN ('Uploading', 'Ready') AND cleanup_after IS NOT NULL AND retired_at IS NULL AND claimed_game_id IS NULL) OR (state = 'Attached' AND claimed_game_id IS NOT NULL AND cleanup_after IS NULL AND retired_at IS NULL) OR (state = 'DeletePending' AND cleanup_after IS NOT NULL AND retired_at IS NOT NULL)");
+                t.HasCheckConstraint("ck_cover_uploads_dates", "(cleanup_after IS NULL OR cleanup_after >= created_at) AND (retired_at IS NULL OR retired_at >= created_at)");
+                t.HasCheckConstraint("ck_cover_uploads_locator", "char_length(storage_namespace) > 0 AND char_length(object_key) > 0");
+            });
+            entity.HasKey(u => u.Id);
+            entity.Property(u => u.Id).HasColumnName("id");
+            entity.Property(u => u.LibraryId).HasColumnName("library_id");
+            entity.Property(u => u.StorageNamespace).HasColumnName("storage_namespace").HasMaxLength(2048).IsRequired();
+            entity.Property(u => u.ObjectKey).HasColumnName("object_key").HasMaxLength(100).IsRequired();
+            entity.Property(u => u.ByteSize).HasColumnName("byte_size");
+            entity.Property(u => u.State).HasColumnName("state").HasConversion<string>().HasMaxLength(20);
+            entity.Property(u => u.CreatedAt).HasColumnName("created_at");
+            entity.Property(u => u.CleanupAfter).HasColumnName("cleanup_after");
+            entity.Property(u => u.RetiredAt).HasColumnName("retired_at");
+            entity.Property(u => u.ClaimedGameId).HasColumnName("claimed_game_id");
+            entity.HasOne<Library>().WithMany().HasForeignKey(u => u.LibraryId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(u => u.LibraryId).HasDatabaseName("ix_cover_uploads_library_id");
+            entity.HasIndex(u => new { u.StorageNamespace, u.ObjectKey }).IsUnique().HasDatabaseName("ix_cover_uploads_locator");
+            entity.HasIndex(u => new { u.CleanupAfter, u.Id }).HasFilter("state <> 'Attached'").HasDatabaseName("ix_cover_uploads_due");
+            foreach (var name in new[] { nameof(CoverUpload.LibraryId), nameof(CoverUpload.StorageNamespace), nameof(CoverUpload.ObjectKey), nameof(CoverUpload.ByteSize), nameof(CoverUpload.CreatedAt) })
+                entity.Property(name).Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Throw);
         });
 
         modelBuilder.Entity<LibraryEntry>(entity =>
@@ -209,6 +284,9 @@ public class GameLibraryDbContext : DbContext
             entity.Property(le => le.SteamAppId)
                 .HasColumnName("steam_app_id");
 
+            entity.Property(le => le.SteamPlaytimeMinutes)
+                .HasColumnName("steam_playtime_minutes");
+
             entity.HasIndex(le => le.LibraryId)
                 .HasDatabaseName("ix_library_entries_library_id");
 
@@ -233,6 +311,9 @@ public class GameLibraryDbContext : DbContext
                 t.HasCheckConstraint(
                     "ck_library_entries_steam_app_id",
                     "steam_app_id IS NULL OR (steam_app_id BETWEEN 1 AND 4294967295)");
+                t.HasCheckConstraint(
+                    "ck_library_entries_steam_playtime_minutes",
+                    "steam_playtime_minutes IS NULL OR steam_playtime_minutes >= 0");
             });
 
             entity.HasOne(le => le.Library)

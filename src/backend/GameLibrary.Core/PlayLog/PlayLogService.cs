@@ -28,7 +28,8 @@ public class PlayLogService
                 entry.LibraryEntry.Game.CoverImageUrl,
                 entry.PlayedAt,
                 entry.CreatedAt,
-                entry.DurationMinutes))
+                entry.DurationMinutes,
+                entry.LibraryEntry.Game.CoverUploadId))
             .ToListAsync(ct);
     }
 
@@ -49,6 +50,7 @@ public class PlayLogService
                 entry.Game.GameType,
                 entry.Game.Name,
                 entry.Game.CoverImageUrl,
+                entry.Game.CoverUploadId,
             })
             .SingleOrDefaultAsync(ct);
 
@@ -80,7 +82,8 @@ public class PlayLogService
             target.CoverImageUrl,
             entry.PlayedAt,
             entry.CreatedAt,
-            entry.DurationMinutes);
+            entry.DurationMinutes,
+            target.CoverUploadId);
     }
 
     public async Task<PlayLogEntryView> UpdateAsync(string userId, Guid id, UpdatePlayLogEntryRequest request, CancellationToken ct)
@@ -99,6 +102,7 @@ public class PlayLogService
                 entry.LibraryEntry.Game.GameType,
                 entry.LibraryEntry.Game.Name,
                 entry.LibraryEntry.Game.CoverImageUrl,
+                entry.LibraryEntry.Game.CoverUploadId,
             })
             .SingleOrDefaultAsync(ct);
 
@@ -120,6 +124,7 @@ public class PlayLogService
             target.CoverImageUrl,
             target.Entry.PlayedAt,
             target.Entry.CreatedAt,
-            target.Entry.DurationMinutes);
+            target.Entry.DurationMinutes,
+            target.CoverUploadId);
     }
 }

@@ -85,7 +85,12 @@ public sealed class SteamClient : ISteamClient
 
             return body.Response.Games
                 .Where(g => g.AppId is not null)
-                .Select(g => new SteamOwnedGame(g.AppId!.Value, g.Name, g.PlaytimeForeverMinutes))
+                .Select(g => new SteamOwnedGame(
+                    g.AppId!.Value,
+                    g.Name,
+                    g.PlaytimeForeverMinutes,
+                    g.ImgIconUrl,
+                    g.ImgLogoUrl))
                 .ToList();
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
@@ -137,4 +142,6 @@ internal sealed record SteamOwnedGamesBody([property: JsonPropertyName("games")]
 internal sealed record SteamOwnedGameDto(
     [property: JsonPropertyName("appid")] uint? AppId,
     [property: JsonPropertyName("name")] string? Name,
-    [property: JsonPropertyName("playtime_forever")] int? PlaytimeForeverMinutes);
+    [property: JsonPropertyName("playtime_forever")] int? PlaytimeForeverMinutes,
+    [property: JsonPropertyName("img_icon_url")] string? ImgIconUrl,
+    [property: JsonPropertyName("img_logo_url")] string? ImgLogoUrl);

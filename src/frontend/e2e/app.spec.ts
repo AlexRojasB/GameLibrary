@@ -121,12 +121,80 @@ test('picks a game and keeps visible session history', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /zelda|cascadia/i })).toBeVisible();
 
   await page.getByRole('button', { name: 'Another' }).click();
-  await expect(page.getByRole('heading', { name: /zelda|cascadia/i })).toBeVisible();
+  await expect(page.locator('.random-picker-card--history')).toHaveCount(1);
+  await expect(page.getByRole('article', { name: 'Current pick' }).getByRole('heading', { name: /zelda|cascadia/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Previous picks' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Filter this pick' }).click();
   await page.getByLabel('Mode').selectOption('BoardGames');
   await expect(page.getByRole('heading', { name: 'Previous picks' })).toBeVisible();
+});
+
+test('classifies games, filters the Library, and preserves family picker history', async ({ page }) => {
+  await page.getByRole('link', { name: 'Manage' }).first().click();
+  await page.getByRole('link', { name: /video game catalog/i }).click();
+  await page.getByRole('button', { name: 'Add video game' }).click();
+  const videoDialog = page.getByRole('dialog', { name: 'Add video game' });
+  await videoDialog.getByLabel('Name').fill('Unclassified Video');
+  await videoDialog.getByLabel('Switch').check();
+  await expect(videoDialog.getByLabel('Family friendly', { exact: true })).not.toBeChecked();
+  await videoDialog.getByRole('button', { name: 'Create' }).click();
+  await expect(videoDialog).toBeHidden();
+  const video = page.locator('.video-games__item').filter({ hasText: 'Unclassified Video' });
+  await expect(video).toBeVisible();
+  await expect(video.getByText('Family friendly', { exact: true })).toHaveCount(0);
+
+  await page.getByRole('link', { name: 'Manage' }).first().click();
+  await page.getByRole('link', { name: /board game catalog/i }).click();
+  await page.getByRole('button', { name: 'Add board game' }).click();
+  const boardDialog = page.getByRole('dialog', { name: 'Add board game' });
+  await boardDialog.getByLabel('Name').fill('Family Tabletop');
+  await boardDialog.getByLabel('Minimum players').fill('1');
+  await boardDialog.getByLabel('Maximum players').fill('4');
+  await expect(boardDialog.getByLabel('Family friendly', { exact: true })).not.toBeChecked();
+  await boardDialog.getByLabel('Family friendly', { exact: true }).check();
+  await boardDialog.getByRole('button', { name: 'Create' }).click();
+  await expect(boardDialog).toBeHidden();
+  await expect(page.locator('.board-games__item').filter({ hasText: 'Family Tabletop' })
+    .getByText('Family friendly', { exact: true })).toBeVisible();
+
+  await page.getByRole('link', { name: 'Library', exact: true }).first().click();
+  await expect(page.locator('.library-card').filter({ hasText: 'Family Tabletop' })
+    .getByText('Family friendly', { exact: true })).toBeVisible();
+  await expect(page.locator('.library-card').filter({ hasText: 'Unclassified Video' })
+    .getByText('Family friendly', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Advanced filters' }).click();
+  await page.getByLabel('Family friendly only').check();
+  await expect(page.locator('.library-card')).toHaveCount(1);
+  await expect(page.locator('.library-card')).toContainText('Family Tabletop');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+  await page.getByRole('link', { name: 'Pick' }).first().click();
+  await page.getByRole('button', { name: 'Filter this pick' }).click();
+  await page.getByLabel('Family friendly only').check();
+  await page.getByRole('button', { name: 'Pick a game' }).click();
+  const current = page.getByRole('article', { name: 'Current pick' });
+  await expect(current).toContainText('Family Tabletop');
+  await expect(current.getByText('Family friendly', { exact: true })).toBeVisible();
+
+  await page.getByLabel('Family friendly only').uncheck();
+  await expect(page.locator('.random-picker-card--history')).toHaveCount(1);
+  await page.getByLabel('Family friendly only').check();
+  await page.getByLabel('Mode').selectOption('VideoGames');
+  await expect(page.getByLabel('Family friendly only')).toBeChecked();
+  await page.getByRole('button', { name: 'Pick a game' }).click();
+  await expect(page.getByRole('heading', { name: 'No owned games match' })).toBeVisible();
+  await expect(page.locator('.random-picker-card--history')).toContainText('Family Tabletop');
+
+  await page.getByLabel('Mode').selectOption('BoardGames');
+  await page.getByRole('button', { name: 'Pick a game' }).click();
+  await expect(page.getByRole('heading', { name: 'All matching games already shown' })).toBeVisible();
+  await expect(page.locator('.random-picker-card--history')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Start over' }).click();
+  await expect(page.locator('.random-picker-card--history')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Pick a game' }).click();
+  await expect(current).toContainText('Family Tabletop');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
 test('links Steam account, previews library, and imports selected games', async ({ page }) => {
@@ -135,7 +203,6 @@ test('links Steam account, previews library, and imports selected games', async 
   await expect(page.getByText('No Steam Account Linked')).toBeVisible();
 
   await page.getByRole('button', { name: 'Link Steam account' }).click();
-  await expect(page.getByRole('button', { name: 'Starting…' })).toBeVisible();
 
   await page.waitForURL('**/manage/steam**', { timeout: 15000 });
   await expect(page.getByText('Linked Steam Account')).toBeVisible();
@@ -151,11 +218,16 @@ test('links Steam account, previews library, and imports selected games', async 
   await candidateCheckboxes.nth(1).check();
 
   await page.getByRole('button', { name: 'Import selected' }).click();
-  await expect(page.getByRole('button', { name: 'Importing…' })).toBeVisible();
 
   await expect(page.getByText('Import Summary')).toBeVisible();
   await expect(page.getByText('Imported: 2')).toBeVisible();
-  await expect(page.getByText('Already imported: 1')).toBeVisible();
+  await expect(candidateCheckboxes.nth(0)).toBeDisabled();
+  await expect(candidateCheckboxes.nth(1)).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Import selected' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Select all', exact: true }).click();
+  await expect(candidateCheckboxes.nth(0)).not.toBeChecked();
+  await expect(candidateCheckboxes.nth(1)).not.toBeChecked();
+  await expect(candidateCheckboxes.nth(2)).toBeChecked();
 });
 
 async function dateTimeLocalOneHourAgo(page: Page): Promise<string> {

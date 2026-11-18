@@ -293,6 +293,9 @@ public class RandomPickerEndpointTests : IClassFixture<RandomPickerTestFactory>,
                 "game_genres",
                 "game_platforms",
                 "play_log_entries",
+                "steam_accounts",
+                "steam_link_requests",
+                "cover_uploads",
             }.OrderBy(x => x),
             tables.OrderBy(x => x));
     }

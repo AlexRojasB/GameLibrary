@@ -50,6 +50,12 @@ public class LibraryService
         }
     }
 
+    internal async Task<Library> EnsureInCleanContextAsync(string userId, CancellationToken ct)
+    {
+        await using var clean = _db.CreatePrimaryContext();
+        return await new LibraryService(clean).EnsureAsync(userId, ct);
+    }
+
     public async Task<IReadOnlyList<LibraryItemView>> BrowseAsync(
         string userId, LibraryQueryRequest request, CancellationToken ct)
     {
@@ -72,6 +78,11 @@ public class LibraryService
         if (parsed.AcquisitionStatuses.Count > 0)
         {
             query = query.Where(g => parsed.AcquisitionStatuses.Contains(g.LibraryEntry.AcquisitionStatus));
+        }
+
+        if (parsed.FamilyFriendlyOnly)
+        {
+            query = query.Where(g => g.IsFamilyFriendly);
         }
 
         if (parsed.RatingMin is not null)
@@ -124,7 +135,9 @@ public class LibraryService
                 g.MinimumPlayers,
                 g.MaximumPlayers,
                 g.ApproximateDuration,
-                g.InteractionType))
+                g.InteractionType,
+                g.IsFamilyFriendly,
+                g.CoverUploadId))
             .ToListAsync(ct);
     }
 

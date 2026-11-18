@@ -1,4 +1,31 @@
-<section class="cover-search" aria-label="Cover image search">
+<section class="cover-search" aria-label="Cover image selection">
+  <label class="cover-search__url">Cover image URL
+    <input type="url" maxlength="2048" placeholder="https://example.com/cover.jpg" [value]="manualUrl()" (input)="enterUrl($any($event.target).value)" [disabled]="sourceDisabled()" />
+  </label>
+  <div class="cover-search__actions">
+    <input #fileInput type="file" accept="image/jpeg,image/png,image/webp" hidden (change)="chooseFile(fileInput)" />
+    <input #cameraInput type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden (change)="chooseFile(cameraInput)" />
+    <button #uploadButton type="button" class="button button--secondary" [disabled]="sourceDisabled() || !uploadsEnabled()" (click)="openChooser(fileInput, uploadButton)">Upload image</button>
+    <button #cameraButton type="button" class="button button--secondary" [disabled]="sourceDisabled() || !uploadsEnabled()" (click)="openChooser(cameraInput, cameraButton)">Take photo</button>
+    <button type="button" class="button button--secondary" [disabled]="sourceDisabled() || !hasSelectedCover()" (click)="clearSelectedCover()">Remove cover</button>
+  </div>
+  <p class="cover-search__status">{{ uploadStatus() }}</p>
+  @if (localError()) { <p class="cover-search__error" role="alert">{{ localError() }}</p> }
+  @if (preparing()) {
+    <p role="status">Preparing image...</p>
+    <button type="button" (click)="finishEditing()">Cancel editing</button>
+  }
+  @defer (when editorImage() !== null) {
+    @if (editorImage(); as image) {
+      <app-cover-editor [image]="image" [initialFit]="gameType() === 'BoardGame'" (chosen)="useLocalImage($event)" (canceled)="finishEditing()" />
+    }
+  } @loading {
+    <p role="status">Opening image editor...</p>
+    <button type="button" (click)="finishEditing()">Cancel editing</button>
+  } @error {
+    <p role="alert">Unable to load the editor. Cancel editing and refresh to try again, or use an image URL.</p>
+    <button type="button" (click)="finishEditing()">Cancel editing</button>
+  }
   <div class="cover-search__heading">
     <div>
       <h3>Find a cover</h3>
@@ -12,12 +39,27 @@
   @if (showPlatformSelector()) {
     <label class="cover-search__platform" for="cover-search-platform">
       Search platform
-      <select id="cover-search-platform" [value]="effectivePlatformName()" (change)="changeSearchPlatform($any($event.target).value)">
+      <select id="cover-search-platform" [disabled]="sourceDisabled()" [value]="effectivePlatformName()" (change)="changeSearchPlatform($any($event.target).value)">
         @for (platformName of platformOptions(); track platformName) {
           <option [value]="platformName">{{ platformName }}</option>
         }
       </select>
     </label>
+  }
+
+  @if (hasSelectedCover()) {
+    <div class="cover-search__selected" aria-label="Selected cover">
+      @if (localPreviewUrl(); as url) {
+        @if (!previewBroken()) { <img [src]="url" alt="Pending local cover" (error)="previewBroken.set(true)" /> }
+        @else { <span>Preview unavailable</span> }
+      } @else {
+        <app-cover-image [coverImageUrl]="selectedCoverUrl()" [coverUploadId]="selectedUploadId()" alt="Selected cover" />
+      }
+      <button type="button" class="cover-search__clear" [disabled]="sourceDisabled()" (click)="clearSelectedCover()" aria-label="Clear selected cover">×</button>
+    </div>
+  }
+  @if (draft().intent !== 'keep') {
+    <p class="cover-search__status">Not saved{{ draft().intent === 'remove' ? ': cover will be removed on Save.' : ': cover changes apply on Save.' }}</p>
   }
 
   @if (loading()) {
@@ -33,11 +75,12 @@
   @if (candidates().length > 0) {
     <div class="cover-search__gallery" aria-label="Cover image candidates">
       @for (candidate of candidates(); track candidate.imageUrl) {
+        <div class="cover-search__candidate">
         <button
           type="button"
           class="cover-search-card"
           [class.cover-search-card--selected]="isSelected(candidate)"
-          [disabled]="isPreviewBroken(candidate)"
+            [disabled]="isPreviewBroken(candidate) || sourceDisabled()"
           [attr.aria-pressed]="isSelected(candidate)"
           (click)="selectCandidate(candidate)"
         >
@@ -62,6 +105,10 @@
             }
           </span>
         </button>
+        @if (candidate.sourcePageUrl) {
+          <a [href]="candidate.sourcePageUrl" target="_blank" rel="noopener noreferrer">{{ candidate.sourceName ? 'View source' : 'Source page' }}</a>
+        }
+        </div>
       }
     </div>
   }

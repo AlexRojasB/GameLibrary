@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../environments/environment';
 
-import { RandomPickerPickRequest, RandomPickerPickResponse } from './random-picker';
+import { RandomPickerMode, RandomPickerPickRequest, RandomPickerPickResponse } from './random-picker';
 import { RandomPickerService } from './random-picker.service';
 
 describe('RandomPickerService', () => {
@@ -23,17 +23,22 @@ describe('RandomPickerService', () => {
     httpMock.verify();
   });
 
-  it('posts the expected body to the random picker endpoint', () => {
+  it.each([
+    ['VideoGames', false], ['VideoGames', true],
+    ['BoardGames', false], ['BoardGames', true],
+    ['All', false], ['All', true],
+  ] as const)('posts %s with explicit familyFriendlyOnly=%s', (mode: RandomPickerMode, familyFriendlyOnly: boolean) => {
     const request: RandomPickerPickRequest = {
-      mode: 'VideoGames',
+      mode,
       shownLibraryEntryIds: ['shown-1'],
-      platformIds: ['p1'],
-      genreIds: ['g1'],
-      gameStatuses: ['Backlog'],
+      platformIds: mode === 'VideoGames' ? ['p1'] : [],
+      genreIds: mode === 'VideoGames' ? ['g1'] : [],
+      gameStatuses: mode === 'VideoGames' ? ['Backlog'] : [],
       playerCount: null,
       availableDuration: null,
       interactionTypes: [],
       ratingMin: null,
+      familyFriendlyOnly,
     };
     let result: RandomPickerPickResponse | undefined;
 

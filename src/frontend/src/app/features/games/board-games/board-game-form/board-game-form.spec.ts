@@ -1,16 +1,24 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { FormGroup } from '@angular/forms';
+import { By } from '@angular/platform-browser';
+import { provideRouter } from '@angular/router';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { createTestSession } from '../../../../core/auth/testing/supabase-client.mock';
 
 import { BoardGame, BoardGameInput } from '../../board-game';
 
 import { BoardGameForm } from './board-game-form';
+import { CoverImageSearch } from '../../cover-image-search/cover-image-search';
 
 const ownedGame: BoardGame = {
   id: '1',
   name: 'Catan',
   coverImageUrl: null,
+  coverUploadId: null,
+  isFamilyFriendly: false,
   minimumPlayers: 3,
   maximumPlayers: 4,
   approximateDuration: 60,
@@ -28,13 +36,15 @@ describe('BoardGameForm', () => {
   function configure(game: BoardGame | null = null): void {
     TestBed.configureTestingModule({
       imports: [BoardGameForm],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting(),
+        { provide: AuthService, useValue: { session: signal(createTestSession()), clearLocalSession: vi.fn() } }],
     });
     fixture = TestBed.createComponent(BoardGameForm);
     fixture.componentRef.setInput('game', game);
     fixture.componentRef.setInput('submitLabel', 'Save');
     fixture.detectChanges();
     httpMock = TestBed.inject(HttpTestingController);
+    httpMock.expectOne((request) => request.url.endsWith('/cover-uploads/options')).flush({ enabled: false });
   }
 
   function collectSubmitted(): BoardGameInput[] {
@@ -80,6 +90,11 @@ describe('BoardGameForm', () => {
   it('quick-adds an Owned board game with the approved default interaction type', () => {
     configure();
     const emitted = collectSubmitted();
+    const familyFriendly = (fixture.nativeElement as HTMLElement).querySelector('#board-game-form-family-friendly') as HTMLInputElement;
+    expect(familyFriendly.checked).toBe(false);
+    expect(familyFriendly.labels?.[0].textContent?.trim()).toBe('Family friendly');
+    expect((fixture.nativeElement as HTMLElement).querySelector(`#${familyFriendly.getAttribute('aria-describedby')}`)?.textContent)
+      .toContain('appropriate for family play');
 
     setName('  Catan  ');
     setNumber('#board-game-form-minimum', '3');
@@ -89,6 +104,7 @@ describe('BoardGameForm', () => {
     expect(emitted).toEqual([
       {
         name: 'Catan',
+        isFamilyFriendly: false,
         minimumPlayers: 3,
         maximumPlayers: 4,
         approximateDuration: null,
@@ -96,7 +112,7 @@ describe('BoardGameForm', () => {
         acquisitionStatus: 'Owned',
         rating: null,
         notes: null,
-        coverImageUrl: null,
+        coverUpdate: { intent: 'keep' },
       },
     ]);
   });
@@ -109,13 +125,14 @@ describe('BoardGameForm', () => {
       'board-game-form-name',
       'board-game-form-cover',
       'board-game-form-acquisition',
+      'board-game-form-family-friendly',
       'board-game-form-minimum',
       'board-game-form-duration',
       'board-game-form-rating',
       'board-game-form-notes',
     ];
     const positions = orderedIds.map((id) => {
-      const element = root.querySelector(`#${id}`);
+      const element = id === 'board-game-form-cover' ? root.querySelector('app-cover-image-search input[type="url"]') : root.querySelector(`#${id}`);
       if (element === null) {
         throw new Error(`Missing #${id}`);
       }
@@ -322,7 +339,7 @@ describe('BoardGameForm', () => {
     notesInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    const coverInput = (fixture.nativeElement as HTMLElement).querySelector('#board-game-form-cover') as HTMLInputElement;
+    const coverInput = (fixture.nativeElement as HTMLElement).querySelector('app-cover-image-search input[type="url"]') as HTMLInputElement;
     coverInput.value = '  https://example.com/img.png  ';
     coverInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
@@ -330,7 +347,7 @@ describe('BoardGameForm', () => {
     submit();
 
     expect(emitted[0].notes).toBe('fun');
-    expect(emitted[0].coverImageUrl).toBe('https://example.com/img.png');
+    expect(emitted[0].coverUpdate).toEqual({ intent: 'external', url: 'https://example.com/img.png' });
   });
 
   it('rejects notes longer than 5000 characters after trimming', () => {
@@ -360,7 +377,7 @@ describe('BoardGameForm', () => {
     setNumber('#board-game-form-minimum', '3');
     setNumber('#board-game-form-maximum', '4');
 
-    const coverInput = (fixture.nativeElement as HTMLElement).querySelector('#board-game-form-cover') as HTMLInputElement;
+    const coverInput = (fixture.nativeElement as HTMLElement).querySelector('app-cover-image-search input[type="url"]') as HTMLInputElement;
     coverInput.value = 'not-a-url';
     coverInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
@@ -400,6 +417,35 @@ describe('BoardGameForm', () => {
     expect(emitted[0].notes).toBe('Trading');
   });
 
+  it('submits true when Family friendly is selected on Add', () => {
+    configure();
+    const emitted = collectSubmitted();
+    setName('Family game');
+    setNumber('#board-game-form-minimum', '1');
+    setNumber('#board-game-form-maximum', '4');
+    const checkbox = (fixture.nativeElement as HTMLElement).querySelector('#board-game-form-family-friendly') as HTMLInputElement;
+    checkbox.click();
+    fixture.detectChanges();
+    submit();
+
+    expect(emitted[0].isFamilyFriendly).toBe(true);
+  });
+
+  it.each([false, true])('initializes Family friendly to %s on Edit and saves its opposite', (value) => {
+    configure({ ...ownedGame, isFamilyFriendly: value });
+    const emitted = collectSubmitted();
+    const checkbox = (fixture.nativeElement as HTMLElement).querySelector('#board-game-form-family-friendly') as HTMLInputElement;
+    expect(checkbox.checked).toBe(value);
+    submit();
+    expect(emitted[0].isFamilyFriendly).toBe(value);
+
+    checkbox.click();
+    fixture.detectChanges();
+    submit();
+
+    expect(emitted[1]).toEqual({ ...emitted[0], isFamilyFriendly: !value });
+  });
+
   it('submits Wishlist without clearing any field', () => {
     configure();
     const emitted = collectSubmitted();
@@ -411,5 +457,49 @@ describe('BoardGameForm', () => {
     submit();
 
     expect(emitted[0].acquisitionStatus).toBe('Wishlist');
+  });
+
+  it('keeps a saved managed cover on metadata-only submit, and explicitly removes it with the full snapshot', () => {
+    configure({ ...ownedGame, coverUploadId: 'managed' });
+    const emitted = collectSubmitted();
+    setName('Other edits');
+    submit();
+    expect(emitted[0].coverUpdate).toEqual({ intent: 'keep' });
+    expect(emitted[0]).not.toHaveProperty('coverImageUrl');
+    const selector = fixture.debugElement.query(By.directive(CoverImageSearch)).componentInstance as CoverImageSearch;
+    expect(selector.savedCover()?.coverUploadId).toBe('managed');
+    selector.draftChanged.emit({ intent: 'remove' });
+    submit();
+    expect(emitted[1].coverUpdate).toEqual({ intent: 'remove', expectedCover: { coverImageUrl: null, coverUploadId: 'managed' } });
+  });
+
+  it('a refreshed cover snapshot does not reinitialize metadata or infer keep from equal external values', () => {
+    configure({ ...ownedGame, coverImageUrl: 'https://example.test/a.jpg' });
+    const emitted = collectSubmitted();
+    setName('Unsaved edits');
+    fixture.componentInstance.draft.set({ intent: 'external', url: 'https://example.test/a.jpg' });
+    fixture.componentRef.setInput('savedCover', { coverImageUrl: null, coverUploadId: 'newer' });
+    fixture.detectChanges();
+    submit();
+    expect(emitted[0].name).toBe('Unsaved edits');
+    expect(emitted[0].coverUpdate).toEqual({
+      intent: 'external', url: 'https://example.test/a.jpg', expectedCover: { coverImageUrl: null, coverUploadId: 'newer' },
+    });
+  });
+
+  it('blocks submit while the selector is preparing/editor-open or the parent is saving', () => {
+    configure(ownedGame);
+    const emitted = collectSubmitted();
+    const selector = fixture.debugElement.query(By.directive(CoverImageSearch)).componentInstance as CoverImageSearch;
+    selector.busyChanged.emit(true);
+    fixture.componentInstance.submit();
+    expect(emitted).toEqual([]);
+    selector.busyChanged.emit(false);
+    fixture.componentRef.setInput('disabled', true);
+    fixture.componentInstance.submit();
+    expect(emitted).toEqual([]);
+    fixture.componentRef.setInput('disabled', false);
+    fixture.componentInstance.submit();
+    expect(emitted).toHaveLength(1);
   });
 });

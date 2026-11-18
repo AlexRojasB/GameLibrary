@@ -1,4 +1,5 @@
 using GameLibrary.Api.Auth;
+using GameLibrary.Api.CoverUploads;
 using GameLibrary.Api.VideoGames;
 using GameLibrary.Core.Games;
 using Microsoft.AspNetCore.Authorization;
@@ -52,6 +53,7 @@ public class VideoGamesController : ControllerBase
 
         try
         {
+            CoverUpdateParser.RejectLegacy(request.AdditionalProperties?.Keys.AsEnumerable() ?? []);
             var game = await _videoGames.CreateAsync(userId, ToInput(request), ct);
             return StatusCode(StatusCodes.Status201Created, ToResponse(game));
         }
@@ -77,6 +79,7 @@ public class VideoGamesController : ControllerBase
 
         try
         {
+            CoverUpdateParser.RejectLegacy(request.AdditionalProperties?.Keys.AsEnumerable() ?? []);
             var game = await _videoGames.UpdateAsync(userId, id, ToInput(request), ct);
             return Ok(ToResponse(game));
         }
@@ -114,12 +117,14 @@ public class VideoGamesController : ControllerBase
         Problem(title: "Invalid video game", detail: detail, statusCode: StatusCodes.Status400BadRequest);
 
     private static VideoGameInput ToInput(CreateVideoGameRequest r) => new(
-        r.Name, r.CoverImageUrl, r.AcquisitionStatus, r.PlatformIds, r.GenreIds,
-        r.GameStatus, r.ProgressPercentage, r.Rating, r.Notes, r.MinimumPlayers, r.MaximumPlayers);
+        r.Name, CoverUpdateParser.Parse(r.CoverUpdate, isCreate: true), r.AcquisitionStatus, r.PlatformIds, r.GenreIds,
+        r.GameStatus, r.ProgressPercentage, r.Rating, r.Notes, r.MinimumPlayers, r.MaximumPlayers,
+        r.IsFamilyFriendly);
 
     private static VideoGameInput ToInput(UpdateVideoGameRequest r) => new(
-        r.Name, r.CoverImageUrl, r.AcquisitionStatus, r.PlatformIds, r.GenreIds,
-        r.GameStatus, r.ProgressPercentage, r.Rating, r.Notes, r.MinimumPlayers, r.MaximumPlayers);
+        r.Name, CoverUpdateParser.Parse(r.CoverUpdate, isCreate: false), r.AcquisitionStatus, r.PlatformIds, r.GenreIds,
+        r.GameStatus, r.ProgressPercentage, r.Rating, r.Notes, r.MinimumPlayers, r.MaximumPlayers,
+        r.IsFamilyFriendly);
 
     private static VideoGameResponse ToResponse(VideoGameView v) => new(
         v.Id,
@@ -134,5 +139,7 @@ public class VideoGamesController : ControllerBase
         v.Notes,
         v.CreatedAt,
         v.MinimumPlayers,
-        v.MaximumPlayers);
+        v.MaximumPlayers,
+        v.IsFamilyFriendly,
+        v.CoverUploadId);
 }

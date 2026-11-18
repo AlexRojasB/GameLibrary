@@ -15,14 +15,24 @@ export class BoardGamesService {
   }
 
   create(input: BoardGameInput): Observable<BoardGame> {
-    return this.http.post<BoardGame>(`${environment.apiBaseUrl}/board-games`, input);
+    return this.http.post<BoardGame>(`${environment.apiBaseUrl}/board-games`, this.writeInput(input, true));
   }
 
   update(id: string, input: BoardGameInput): Observable<BoardGame> {
-    return this.http.put<BoardGame>(`${environment.apiBaseUrl}/board-games/${id}`, input);
+    return this.http.put<BoardGame>(`${environment.apiBaseUrl}/board-games/${id}`, this.writeInput(input, false));
   }
 
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${environment.apiBaseUrl}/board-games/${id}`);
+  }
+
+  private writeInput(input: BoardGameInput, create: boolean): BoardGameInput {
+    const { name, isFamilyFriendly, minimumPlayers, maximumPlayers, approximateDuration,
+      interactionType, acquisitionStatus, rating, notes } = input;
+    const coverUpdate = input.coverUpdate === undefined ? undefined : { ...input.coverUpdate };
+    if (create && coverUpdate !== undefined && coverUpdate.intent !== 'keep') delete coverUpdate.expectedCover;
+    return { name, isFamilyFriendly, minimumPlayers, maximumPlayers, approximateDuration,
+      interactionType, acquisitionStatus, rating, notes,
+      ...(coverUpdate === undefined ? {} : { coverUpdate }) };
   }
 }

@@ -16,6 +16,10 @@ public static class ClaimsPrincipalExtensions
     /// unauthenticated or lacks a usable <c>sub</c> claim. A missing <c>sub</c> must be
     /// treated as unauthenticated by callers.
     /// </summary>
-    public static string? GetSupabaseUserId(this ClaimsPrincipal principal) =>
-        principal.FindFirst(SubjectClaimType)?.Value;
+    public static string? GetSupabaseUserId(this ClaimsPrincipal principal)
+    {
+        if (principal.Identity?.IsAuthenticated != true) return null;
+        var subject = principal.FindFirst(SubjectClaimType)?.Value;
+        return string.IsNullOrWhiteSpace(subject) ? null : subject;
+    }
 }

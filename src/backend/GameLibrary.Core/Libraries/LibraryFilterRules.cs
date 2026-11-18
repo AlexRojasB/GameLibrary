@@ -97,7 +97,20 @@ public static class LibraryFilterRules
         ValidatePlayerCount(request.PlayerCount),
         ParseInteractionTypes(request.InteractionTypes),
         ParseGameStatuses(request.GameStatuses),
+        ParseFamilyFriendlyOnly(request.FamilyFriendlyOnly),
         ParseSort(request.Sort));
+
+    public static bool ParseFamilyFriendlyOnly(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        return bool.TryParse(value, out var parsed)
+            ? parsed
+            : throw new InvalidLibraryQueryException("Family friendly only must be a boolean.");
+    }
 
     private static IReadOnlyList<TEnum> ParseEnumList<TEnum>(IReadOnlyList<string>? values, string errorMessage)
         where TEnum : struct, Enum

@@ -1,9 +1,11 @@
-import { Component, effect, input, output, signal } from '@angular/core';
+import { Component, computed, effect, input, model, output, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 
 import type { AcquisitionStatus } from '../../acquisition-status';
 import { BoardGame, BoardGameInput, InteractionType } from '../../board-game';
 import { CoverImageSearch } from '../../cover-image-search/cover-image-search';
+import { CoverDraft, CoverReference } from '../../covers/cover-types';
+import { coverUpdateFor } from '../../covers/cover-save';
 
 const ACQUISITION_STATUSES: AcquisitionStatus[] = ['Owned', 'Wishlist', 'Interested'];
 const INTERACTION_TYPES: InteractionType[] = ['Cooperative', 'Competitive'];
@@ -18,6 +20,11 @@ export class BoardGameForm {
   readonly game = input<BoardGame | null>(null);
   readonly submitLabel = input('Save');
   readonly serverError = input('');
+  readonly disabled = input(false);
+  readonly draft = model<CoverDraft>({ intent: 'keep' });
+  readonly savedCover = input<CoverReference | null | undefined>(undefined);
+  protected readonly coverReference = computed(() => this.savedCover() === undefined ? this.game() : this.savedCover());
+  protected readonly coverBusy = signal(false);
 
   readonly submitted = output<BoardGameInput>();
   readonly cancelled = output<void>();
@@ -29,6 +36,7 @@ export class BoardGameForm {
 
   protected readonly form = new FormGroup({
     name: new FormControl('', { nonNullable: true }),
+    isFamilyFriendly: new FormControl(false, { nonNullable: true }),
     minimumPlayers: new FormControl<number | null>(null),
     maximumPlayers: new FormControl<number | null>(null),
     approximateDuration: new FormControl<number | null>(null),
@@ -36,7 +44,6 @@ export class BoardGameForm {
     acquisitionStatus: new FormControl<AcquisitionStatus>('Owned', { nonNullable: true }),
     rating: new FormControl<number | null>(null),
     notes: new FormControl<string | null>(null),
-    coverImageUrl: new FormControl<string | null>(null),
   });
 
   constructor() {
@@ -46,6 +53,7 @@ export class BoardGameForm {
         return;
       }
       this.form.controls.name.setValue(game.name, { emitEvent: false });
+      this.form.controls.isFamilyFriendly.setValue(game.isFamilyFriendly, { emitEvent: false });
       this.form.controls.minimumPlayers.setValue(game.minimumPlayers, { emitEvent: false });
       this.form.controls.maximumPlayers.setValue(game.maximumPlayers, { emitEvent: false });
       this.form.controls.approximateDuration.setValue(game.approximateDuration, { emitEvent: false });
@@ -53,11 +61,11 @@ export class BoardGameForm {
       this.form.controls.acquisitionStatus.setValue(game.acquisitionStatus);
       this.form.controls.rating.setValue(game.rating, { emitEvent: false });
       this.form.controls.notes.setValue(game.notes, { emitEvent: false });
-      this.form.controls.coverImageUrl.setValue(game.coverImageUrl, { emitEvent: false });
     });
   }
 
   submit(): void {
+    if (this.disabled() || this.coverBusy()) return;
     const validationError = this.validate();
     if (validationError !== null) {
       if (validationError !== '') {
@@ -70,6 +78,7 @@ export class BoardGameForm {
     const f = this.form.controls;
     this.submitted.emit({
       name: f.name.value.trim(),
+      isFamilyFriendly: f.isFamilyFriendly.value,
       minimumPlayers: f.minimumPlayers.value,
       maximumPlayers: f.maximumPlayers.value,
       approximateDuration: f.approximateDuration.value,
@@ -77,12 +86,12 @@ export class BoardGameForm {
       acquisitionStatus: f.acquisitionStatus.value,
       rating: f.rating.value,
       notes: trimToNull(f.notes.value),
-      coverImageUrl: trimToNull(f.coverImageUrl.value),
+      coverUpdate: this.draft().intent === 'local' ? { intent: 'keep' } : coverUpdateFor(this.draft(), this.coverReference() ?? null),
     });
   }
 
-  protected setCoverImageUrl(value: string): void {
-    this.form.controls.coverImageUrl.setValue(value);
+  protected changeCoverDraft(value: CoverDraft): void {
+    if (!this.disabled()) this.draft.set(value);
   }
 
   private validate(): string | null {
@@ -138,13 +147,11 @@ export class BoardGameForm {
     }
     f.notes.setErrors(null);
 
-    const cover = trimToNull(f.coverImageUrl.value);
-    if (cover !== null && (cover.length > 2048 || !/^https?:\/\//i.test(cover))) {
-      f.coverImageUrl.markAsTouched();
-      f.coverImageUrl.setErrors({ invalid: true });
-      return '';
+    const draft = this.draft();
+    if (draft.intent === 'external') {
+      const cover = draft.url.trim();
+      if (!cover || cover.length > 2048 || !/^https?:\/\//i.test(cover)) return 'Cover image URL is invalid.';
     }
-    f.coverImageUrl.setErrors(null);
 
     const rating = f.rating.value;
     if (rating !== null && (Number.isNaN(rating) || rating < 1 || rating > 5)) {

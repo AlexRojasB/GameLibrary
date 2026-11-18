@@ -113,14 +113,18 @@ public class PlatformService
         {
             await _db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException ex) when (IsForeignKeyViolation(ex))
+        catch (DbUpdateException ex) when (IsDeleteReferenceViolation(ex))
         {
             throw new PlatformInUseException();
         }
     }
 
-    private static bool IsForeignKeyViolation(DbUpdateException ex) =>
-        ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation };
+    private static bool IsDeleteReferenceViolation(DbUpdateException ex) =>
+        // ON DELETE RESTRICT can report 23001 instead of the usual FK code 23503.
+        ex.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.ForeignKeyViolation or PostgresErrorCodes.RestrictViolation
+        };
 
     private async Task<Platform> LoadOwnedAsync(string userId, Guid platformId, CancellationToken ct)
     {

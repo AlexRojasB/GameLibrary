@@ -33,10 +33,10 @@
           <span class="steam-card__steamid">SteamID64: {{ status()!.steamId64 }}</span>
         </div>
         <div class="steam-card__actions">
-          <button class="btn btn--primary" (click)="onPreview()" [disabled]="previewing() || importing()">
+          <button class="btn btn--primary" (click)="onPreview()" [disabled]="previewing() || importing() || unlinking()">
             {{ previewing() ? 'Loading…' : 'Preview Steam library' }}
           </button>
-          <button class="btn btn--danger" (click)="onUnlink()" [disabled]="unlinking() || importing()">
+          <button class="btn btn--danger" (click)="onUnlink()" [disabled]="unlinking() || importing() || previewing()">
             {{ unlinking() ? 'Unlinking…' : 'Unlink' }}
           </button>
         </div>
@@ -59,14 +59,23 @@
 
     @if (candidates().length > 0) {
       <div class="steam-preview">
-        <h2>Steam Library Preview</h2>
+        <div class="steam-preview__header">
+          <h2>Steam Library Preview</h2>
+          <button
+            class="btn btn--secondary"
+            (click)="onToggleAll()"
+            [disabled]="importing() || previewing() || unlinking()"
+          >
+            {{ allSelectableSelected() ? 'Deselect all' : 'Select all' }}
+          </button>
+        </div>
         <div class="steam-candidates">
           @for (candidate of candidates(); track candidate.steamAppId) {
             <label class="steam-candidate" [class.steam-candidate--imported]="candidate.alreadyImported">
               <input
                 type="checkbox"
                 [checked]="selected().has(candidate.steamAppId)"
-                [disabled]="candidate.alreadyImported || importing()"
+                [disabled]="candidate.alreadyImported || importing() || previewing() || unlinking()"
                 (change)="onToggle(candidate.steamAppId)"
               />
               <span class="steam-candidate__info">
@@ -75,7 +84,7 @@
                 @if (candidate.alreadyImported) {
                   <span class="steam-candidate__badge">Already imported</span>
                 }
-                @if (candidate.playtimeForeverMinutes != null) {
+                @if (candidate.playtimeForeverMinutes !== null) {
                   <span class="steam-candidate__playtime">{{ candidate.playtimeForeverMinutes }} min played</span>
                 }
               </span>
@@ -85,7 +94,7 @@
         <button
           class="btn btn--primary"
           (click)="onImport()"
-          [disabled]="importing() || !hasSelectedSelectable()"
+          [disabled]="importing() || previewing() || unlinking() || !hasSelectedSelectable()"
         >
           {{ importing() ? 'Importing…' : 'Import selected' }}
         </button>
@@ -104,6 +113,9 @@
           }
           @if (importResult()!.unavailable.length > 0) {
             <li>Unavailable: {{ importResult()!.unavailable.length }}</li>
+          }
+          @if (importResult()!.invalid.length > 0) {
+            <li>Invalid: {{ importResult()!.invalid.length }}</li>
           }
         </ul>
       </div>

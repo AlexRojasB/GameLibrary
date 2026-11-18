@@ -832,7 +832,12 @@ public class VideoGameEndpointTests : IClassFixture<VideoGameTestFactory>, IAsyn
 
         var response = await client.PutAsJsonAsync(
             $"/video-games/{game.Id}",
-            CreateBody("  New Name  ", acquisitionStatus: "Owned", platformIds: [platform.Id], genreIds: [actionGenre.Id], rating: 5, notes: "n", coverImageUrl: "https://example.com/x.jpg"));
+            CreateBody("  New Name  ", acquisitionStatus: "Owned", platformIds: [platform.Id], genreIds: [actionGenre.Id], rating: 5, notes: "n", coverUpdate: new
+            {
+                intent = "external",
+                url = "https://example.com/x.jpg",
+                expectedCover = new { coverImageUrl = game.CoverImageUrl, coverUploadId = game.CoverUploadId },
+            }));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<VideoGameResponse>();
@@ -959,18 +964,41 @@ public class VideoGameEndpointTests : IClassFixture<VideoGameTestFactory>, IAsyn
         }
     }
 
-    [Fact]
-    public async Task Platform_ReferencedByVideoGame_DeleteReturns409_AfterVideoGameDelete204()
+    [Theory]
+    [InlineData("Owned")]
+    [InlineData("Wishlist")]
+    [InlineData("Interested")]
+    public async Task Platform_ReferencedByVideoGame_RestrictViolationMapsTo409_ThenDelete204(string acquisitionStatus)
     {
         var client = ClientFor(NewSub());
         var platform = await PostPlatform(client, "Steam");
-        var game = await PostVideoGame(client, CreateBody("Game", acquisitionStatus: "Owned", platformIds: [platform.Id]));
+        var game = await PostVideoGame(client, CreateBody("Game", acquisitionStatus: acquisitionStatus, platformIds: [platform.Id]));
+
+        // PostgreSQL reports ON DELETE RESTRICT as 23001, not necessarily 23503.
+        // Exercise the actual relational backstop before checking its HTTP mapping.
+        await using (var db = CreateDbContext())
+        {
+            db.Platforms.Remove(await db.Platforms.SingleAsync(p => p.Id == platform.Id));
+            var error = await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+            Assert.Equal(Npgsql.PostgresErrorCodes.RestrictViolation,
+                Assert.IsType<Npgsql.PostgresException>(error.InnerException).SqlState);
+        }
+
+        var otherUser = ClientFor(NewSub());
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await otherUser.DeleteAsync($"/platforms/{platform.Id}")).StatusCode);
 
         var blocked = await client.DeleteAsync($"/platforms/{platform.Id}");
         Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
         var problem = await blocked.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("Platform in use", problem.GetProperty("title").GetString());
         Assert.Equal("This platform is in use and cannot be deleted.", problem.GetProperty("detail").GetString());
+
+        await using (var db = CreateDbContext())
+        {
+            Assert.True(await db.Platforms.AnyAsync(p => p.Id == platform.Id));
+            Assert.True(await db.GamePlatforms.AnyAsync(p => p.PlatformId == platform.Id));
+        }
 
         await client.DeleteAsync($"/video-games/{game.Id}");
 
@@ -1140,27 +1168,35 @@ public class VideoGameEndpointTests : IClassFixture<VideoGameTestFactory>, IAsyn
         int? progressPercentage = null,
         int? rating = null,
         string? notes = null,
-        string? coverImageUrl = null,
+        object? coverUpdate = null,
         int? minimumPlayers = null,
-        int? maximumPlayers = null) => new
+        int? maximumPlayers = null)
+    {
+        var body = new Dictionary<string, object?>
         {
-            name,
-            coverImageUrl,
-            acquisitionStatus,
-            platformIds,
-            genreIds,
-            gameStatus,
-            progressPercentage,
-            rating,
-            notes,
-            minimumPlayers,
-            maximumPlayers,
+            ["name"] = name,
+            ["acquisitionStatus"] = acquisitionStatus,
+            ["platformIds"] = platformIds,
+            ["genreIds"] = genreIds,
+            ["gameStatus"] = gameStatus,
+            ["progressPercentage"] = progressPercentage,
+            ["rating"] = rating,
+            ["notes"] = notes,
+            ["minimumPlayers"] = minimumPlayers,
+            ["maximumPlayers"] = maximumPlayers,
         };
+        if (coverUpdate is not null)
+        {
+            body["coverUpdate"] = coverUpdate;
+        }
+        return body;
+    }
 
     private sealed record VideoGameResponse(
         Guid Id,
         string Name,
         string? CoverImageUrl,
+        Guid? CoverUploadId,
         string AcquisitionStatus,
         IReadOnlyList<Guid> PlatformIds,
         IReadOnlyList<Guid> GenreIds,

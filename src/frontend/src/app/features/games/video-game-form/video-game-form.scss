@@ -51,6 +51,11 @@ form {
   font-weight: 700;
 }
 
+.game-form__check-card--standalone {
+  width: fit-content;
+  min-height: 2.75rem;
+}
+
 .game-form__error {
   color: var(--color-danger);
   margin: 0;

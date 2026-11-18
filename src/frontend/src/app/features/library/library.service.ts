@@ -33,6 +33,9 @@ function toParams(filters: LibraryFilterState, sort: LibrarySort): HttpParams {
   if (filters.playerCount !== null) {
     params = params.set('playerCount', String(filters.playerCount));
   }
+  if (filters.familyFriendlyOnly) {
+    params = params.set('familyFriendlyOnly', 'true');
+  }
 
   params = appendAll(params, 'acquisitionStatuses', filters.acquisitionStatuses);
   params = appendAll(params, 'platformIds', filters.platformIds);

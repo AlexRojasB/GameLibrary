@@ -20,4 +20,5 @@ public sealed record PlayLogEntryView(
     string? CoverImageUrl,
     DateTimeOffset PlayedAt,
     DateTimeOffset CreatedAt,
-    int? DurationMinutes);
+    int? DurationMinutes,
+    Guid? CoverUploadId);

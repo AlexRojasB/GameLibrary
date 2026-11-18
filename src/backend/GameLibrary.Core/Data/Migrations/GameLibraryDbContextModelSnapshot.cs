@@ -22,6 +22,82 @@ namespace GameLibrary.Core.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("GameLibrary.Core.CoverUploads.CoverUpload", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("ByteSize")
+                        .HasColumnType("integer")
+                        .HasColumnName("byte_size");
+
+                    b.Property<Guid?>("ClaimedGameId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("claimed_game_id");
+
+                    b.Property<DateTimeOffset?>("CleanupAfter")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cleanup_after");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("LibraryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("library_id");
+
+                    b.Property<string>("ObjectKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("object_key");
+
+                    b.Property<DateTimeOffset?>("RetiredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("retired_at");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<string>("StorageNamespace")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("storage_namespace");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LibraryId")
+                        .HasDatabaseName("ix_cover_uploads_library_id");
+
+                    b.HasIndex("CleanupAfter", "Id")
+                        .HasDatabaseName("ix_cover_uploads_due")
+                        .HasFilter("state <> 'Attached'");
+
+                    b.HasIndex("StorageNamespace", "ObjectKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_cover_uploads_locator");
+
+                    b.ToTable("cover_uploads", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_cover_uploads_byte_size", "byte_size BETWEEN 1 AND 2097152");
+
+                            t.HasCheckConstraint("ck_cover_uploads_dates", "(cleanup_after IS NULL OR cleanup_after >= created_at) AND (retired_at IS NULL OR retired_at >= created_at)");
+
+                            t.HasCheckConstraint("ck_cover_uploads_locator", "char_length(storage_namespace) > 0 AND char_length(object_key) > 0");
+
+                            t.HasCheckConstraint("ck_cover_uploads_shape", "(state IN ('Uploading', 'Ready') AND cleanup_after IS NOT NULL AND retired_at IS NULL AND claimed_game_id IS NULL) OR (state = 'Attached' AND claimed_game_id IS NOT NULL AND cleanup_after IS NULL AND retired_at IS NULL) OR (state = 'DeletePending' AND cleanup_after IS NOT NULL AND retired_at IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_cover_uploads_state", "state IN ('Uploading', 'Ready', 'Attached', 'DeletePending')");
+                        });
+                });
+
             modelBuilder.Entity("GameLibrary.Core.Games.Game", b =>
                 {
                     b.Property<Guid>("Id")
@@ -37,6 +113,10 @@ namespace GameLibrary.Core.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("cover_image_url");
 
+                    b.Property<Guid?>("CoverUploadId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cover_upload_id");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -51,6 +131,12 @@ namespace GameLibrary.Core.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("interaction_type");
+
+                    b.Property<bool>("IsFamilyFriendly")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_family_friendly");
 
                     b.Property<int?>("MaximumPlayers")
                         .HasColumnType("integer")
@@ -68,6 +154,11 @@ namespace GameLibrary.Core.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CoverUploadId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_games_cover_upload_id")
+                        .HasFilter("cover_upload_id IS NOT NULL");
+
                     b.ToTable("games", null, t =>
                         {
                             t.HasCheckConstraint("ck_games_approximate_duration", "approximate_duration IS NULL OR approximate_duration > 0");
@@ -75,6 +166,8 @@ namespace GameLibrary.Core.Data.Migrations
                             t.HasCheckConstraint("ck_games_board_columns_video_null", "game_type = 'BoardGame' OR (approximate_duration IS NULL AND interaction_type IS NULL)");
 
                             t.HasCheckConstraint("ck_games_board_players_required", "game_type = 'VideoGame' OR (minimum_players IS NOT NULL AND maximum_players IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_games_cover_exclusive", "cover_image_url IS NULL OR cover_upload_id IS NULL");
 
                             t.HasCheckConstraint("ck_games_game_type", "game_type IN ('VideoGame', 'BoardGame')");
 
@@ -268,6 +361,10 @@ namespace GameLibrary.Core.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("steam_app_id");
 
+                    b.Property<long?>("SteamPlaytimeMinutes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("steam_playtime_minutes");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GameId")
@@ -291,6 +388,8 @@ namespace GameLibrary.Core.Data.Migrations
                             t.HasCheckConstraint("ck_library_entries_rating", "rating IS NULL OR (rating BETWEEN 1 AND 5)");
 
                             t.HasCheckConstraint("ck_library_entries_steam_app_id", "steam_app_id IS NULL OR (steam_app_id BETWEEN 1 AND 4294967295)");
+
+                            t.HasCheckConstraint("ck_library_entries_steam_playtime_minutes", "steam_playtime_minutes IS NULL OR steam_playtime_minutes >= 0");
                         });
                 });
 
@@ -462,6 +561,23 @@ namespace GameLibrary.Core.Data.Migrations
 
                             t.HasCheckConstraint("ck_steam_link_requests_state_hash", "char_length(state_hash) = 64");
                         });
+                });
+
+            modelBuilder.Entity("GameLibrary.Core.CoverUploads.CoverUpload", b =>
+                {
+                    b.HasOne("GameLibrary.Core.Libraries.Library", null)
+                        .WithMany()
+                        .HasForeignKey("LibraryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("GameLibrary.Core.Games.Game", b =>
+                {
+                    b.HasOne("GameLibrary.Core.CoverUploads.CoverUpload", null)
+                        .WithOne()
+                        .HasForeignKey("GameLibrary.Core.Games.Game", "CoverUploadId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("GameLibrary.Core.Games.GameGenre", b =>

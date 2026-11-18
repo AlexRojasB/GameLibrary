@@ -162,6 +162,7 @@ public class LibraryFilterRulesTests
             2,
             ["Cooperative"],
             ["Playing"],
+            "true",
             "RatingDesc"));
 
         Assert.Equal("ma", result.Search);
@@ -174,5 +175,26 @@ public class LibraryFilterRulesTests
         Assert.Equal(InteractionType.Cooperative, Assert.Single(result.InteractionTypes));
         Assert.Equal(GameStatus.Playing, Assert.Single(result.GameStatuses));
         Assert.Equal(LibrarySort.RatingDesc, result.Sort);
+        Assert.True(result.FamilyFriendlyOnly);
+    }
+
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    [InlineData("false", false)]
+    [InlineData("true", true)]
+    [InlineData("TRUE", true)]
+    public void ParseFamilyFriendlyOnly_accepts_optional_boolean(string? value, bool expected)
+    {
+        Assert.Equal(expected, LibraryFilterRules.ParseFamilyFriendlyOnly(value));
+    }
+
+    [Theory]
+    [InlineData("yes")]
+    [InlineData("1")]
+    [InlineData("null")]
+    public void ParseFamilyFriendlyOnly_rejects_invalid_boolean(string value)
+    {
+        Assert.Throws<InvalidLibraryQueryException>(() => LibraryFilterRules.ParseFamilyFriendlyOnly(value));
     }
 }

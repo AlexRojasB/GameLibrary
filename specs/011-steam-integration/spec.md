@@ -5,7 +5,9 @@
 `Approved`
 
 This approved specification defines the MVP behavior for Steam account linking and
-explicit Steam-owned game import.
+explicit Steam-owned game import. It includes the 2026-08-28 approved product
+decision to persist Steam playtime as external reference data and to use supported
+Steam-provided cover data when safe.
 
 ## Feature
 
@@ -40,8 +42,9 @@ Product Specification -> Domain Specification -> Architecture Specification ->
 Feature Specification -> Implementation.
 
 Feature 011 uses the Product, Domain and Architecture amendments dated
-2026-08-25. Higher-authority behavior remains authoritative if a conflict is found
-during implementation.
+2026-08-25, plus the Product and Domain amendments dated 2026-08-28.
+Higher-authority behavior remains authoritative if a conflict is found during
+implementation.
 
 ## Official Steam Sources Reviewed
 
@@ -79,8 +82,8 @@ Relevant facts from those sources:
 - The partner host `partner.steam-api.com` is intended for secure publisher servers
   with publisher keys; the public host `api.steampowered.com` is the MVP default for
   a normal Steam Web API user key.
-- Steam library capsules exist for published store pages, but this specification does not
-  rely on undocumented CDN URL patterns for cover images.
+- Steam `GetOwnedGames` with `include_appinfo=true` returns app metadata including
+  image hashes such as `img_icon_url` and `img_logo_url`.
 
 ## Current Repository Assessment
 
@@ -155,7 +158,7 @@ Feature 011 must not introduce:
 - Steam friends, family sharing or social features.
 - Steam store price/purchase history.
 - Steam Deck compatibility metadata.
-- Steam cover/image CDN URL derivation from undocumented URL patterns.
+- Automatic cover search through Brave or Feature 010 during Steam import.
 - A global shared game catalog.
 - BoardGame imports.
 - Image upload/storage, object storage or CDN infrastructure.
@@ -193,8 +196,9 @@ does not alter imported data in the previous Library.
 
 ### Import Model
 
-Steam preview is read-only. It does not create a Library, Platform, Game or
-LibraryEntry.
+Steam preview does not create a Library, Platform, Game or LibraryEntry. It may
+refresh `SteamPlaytimeMinutes` for already-imported LibraryEntries returned by
+Steam so the stored Steam baseline remains current.
 
 Steam import is a separate explicit action. The user selects candidates and submits
 the selected Steam AppIDs. The backend refetches the selected AppIDs from Steam and
@@ -205,7 +209,7 @@ Imported games are normal VideoGames with:
 
 - `GameType = VideoGame`.
 - `Name = Steam app name`, trimmed and validated by existing VideoGame name rules.
-- `CoverImageUrl = null`.
+- `CoverImageUrl = supported Steam cover URL when available; otherwise null`.
 - `MinimumPlayers = null`.
 - `MaximumPlayers = null`.
 - `AcquisitionStatus = Owned`.
@@ -216,6 +220,7 @@ Imported games are normal VideoGames with:
 - `Rating = null`.
 - `Notes = null`.
 - `SteamAppId = imported Steam AppID`.
+- `SteamPlaytimeMinutes = Steam playtime_forever when available; otherwise null`.
 
 The import service reuses an existing user-owned Platform named exactly `Steam` by
 case-insensitive Platform name semantics, or creates it when importing at least one
@@ -246,25 +251,64 @@ future approved feature designs a second store integration.
 
 ### Steam Playtime
 
-Steam may return playtime fields for owned games. Feature 011 may display
-Steam-reported playtime in preview/import results as external reference text.
+Steam may return playtime fields for owned games. `playtime_forever`, when
+available, is persisted on `LibraryEntry.SteamPlaytimeMinutes` as Steam's latest
+known accumulated playtime total in minutes.
 
-Feature 011 must not persist Steam playtime in Game, LibraryEntry or PlayLogEntry.
-It must not create PlayLogEntries, infer GameStatus or ProgressPercentage, change
-Random Picker eligibility, or influence Random Picker selection.
+SteamPlaytimeMinutes is external reference data only. It is not Game Library Play
+Log data. It must not create PlayLogEntries, infer or change GameStatus, infer or
+change ProgressPercentage, change Random Picker eligibility, or influence Random
+Picker selection.
+
+On first Steam import, store Steam `playtime_forever` when Steam provides it. If
+Steam omits playtime, store null and do not invent a value.
+
+On later Steam preview/import/refresh for an already-imported Steam game:
+
+- `previous = stored SteamPlaytimeMinutes`.
+- `current = latest Steam playtime_forever`.
+- If `current` is null, preserve the existing stored value and produce no delta.
+- If `previous` and `current` are both present, `delta = max(0, current - previous)`.
+- If `previous` is null and `current` is present, update the stored value to
+  `current`; no known positive delta is produced because there is no stored
+  baseline.
+- If Steam reports a lower total, treat it as a reset/correction: delta is `0` and
+  the stored value updates to the lower current value.
+- Never produce a negative delta.
+
+The calculated delta may be returned or displayed transiently by a future explicit
+flow, but Feature 011 does not automatically convert it to a PlayLogEntry. A future
+explicit "Log Steam playtime" action may convert a known increment into a
+PlayLogEntry, but that action is out of scope for this feature.
 
 ### Covers
 
-Imported Steam games do not automatically set `CoverImageUrl`.
+Steam `GetOwnedGames` with `include_appinfo=true` may return `img_icon_url` and
+`img_logo_url` hashes. Feature 011 uses `img_logo_url` as the supported Steam image
+source for initial imported-game covers and ignores `img_icon_url` for covers
+because it is an icon-sized asset.
 
-Rationale: Steam docs reviewed for this specification document library assets but do not
-provide an official stable Web API field for cover/capsule URLs in
-`GetOwnedGames`. Feature 010 cover search remains the supported way to assist cover
-selection after import.
+When `img_logo_url` is non-empty, construct the cover URL exactly as:
+
+`https://cdn.akamai.steamstatic.com/steam/apps/{steamAppId}/{img_logo_url}.jpg`
+
+Imported game behavior:
+
+- If `CoverImageUrl` is null and Steam provides a usable `img_logo_url`, populate
+  `CoverImageUrl` with the constructed Steam image URL.
+- If no usable Steam image exists, leave `CoverImageUrl` null.
+- If an imported game already has any non-null CoverImageUrl, including a manual
+  URL, never overwrite it during Steam refresh/re-import.
+- Do not automatically call Brave or Feature 010 Cover Image Search during Steam
+  import.
+- Feature 010 Cover Image Search remains available as the fallback or replacement
+  path.
 
 ## Persistence
 
-Create one EF Core migration, for example `AddSteamIntegration`.
+Feature 011 application schema is managed by EF Core migrations. `AddSteamIntegration`
+adds account/link/import identity persistence. `AddSteamPlaytimeTracking` adds
+Steam playtime reference persistence.
 
 ### `steam_accounts`
 
@@ -343,6 +387,23 @@ Rules:
 - `0`, negative values and values above unsigned 32-bit max are invalid.
 - Use a C# representation that safely handles the full unsigned 32-bit range and
   serializes cleanly.
+
+### `library_entries.steam_playtime_minutes`
+
+Add nullable `steam_playtime_minutes` to `library_entries`.
+
+Rules:
+
+- Type: `bigint`.
+- Nullable because Steam may omit playtime data and existing rows have no Steam
+  playtime baseline.
+- Check: `steam_playtime_minutes IS NULL OR steam_playtime_minutes >= 0`.
+- The column stores Steam's latest known accumulated playtime total in minutes for
+  the LibraryEntry's immutable SteamAppId.
+- The value may be set during first Steam import and refreshed by later Steam
+  preview/import/refresh operations when Steam returns a non-null value.
+- If Steam omits playtime during a later operation, keep the existing stored value.
+- The value is not Play Log data and must not create PlayLogEntries automatically.
 
 ## Configuration
 
@@ -648,13 +709,14 @@ Candidate normalization:
   `1..4294967295`; AppID `0` is invalid.
 - `name` is required, trimmed, non-empty, and must fit existing VideoGame name
   length. Invalid candidates are skipped.
-- `playtimeForeverMinutes` is optional external display data only.
+- `playtimeForeverMinutes` is optional external reference data. It may refresh the
+  stored SteamPlaytimeMinutes baseline for already-imported returned AppIDs.
 - `alreadyImported` is computed by checking `library_entries.steam_app_id` in the
   caller's Library.
 - Sort by name case-insensitively, then Steam AppID ascending.
 
-Steam icon hashes may be ignored for MVP because this specification does not rely on
-undocumented image URL construction.
+Steam `img_logo_url` may be used for imported-game covers using the exact URL rule
+defined in Product Decisions / Covers. `img_icon_url` is ignored for covers.
 
 ### Import
 
@@ -723,14 +785,17 @@ Import transaction/concurrency semantics for the caller's Library:
    equivalent per-Library database lock using existing EF/PostgreSQL capabilities.
 4. After acquiring the lock, re-query existing non-null `steam_app_id` values for
    the selected AppIDs in the caller's Library.
-5. Classify rechecked matches as `alreadyImported`.
-6. Determine remaining new valid games.
-7. Case-insensitively look for the user-owned Platform named exactly `Steam`; reuse
+5. For already-imported matches, refresh `SteamPlaytimeMinutes` from non-null Steam
+   `playtime_forever`, preserving the current stored value when Steam omits
+   playtime. Calculate any transient delta using the Steam Playtime rules.
+6. Classify rechecked matches as `alreadyImported`.
+7. Determine remaining new valid games.
+8. Case-insensitively look for the user-owned Platform named exactly `Steam`; reuse
    it if found.
-8. Create the `Steam` Platform only if at least one new game will actually be
+9. Create the `Steam` Platform only if at least one new game will actually be
    imported.
-9. Create all new valid Game + LibraryEntry rows.
-10. Commit.
+10. Create all new valid Game + LibraryEntry rows.
+11. Commit.
 
 Concurrent import requests for the same Library therefore serialize. Example:
 request A and request B both import AppID `570`; A obtains the lock, imports and
@@ -868,6 +933,7 @@ The Steam page shows:
 - Linked SteamID64 and `Unlink` action when linked.
 - `Preview Steam library` action when linked.
 - Candidate list with checkbox selection.
+- `Select all` / `Deselect all` toggle button above the candidate list.
 - Already-imported candidates disabled with visible label.
 - Import selected action with pending state and duplicate-click protection.
 - Import summary listing imported, already imported and unavailable counts.
@@ -886,6 +952,8 @@ Interaction rules:
   non-persistent success/failure notice based on query string.
 - `Preview Steam library` is explicit and repeatable.
 - Changing selection does not call Steam.
+- `Select all` selects all non-imported candidates. `Deselect all` clears the
+  selection. The button label reflects the current state.
 - `Import selected` is disabled when no selectable candidates are selected.
 - Duplicate click while preview/import is pending issues no duplicate request.
 - After successful import, imported candidates become already imported or the page
@@ -945,7 +1013,8 @@ Add focused unit tests for pure Steam rules/service behavior:
 - Preview candidate normalization skips invalid AppID `0`.
 - Preview candidate normalization marks already-imported AppIDs.
 - Import planning separates new, already-imported, unavailable and invalid AppIDs.
-- Steam playtime is not mapped to PlayLogEntry, GameStatus or ProgressPercentage.
+- Steam playtime is persisted only as LibraryEntry reference data and is not mapped
+  to PlayLogEntry, GameStatus or ProgressPercentage.
 - OpenID callback validation rejects wrong `openid.mode`, wrong `openid.op_endpoint`,
   wrong `openid.return_to`, wrong `openid.realm`, `identity != claimed_id`,
   malformed claimed id, invalid SteamID64 and Steam `check_authentication=false`.
@@ -1033,6 +1102,7 @@ Use existing Vitest/Angular patterns. Required coverage:
 - Unlink action calls `DELETE /steam/link` and updates state.
 - Preview action is explicit and has loading/duplicate-click protection.
 - Preview candidates render with selectable checkboxes.
+- Select all selects all non-imported candidates; deselect all clears selection.
 - Already-imported candidates are disabled and labeled.
 - No-visible-games state renders privacy/help text.
 - Import selected is disabled with no selection.
@@ -1115,22 +1185,31 @@ Test-provider safety:
 3. Imported games are Owned VideoGames.
 4. Imported games have at least one Platform.
 5. The user's `Steam` Platform is reused or created only when needed for import.
-6. Imported games have `CoverImageUrl = null`.
-7. Imported games do not receive genres, rating, notes, GameStatus, Progress or
+6. Imported games populate CoverImageUrl only from a supported Steam `img_logo_url`
+   when available; otherwise CoverImageUrl remains null.
+7. Steam refresh/re-import never overwrites an existing non-null CoverImageUrl.
+8. Imported games do not receive genres, rating, notes, GameStatus, Progress or
    player-count metadata automatically.
-8. A Steam AppID can be imported at most once per Library.
-9. Manual same-name games without Steam AppID are not merged or overwritten.
-10. Steam import does not create PlayLogEntries.
-11. Steam playtime does not affect Random Picker behavior.
-12. Steam AppIDs must be in the positive unsigned 32-bit range `1..4294967295`.
-13. Import requests are limited to 100 AppIDs and reject invalid requested AppIDs
+9. A Steam AppID can be imported at most once per Library.
+10. Manual same-name games without Steam AppID are not merged or overwritten.
+11. Steam import/refresh does not create PlayLogEntries.
+12. Steam playtime does not affect Random Picker behavior.
+13. First import stores non-null Steam playtime when available and stores null when
+    Steam omits playtime.
+14. Re-import/refresh of already-imported AppIDs updates SteamPlaytimeMinutes when
+    Steam returns a non-null current total, calculates positive deltas only from a
+    known lower previous total, and never produces a negative delta.
+15. Re-import/refresh with missing Steam playtime preserves the existing nullable
+    stored value.
+16. Steam AppIDs must be in the positive unsigned 32-bit range `1..4294967295`.
+17. Import requests are limited to 100 AppIDs and reject invalid requested AppIDs
     before provider calls.
-14. Steam import/refetch uses URL-encoded `input_json` with `appids_filter` for the
+18. Steam import/refetch uses URL-encoded `input_json` with `appids_filter` for the
     selected AppIDs.
-15. Concurrent imports for the same Library serialize through PostgreSQL locking,
+19. Concurrent imports for the same Library serialize through PostgreSQL locking,
     recheck existing `steam_app_id` values after the lock, and do not create
     duplicate LibraryEntries or duplicate Steam Platforms.
-16. Normal per-item outcomes include imported, alreadyImported, unavailable and
+20. Normal per-item outcomes include imported, alreadyImported, unavailable and
     invalid; unexpected write failures roll back new imports from that request.
 
 ### Security
@@ -1153,17 +1232,19 @@ Test-provider safety:
 
 ### Persistence
 
-1. EF Core migration adds `steam_accounts`, `steam_link_requests`, and nullable
-   `library_entries.steam_app_id`.
-2. Existing rows remain valid with `steam_app_id = null`.
+1. EF Core migrations add `steam_accounts`, `steam_link_requests`, nullable
+   `library_entries.steam_app_id`, and nullable
+   `library_entries.steam_playtime_minutes`.
+2. Existing rows remain valid with `steam_app_id = null` and
+   `steam_playtime_minutes = null`.
 3. Unique constraints enforce one Steam account per Library and one Library per
    SteamID64.
 4. A filtered unique index enforces one `steam_app_id` per Library.
-5. No Steam API response payloads, preview candidates or playtime values are
-   persisted.
-6. `steam_accounts.library_id` cascades on Library deletion and does not block
+5. `steam_playtime_minutes` rejects negative values.
+6. No Steam API response payloads or preview candidates are persisted.
+7. `steam_accounts.library_id` cascades on Library deletion and does not block
    Library deletion.
-7. `library_entries.steam_app_id` rejects `0`, negative values and values above
+8. `library_entries.steam_app_id` rejects `0`, negative values and values above
    unsigned 32-bit max.
 
 ### Testing

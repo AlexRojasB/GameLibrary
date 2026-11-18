@@ -1,4 +1,5 @@
 using GameLibrary.Core.Data;
+using GameLibrary.Core.CoverUploads;
 using GameLibrary.Core.Libraries;
 using GameLibrary.Core.Platforms;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,7 @@ namespace GameLibrary.Core.Games;
 /// </summary>
 public sealed record VideoGameInput(
     string? Name,
-    string? CoverImageUrl,
+    CoverUpdate? CoverUpdate,
     string? AcquisitionStatus,
     IReadOnlyList<Guid>? PlatformIds,
     IReadOnlyList<Guid>? GenreIds,
@@ -21,7 +22,8 @@ public sealed record VideoGameInput(
     int? Rating,
     string? Notes,
     int? MinimumPlayers,
-    int? MaximumPlayers);
+    int? MaximumPlayers,
+    bool? IsFamilyFriendly = null);
 
 /// <summary>
 /// Read-model projection of a VideoGame (Game + its LibraryEntry + associations).
@@ -40,7 +42,9 @@ public sealed record VideoGameView(
     IReadOnlyList<Guid> PlatformIds,
     IReadOnlyList<Guid> GenreIds,
     int? MinimumPlayers,
-    int? MaximumPlayers);
+    int? MaximumPlayers,
+    bool IsFamilyFriendly,
+    Guid? CoverUploadId);
 
 /// <summary>
 /// Authoritative backend enforcement layer for VideoGame operations. Ownership is
@@ -51,12 +55,12 @@ public sealed record VideoGameView(
 public class VideoGameService
 {
     private readonly GameLibraryDbContext _db;
-    private readonly LibraryService _libraries;
+    private readonly CoverUploadService _covers;
 
-    public VideoGameService(GameLibraryDbContext db, LibraryService libraries)
+    public VideoGameService(GameLibraryDbContext db, LibraryService libraries, CoverUploadService covers)
     {
         _db = db;
-        _libraries = libraries;
+        _covers = covers;
     }
 
     public async Task<IReadOnlyList<VideoGameView>> ListAsync(string userId, CancellationToken ct)
@@ -81,14 +85,15 @@ public class VideoGameService
                 g.LibraryEntry.GamePlatforms.Select(gp => gp.PlatformId).ToList(),
                 g.GameGenres.Select(gg => gg.GenreId).ToList(),
                 g.MinimumPlayers,
-                g.MaximumPlayers))
+                g.MaximumPlayers,
+                g.IsFamilyFriendly,
+                g.CoverUploadId))
             .ToListAsync(ct);
     }
 
     public async Task<VideoGameView> CreateAsync(string userId, VideoGameInput input, CancellationToken ct)
     {
         var name = VideoGameRules.ValidateAndTrimName(input.Name);
-        var coverImageUrl = VideoGameRules.ValidateAndNormalizeCoverImageUrl(input.CoverImageUrl);
         var notes = VideoGameRules.ValidateAndNormalizeNotes(input.Notes);
         var acquisitionStatus = VideoGameRules.ParseAcquisitionStatus(input.AcquisitionStatus, isCreate: true);
         var gameStatus = VideoGameRules.ParseGameStatus(input.GameStatus);
@@ -100,7 +105,8 @@ public class VideoGameService
         var (normalizedStatus, normalizedProgress) =
             VideoGameRules.NormalizeStatusAndProgress(acquisitionStatus, gameStatus, input.ProgressPercentage);
 
-        var library = await _libraries.EnsureAsync(userId, ct);
+        await using var transaction = await _covers.BeginGameMutationAsync(userId, null, ct);
+        var library = await _db.Libraries.SingleAsync(l => l.UserId == userId, ct);
 
         var (platformIds, genreIds) = await ResolveReferencesAsync(userId, input.PlatformIds, input.GenreIds, ct);
         VideoGameRules.ValidatePlatformRequirement(acquisitionStatus, platformIds.Count);
@@ -111,7 +117,7 @@ public class VideoGameService
             Id = Guid.NewGuid(),
             GameType = GameType.VideoGame,
             Name = name,
-            CoverImageUrl = coverImageUrl,
+            IsFamilyFriendly = GameRules.NormalizeFamilyFriendly(input.IsFamilyFriendly),
             MinimumPlayers = minimumPlayers,
             MaximumPlayers = maximumPlayers,
             CreatedAt = now,
@@ -141,20 +147,22 @@ public class VideoGameService
             entry.GamePlatforms.Add(new GamePlatform { LibraryEntryId = entry.Id, PlatformId = platformId });
         }
 
+        await _covers.ApplyAsync(library.Id, game, input.CoverUpdate, isCreate: true, ct);
         _db.Games.Add(game);
         await SaveOrMapReferenceFailuresAsync(ct);
+        await _covers.CommitAsync(transaction, userId, input.CoverUpdate?.UploadId, ct);
 
         return ToView(game, entry);
     }
 
     public async Task<VideoGameView> UpdateAsync(string userId, Guid gameId, VideoGameInput input, CancellationToken ct)
     {
+        await using var transaction = await _covers.BeginGameMutationAsync(userId, gameId, ct);
         var game = await LoadOwnedAsync(userId, gameId, ct);
         var entry = game.LibraryEntry;
         var persistedStatus = entry.AcquisitionStatus;
 
         var name = VideoGameRules.ValidateAndTrimName(input.Name);
-        var coverImageUrl = VideoGameRules.ValidateAndNormalizeCoverImageUrl(input.CoverImageUrl);
         var targetStatus = VideoGameRules.ParseAcquisitionStatus(input.AcquisitionStatus, isCreate: false);
 
         var isTransition = VideoGameRules.IsOwnedToNonOwnedTransition(persistedStatus, targetStatus);
@@ -202,8 +210,9 @@ public class VideoGameService
         var (normalizedStatus, normalizedProgress) =
             VideoGameRules.NormalizeStatusAndProgress(targetStatus, gameStatus, progress);
 
+        await _covers.ApplyAsync(entry.LibraryId, game, input.CoverUpdate, isCreate: false, ct);
         game.Name = name;
-        game.CoverImageUrl = coverImageUrl;
+        game.IsFamilyFriendly = GameRules.NormalizeFamilyFriendly(input.IsFamilyFriendly);
         game.MinimumPlayers = minimumPlayers;
         game.MaximumPlayers = maximumPlayers;
 
@@ -232,15 +241,17 @@ public class VideoGameService
 
         await SaveOrMapReferenceFailuresAsync(ct);
 
+        await _covers.CommitAsync(transaction, userId, input.CoverUpdate?.UploadId, ct);
+
         return ToView(game, entry);
     }
 
     public async Task DeleteAsync(string userId, Guid gameId, CancellationToken ct)
     {
+        await using var transaction = await _covers.BeginGameMutationAsync(userId, gameId, ct);
         var game = await LoadOwnedAsync(userId, gameId, ct);
         var entry = game.LibraryEntry;
-
-        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+        await _covers.RetireForDeletionAsync(game, ct);
 
         _db.LibraryEntries.Remove(entry);
         await _db.SaveChangesAsync(ct);
@@ -248,7 +259,7 @@ public class VideoGameService
         _db.Games.Remove(game);
         await _db.SaveChangesAsync(ct);
 
-        await transaction.CommitAsync(ct);
+        await _covers.CommitAsync(transaction, userId, game.CoverUploadId, ct);
     }
 
     /// <summary>
@@ -361,7 +372,9 @@ public class VideoGameService
         entry.GamePlatforms.Select(gp => gp.PlatformId).ToList(),
         game.GameGenres.Select(gg => gg.GenreId).ToList(),
         game.MinimumPlayers,
-        game.MaximumPlayers);
+        game.MaximumPlayers,
+        game.IsFamilyFriendly,
+        game.CoverUploadId);
 
     /// <summary>
     /// Saves the current changes. A concurrent delete of a referenced Platform (or

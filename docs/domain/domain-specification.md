@@ -1,7 +1,22 @@
-Domain Specification v0.7 --- Game Library
+Domain Specification v0.9 --- Game Library
 
 Status: Approved
-Version: 0.7
+Version: 0.9
+
+Feature 013 amendment, 2026-10-28 -- Approved design:
+
+A Game may have either its existing external CoverImageUrl or one private managed
+CoverUploadId, never both. Section 16 defines owner-scoped staging, atomic claim,
+explicit cover intent, concurrency, bounded recovery receipts and retirement.
+CoverImageUrl remains external-only in persistence AND responses; managed covers
+return null for that field and are read through authenticated API byte delivery,
+never generated/exposed signed URLs. Existing rows/URLs remain unchanged.
+
+The narrow exception supersedes the former upload/storage deferral in sections
+16 and 36. It changes no acquisition, Family Friendly, Steam identity/playtime,
+Play Log, filtering, Picker or Game/LibraryEntry lifetime invariant. This approves
+the design only, not implementation, applied schema or passed verification.
+EF migrations and all lifecycle/isolation/concurrency tests remain future work.
 
 Manual review amendment, 2026-08-19:
 
@@ -26,12 +41,14 @@ not change. The ownership path remains PlayLogEntry -> LibraryEntry -> Library.
 
 Feature 010 amendment, 2026-08-24:
 
-CoverImageUrl remains the only persisted cover-image domain data. A user may
-enter the URL directly or choose a URL from optional external cover-search
-assistance, but search candidates, provider metadata and search history are not
-domain entities and are not persisted.
+At the time of Feature 010, CoverImageUrl was the only persisted cover-image
+domain data. This is historical Feature 010 scope, superseded only for managed
+covers by the approved Feature 013 amendment and section 16. A user may still
+enter an external URL directly or choose one from optional external cover-search
+assistance; search candidates, provider metadata and search history remain
+non-domain data and are not persisted.
 
-Feature 011 amendment, 2026-08-25:
+Feature 011 amendment, 2026-08-25; updated 2026-08-28:
 
 Steam integration introduces one optional SteamAccount link per Library and an
 optional SteamAppId reference on imported VideoGame LibraryEntries. A SteamAccount
@@ -41,9 +58,27 @@ cookies or Steam access tokens. A SteamAppId reference is used only to recognize
 and avoid duplicate imports from the same Library; it is not a global shared game
 catalog. Steam import candidates and Steam API responses are not domain entities.
 An imported Steam game is still a normal Owned VideoGame and must satisfy all
-VideoGame LibraryEntry invariants. Steam-reported playtime is external import
-review data in this feature and must not create PlayLogEntries, affect Random
-Picker eligibility or weighting, or become automatic gameplay tracking.
+VideoGame LibraryEntry invariants. Steam-reported playtime may be persisted on
+the LibraryEntry as the latest known accumulated Steam playtime total in minutes.
+It is external reference data only and must not create PlayLogEntries, affect
+GameStatus, ProgressPercentage, Random Picker eligibility or weighting, or
+become automatic gameplay tracking. Steam-provided cover data may populate the
+Game's CoverImageUrl only when BOTH CoverImageUrl and CoverUploadId are null and
+the Steam image source is reliable and supported. This empty-cover predicate must
+be atomic; an existing external URL or managed cover must not be overwritten by
+Steam refresh/import behavior.
+
+Feature 012 amendment, 2026-08-28:
+
+Every Game has a required IsFamilyFriendly boolean classification. It applies to
+VideoGames and BoardGames and records whether the user considers the game
+appropriate for family play. It is not an age-rating, content-warning,
+parental-control or minimum-age model. New games default to false unless the user
+explicitly marks them family-friendly. Existing rows introduced before this field
+are migrated to false. Steam imports must not infer this value from Steam metadata
+and use the same false default unless edited later by the user. Library and Random
+Picker filtering may optionally require IsFamilyFriendly = true without changing
+existing ownership, mode, shown-history or other filter semantics.
 
 1. Purpose
 
@@ -150,11 +185,18 @@ Name.
 
 Optional CoverImageUrl.
 
+Optional CoverUploadId, mutually exclusive with CoverImageUrl (section 16).
+
+IsFamilyFriendly.
+
 Optional MinimumPlayers and MaximumPlayers when the Game is a VideoGame.
 
 Creation timestamp.
 
 A Game is a VideoGame or BoardGame.
+
+IsFamilyFriendly is required and defaults to false on creation unless explicitly
+set to true by the user.
 
 Names are not unique.
 
@@ -170,6 +212,8 @@ A VideoGame may optionally contain player-count metadata:
 MinimumPlayers.
 
 MaximumPlayers.
+
+A VideoGame has an IsFamilyFriendly classification inherited from Game.
 
 Rules:
 
@@ -197,6 +241,8 @@ MaximumPlayers.
 Optional ApproximateDuration in minutes.
 
 Optional InteractionType.
+
+IsFamilyFriendly classification inherited from Game.
 
 Rules:
 
@@ -236,7 +282,9 @@ For VideoGames it may additionally contain GameStatus,
 ProgressPercentage and Platforms subject to the rules below.
 
 For Steam-imported VideoGames it may additionally contain a SteamAppId reference
-used to avoid duplicate Steam imports in the same Library.
+used to avoid duplicate Steam imports in the same Library and nullable
+SteamPlaytimeMinutes reference data representing Steam's latest known
+accumulated playtime total in minutes.
 
 9A. PlayLogEntry (Feature 009 Amendment)
 
@@ -453,25 +501,115 @@ Notes belong to LibraryEntry, are optional and personal to the user.
 
 Notes are not Platform-specific.
 
-16. CoverImageUrl
+16. Cover Selection and Upload Lifecycle
 
-CoverImageUrl belongs to Game and is optional.
+CoverImageUrl and CoverUploadId belong to Game and are nullable. At most one is
+non-null. Both null means no cover. CoverImageUrl is exclusively an external
+manual/search/supported Steam URL in the database AND API responses. A managed
+cover has CoverImageUrl=null and a current CoverUploadId; neither API content
+paths, Blob/object URLs nor signed URLs are external cover identity. Existing
+URLs are preserved; existing Games acquire a null CoverUploadId.
 
-For the MVP:
+Only the chosen external URL is persisted for external covers. Search candidates,
+provider metadata/history, image bytes, Base64, original photos, EXIF/GPS, crop
+history and multiple renditions are not domain data. There is one current cover,
+not a gallery, fallback stack or user-visible image history.
 
-It is stored as an image URL.
+Cover upload records
 
-It may be supplied by manual URL entry or by the user selecting a URL from
-external cover-search assistance.
+One cover-specific table, cover_uploads, records an opaque server-generated ID,
+Library, immutable object_key and storage_namespace, canonical byte_size, state,
+created_at, cleanup_after, retired_at and claimed_game_id. The immutable namespace
+identifies the trusted Storage API base plus private game-covers bucket; a key
+must never be reinterpreted under changed provider configuration. Credentials and
+client-supplied paths/ownership are not stored identity. Architecture defines the
+EF constraints and operational bounds; this is not a generic asset subsystem.
 
-Only the selected URL is persisted; cover-search candidates, provider metadata and
-search history are not domain concepts.
+Uploading reserves quota and a durable locator before provider dispatch. Ready
+means canonical upload success is confirmed and the unclaimed handle is live.
+Attached means the unique current Game reference and first-claim receipt match.
+DeletePending is irreversible retirement; it can never become Ready/Attached or
+be reused for another Game. Only a live, same-Library Ready upload may first attach.
 
-Image upload is unsupported.
+Game.CoverUploadId is the current nullable restrictive FK, unique when non-null.
+claimed_game_id is an immutable first-successful-claim receipt, written in the
+same SQL transaction as Game + LibraryEntry + attachment. It is NOT a second
+current relationship or a restrictive Game FK: it survives replacement/removal
+and Game deletion until bounded tombstone purge. A previously claimed handle
+cannot create a second Game in any lifecycle state or transfer between Libraries.
+Owner-only recovery may report the original Game ID and whether that Game still
+exists; it must not claim that its current fields still equal an earlier request.
 
-Managed image storage is unsupported.
+Cover mutation intent and concurrency
 
-A null value is valid and the UI uses a placeholder.
+Create/update and cover-only contracts accept optional coverUpdate with explicit
+keep, external, upload or remove intent. Omitted means keep, NEVER clear. Null,
+unknown or malformed coverUpdate is 400. keep preserves the current stored cover
+(or none on Create); external supplies one valid non-empty external URL; upload
+supplies one owned live Ready handle; remove deliberately chooses neither source.
+No implicit equality-based intent is allowed, even if desired and old values match.
+Historical URL-only save rules do not authorize inferring a cover change from
+legacy fields; explicit changes use coverUpdate.
+
+On an existing Game, external/upload/remove require a non-null expectedCover
+snapshot containing both nullable coverImageUrl and coverUploadId with at most
+one non-null. A missing/null/malformed required snapshot is 400. Compare the
+normalized external URL ordinally and upload ID by value with freshly locked
+current references. A mismatch returns 409 without
+metadata/claim/retirement changes. No extra Game version column is introduced.
+keep/metadata-only saves retain a newer current cover instead of restoring the
+form's old snapshot. Cover-only operations change no unrelated Game/LibraryEntry,
+Family Friendly, Steam playtime or Play Log data. All usual validation remains
+authoritative; confirmed rollback undoes metadata, claim and retirement together.
+
+Unknown outcomes and retirement
+
+An exception acknowledging COMMIT, timeout, cancellation or lost write response
+is NOT proof of rollback. Reconcile fresh authoritative primary data using the
+SAME upload handle/first-claim receipt before retrying. A confirmed never-claimed
+live Ready handle permits deliberate same-handle retry; a committed claim requires
+refetch of its original owner-scoped Game, not blind Create or metadata merging.
+Never delete a possibly committed object as compensation. Missing/purged receipt,
+deleted Game or unavailable primary requires an explicit unknown/deleted outcome
+and user resolution, not a fresh automatic Create. Bounded receipt recovery is
+not general exactly-once CRUD or durable recovery after browser state is lost.
+
+Replacement, removal and Game deletion retire the old managed cover in the SQL
+transaction; physical deletion may occur only after that transaction commits.
+Never delete a currently referenced object or an external URL target. SQL failure
+must not delete the prior cover; provider deletion failure must not undo an
+already committed Game change. Unclaimed expired/canceled uploads retire only
+after fresh state/reference checks. Irreversible retirement protects provider
+deletion outside SQL; cleanup retries and final metadata purge remain bounded as
+specified in Architecture, preserving the receipt until safe purge.
+
+The existing Game/LibraryEntry/PlayLogEntry deletion rules remain unchanged.
+Cover records retain locators independently of deleted Games for cleanup/recovery.
+Future Library deletion must retire/remove its objects before deleting those
+locators; this feature does not add an account/Library-delete product workflow.
+
+Privacy, limits and Steam precedence
+
+Every upload/status/content/cancel/claim operation is scoped to the authenticated
+Library; IDs alone grant no access. Ready content must be unexpired and owned;
+Attached content additionally requires its current same-Library Game reference.
+Uploading/DeletePending bytes are not served. Foreign/missing handles are
+indistinguishable. Private content uses per-request JWT + Library-authorized API
+bytes, not signed URLs, redirects, token queries or persistent client caching.
+
+At most 250 MiB of canonical objects/reservations and ten unclaimed unexpired
+Uploading/Ready records are admitted per Library, serialized under PostgreSQL
+locking. DeletePending bytes remain charged until safe purge. These are not a
+global storage/spending cap. Upload limits and canonical JPEG rules in Product
+and Architecture remain authoritative.
+
+Explicit external/search/upload choices take precedence over Steam. Supported
+Steam data may fill CoverImageUrl only with an atomic predicate requiring BOTH
+current references null. Removing a cover saves neither reference, with no hidden
+fallback or immediate enrichment. A later EXPLICIT Steam operation may fill that
+empty cover; permanent suppression is not modeled. No other Feature 011/012 rule
+changes. An absent/unavailable cover uses a placeholder without changing identity,
+selection or Random Picker history.
 
 17. Platform
 
@@ -568,6 +706,10 @@ Different active filter types combine using AND.
 Missing optional metadata does not satisfy an active filter
 requiring it.
 
+Family-friendly-only filtering is a boolean filter. When active, it matches only
+Games where IsFamilyFriendly = true. When inactive or omitted, it does not filter
+by IsFamilyFriendly.
+
 Rating means minimum rating: Rating >= requestedRating.
 
 BoardGame player count P matches when
@@ -595,6 +737,8 @@ AcquisitionStatus.
 
 Rating.
 
+Family friendly only.
+
 VideoGame:
 
 Platform.
@@ -608,6 +752,8 @@ BoardGame:
 Player count.
 
 InteractionType.
+
+Family friendly only.
 
 VideoGame player-count metadata may be displayed in Library read models when
 present. The approved Feature 006 Library player-count filter remains
@@ -660,6 +806,8 @@ Player count.
 
 Filter semantics follow Section 20.
 
+Family friendly only is available in VideoGames mode and follows Section 20.
+
 26. BoardGame Random Picker
 
 Filters:
@@ -669,6 +817,8 @@ Player count.
 Available duration.
 
 InteractionType as multi-select.
+
+Family friendly only.
 
 For player count P:
 
@@ -681,6 +831,7 @@ ApproximateDuration must exist.
 ApproximateDuration <= D
 
 Missing duration does not match an active duration filter.
+Family friendly only is available in BoardGames mode and follows Section 20.
 
 27. All Random Picker
 
@@ -689,11 +840,12 @@ pool.
 
 Type-specific filters are unavailable.
 
-The MVP includes minimum-Rating and player-count filters.
+The MVP includes minimum-Rating, player-count and family-friendly-only filters.
 
 In All mode, player count applies to both VideoGames and BoardGames using the
 same range semantics. Candidates missing player-count metadata do not satisfy
 an active player-count filter.
+Family friendly only applies to both VideoGames and BoardGames in All mode.
 
 No weighting by game type is applied.
 
@@ -784,6 +936,10 @@ Deleting or editing one user's Game cannot affect another user.
 
 A Platform in use cannot be deleted until associations are removed.
 
+Managed covers follow section 16: retirement is journaled with Game deletion,
+physical deletion is post-commit, and the first-claim receipt survives until safe
+bounded purge without keeping the Game alive.
+
 34. Domain Invariants
 
 A User has exactly one personal Library.
@@ -805,6 +961,11 @@ A Game is referenced by exactly one LibraryEntry in the MVP.
 A Game is exactly one of VideoGame or BoardGame.
 
 Game records are not shared across users.
+
+A Game has at most one cover source: external CoverImageUrl or CoverUploadId.
+Managed attachments are same-Library and single-consumption; active references
+cannot be physically deleted. Explicit cover changes use snapshot comparison;
+omitted/keep cover intent preserves the current cover (section 16).
 
 Every LibraryEntry has one AcquisitionStatus; default is Owned.
 
@@ -867,6 +1028,10 @@ VideoGame is created and is cleared only by deleting that LibraryEntry.
 
 Within one Library, at most one LibraryEntry may reference a given SteamAppId.
 
+SteamPlaytimeMinutes, when present, is non-negative external reference data. It
+may be refreshed from Steam for the same immutable SteamAppId. It is not Play Log
+data and does not imply a play occurrence.
+
 Random shown-result history is temporary and not persisted.
 
 Visible Random Picker result history is temporary, newest first, and not
@@ -884,6 +1049,8 @@ AND.
 Rating filtering uses minimum-rating semantics.
 
 Player-count filtering uses MinimumPlayers <= P <= MaximumPlayers.
+
+Family-friendly-only filtering uses IsFamilyFriendly = true.
 
 Search is case-insensitive substring matching on Game name.
 
@@ -903,6 +1070,8 @@ Library
  |
  +-------- manages --------> Platform
  |
+ +-------- owns -----------> CoverUpload (staging/cleanup and bounded claim receipt)
+ |
  | contains
  v
 LibraryEntry
@@ -912,6 +1081,7 @@ LibraryEntry
   | references (1:1 in MVP)
   v
 Game
+ | current optional managed cover -> CoverUpload (same Library, at most one Game)
  +----------------+
  |                |
  v                v
@@ -935,7 +1105,10 @@ Favorites.
 
 Custom Genres.
 
-Image upload/storage.
+Image upload/storage beyond the single private cover lifecycle in section 16:
+generic assets, galleries, image history, shared/public uploads and original-photo
+retention. Signed-read capabilities and stored/persistent client image caches are
+not part of the approved private-cover delivery model.
 
 Automatic GameSession / PlayTime.
 

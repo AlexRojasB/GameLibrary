@@ -4,6 +4,7 @@ import { Component, inject, signal, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import { CoverImage } from '../../games/cover-image/cover-image';
 
 import { PlayLogEntry } from '../play-log';
 import { LogPlayDialog, UpdatePlayLogEntryDialogRequest } from '../log-play-dialog/log-play-dialog';
@@ -11,7 +12,7 @@ import { PlayLogService } from '../play-log.service';
 
 @Component({
   selector: 'app-play-log-page',
-  imports: [DatePipe, RouterLink, LogPlayDialog],
+  imports: [DatePipe, RouterLink, LogPlayDialog, CoverImage],
   templateUrl: './play-log-page.html',
   styleUrl: './play-log-page.scss',
 })

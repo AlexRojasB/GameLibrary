@@ -1,4 +1,6 @@
 using GameLibrary.Api.E2E;
+using GameLibrary.Api.CoverUploads;
+using GameLibrary.Core.CoverUploads;
 using GameLibrary.Core.Data;
 using GameLibrary.Core.Games;
 using GameLibrary.Core.Libraries;
@@ -24,12 +26,14 @@ public sealed class E2eController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly GameLibraryDbContext _db;
     private readonly IHostEnvironment _environment;
+    private readonly ICoverStorage _coverStorage;
 
-    public E2eController(IConfiguration configuration, GameLibraryDbContext db, IHostEnvironment environment)
+    public E2eController(IConfiguration configuration, GameLibraryDbContext db, IHostEnvironment environment, ICoverStorage coverStorage)
     {
         _configuration = configuration;
         _db = db;
         _environment = environment;
+        _coverStorage = coverStorage;
     }
 
     [HttpPost("auth/session")]
@@ -65,6 +69,17 @@ public sealed class E2eController : ControllerBase
         {
             await _db.Database.MigrateAsync(ct);
 
+            // Reset may discard only this deterministic fake's bytes/locators, never real Storage work.
+            var fake = _coverStorage as E2eCoverStorage;
+            if (await _db.CoverUploads.AnyAsync(ct) && (fake is null
+                || await _db.CoverUploads.AnyAsync(u => u.StorageNamespace != fake.StorageNamespace, ct)))
+                return Problem(title: "Managed covers require their recorded Storage lifecycle before reset.",
+                    statusCode: StatusCodes.Status409Conflict);
+
+            await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+            await _db.Games.Where(g => g.CoverUploadId != null)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(g => g.CoverUploadId, (Guid?)null), ct);
+
             await _db.SteamAccounts.ExecuteDeleteAsync(ct);
             await _db.SteamLinkRequests.ExecuteDeleteAsync(ct);
             await _db.GamePlatforms.ExecuteDeleteAsync(ct);
@@ -72,6 +87,7 @@ public sealed class E2eController : ControllerBase
             await _db.LibraryEntries.ExecuteDeleteAsync(ct);
             await _db.Platforms.ExecuteDeleteAsync(ct);
             await _db.Games.ExecuteDeleteAsync(ct);
+            await _db.CoverUploads.ExecuteDeleteAsync(ct);
             await _db.Libraries.ExecuteDeleteAsync(ct);
 
             var now = DateTimeOffset.UtcNow;
@@ -128,6 +144,8 @@ public sealed class E2eController : ControllerBase
             _db.GameGenres.Add(new GameGenre { GameId = VideoGameId, GenreId = GenresCatalog.All[1].Id });
 
             await _db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+            fake?.Reset();
             return NoContent();
         }
         catch (Exception ex)

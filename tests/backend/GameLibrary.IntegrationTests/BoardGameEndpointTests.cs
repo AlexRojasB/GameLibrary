@@ -305,7 +305,7 @@ public class BoardGameEndpointTests : IClassFixture<BoardGameTestFactory>, IAsyn
     }
 
     [Fact]
-    public async Task Create_NotesAndCover_WhitespaceNormalizesToNull_ValidStoredTrimmed()
+    public async Task Create_NotesWhitespaceNormalizesToNull_ExplicitCoverRemoved_ValidStoredTrimmed()
     {
         var client = ClientFor(NewSub());
 
@@ -316,13 +316,13 @@ public class BoardGameEndpointTests : IClassFixture<BoardGameTestFactory>, IAsyn
                 minimumPlayers: 3,
                 maximumPlayers: 4,
                 notes: "  Fun   ",
-                coverImageUrl: "  https://example.com/catan.jpg  "));
+                coverUpdate: new { intent = "external", url = "  https://example.com/catan.jpg  " }));
 
         Assert.Equal("Catan", created.Name);
         Assert.Equal("Fun", created.Notes);
         Assert.Equal("https://example.com/catan.jpg", created.CoverImageUrl);
 
-        var whitespace = await PostBoardGame(client, CreateBody("B", minimumPlayers: 1, maximumPlayers: 4, notes: "   ", coverImageUrl: "   "));
+        var whitespace = await PostBoardGame(client, CreateBody("B", minimumPlayers: 1, maximumPlayers: 4, notes: "   ", coverUpdate: new { intent = "remove" }));
         Assert.Null(whitespace.Notes);
         Assert.Null(whitespace.CoverImageUrl);
     }
@@ -339,13 +339,18 @@ public class BoardGameEndpointTests : IClassFixture<BoardGameTestFactory>, IAsyn
 
         var invalidCover = await client.PostAsJsonAsync(
             "/board-games",
-            CreateBody("B", minimumPlayers: 1, maximumPlayers: 4, coverImageUrl: "not-a-url"));
+            CreateBody("B", minimumPlayers: 1, maximumPlayers: 4, coverUpdate: new { intent = "external", url = "not-a-url" }));
         Assert.Equal(HttpStatusCode.BadRequest, invalidCover.StatusCode);
 
         var longCover = await client.PostAsJsonAsync(
             "/board-games",
-            CreateBody("C", minimumPlayers: 1, maximumPlayers: 4, coverImageUrl: "https://" + new string('a', 2041)));
+            CreateBody("C", minimumPlayers: 1, maximumPlayers: 4, coverUpdate: new { intent = "external", url = "https://" + new string('a', 2041) }));
         Assert.Equal(HttpStatusCode.BadRequest, longCover.StatusCode);
+
+        var blankCover = await client.PostAsJsonAsync(
+            "/board-games",
+            CreateBody("D", minimumPlayers: 1, maximumPlayers: 4, coverUpdate: new { intent = "external", url = "   " }));
+        Assert.Equal(HttpStatusCode.BadRequest, blankCover.StatusCode);
     }
 
     [Fact]
@@ -367,7 +372,12 @@ public class BoardGameEndpointTests : IClassFixture<BoardGameTestFactory>, IAsyn
                 acquisitionStatus: "Owned",
                 rating: 5,
                 notes: "m",
-                coverImageUrl: "https://example.com/x.jpg"));
+                coverUpdate: new
+                {
+                    intent = "external",
+                    url = "https://example.com/x.jpg",
+                    expectedCover = new { coverImageUrl = game.CoverImageUrl, coverUploadId = game.CoverUploadId },
+                }));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<BoardGameResponse>();
@@ -400,11 +410,15 @@ public class BoardGameEndpointTests : IClassFixture<BoardGameTestFactory>, IAsyn
                 acquisitionStatus: "Owned",
                 rating: 4,
                 notes: "n",
-                coverImageUrl: "https://example.com/catan.jpg"));
+                coverUpdate: new { intent = "external", url = "https://example.com/catan.jpg" }));
 
         var response = await client.PutAsJsonAsync(
             $"/board-games/{game.Id}",
-            CreateBody("Catan", minimumPlayers: 3, maximumPlayers: 4, acquisitionStatus: "Wishlist"));
+            CreateBody("Catan", minimumPlayers: 3, maximumPlayers: 4, acquisitionStatus: "Wishlist", coverUpdate: new
+            {
+                intent = "remove",
+                expectedCover = new { coverImageUrl = game.CoverImageUrl, coverUploadId = game.CoverUploadId },
+            }));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<BoardGameResponse>();
@@ -692,18 +706,25 @@ public class BoardGameEndpointTests : IClassFixture<BoardGameTestFactory>, IAsyn
         string? acquisitionStatus = null,
         int? rating = null,
         string? notes = null,
-        string? coverImageUrl = null) => new
+        object? coverUpdate = null)
+    {
+        var body = new Dictionary<string, object?>
         {
-            name,
-            minimumPlayers,
-            maximumPlayers,
-            approximateDuration,
-            interactionType,
-            acquisitionStatus,
-            rating,
-            notes,
-            coverImageUrl,
+            ["name"] = name,
+            ["minimumPlayers"] = minimumPlayers,
+            ["maximumPlayers"] = maximumPlayers,
+            ["approximateDuration"] = approximateDuration,
+            ["interactionType"] = interactionType,
+            ["acquisitionStatus"] = acquisitionStatus,
+            ["rating"] = rating,
+            ["notes"] = notes,
         };
+        if (coverUpdate is not null)
+        {
+            body["coverUpdate"] = coverUpdate;
+        }
+        return body;
+    }
 
     private static object CreateVideoGameBody(
         string? name,
@@ -721,6 +742,7 @@ public class BoardGameEndpointTests : IClassFixture<BoardGameTestFactory>, IAsyn
         Guid Id,
         string Name,
         string? CoverImageUrl,
+        Guid? CoverUploadId,
         int MinimumPlayers,
         int MaximumPlayers,
         int? ApproximateDuration,

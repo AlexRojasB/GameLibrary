@@ -1,6 +1,11 @@
 namespace GameLibrary.Core.Steam;
 
-public sealed record SteamOwnedGame(uint SteamAppId, string? Name, int? PlaytimeForeverMinutes);
+public sealed record SteamOwnedGame(
+    uint SteamAppId,
+    string? Name,
+    int? PlaytimeForeverMinutes,
+    string? ImgIconUrl,
+    string? ImgLogoUrl);
 
 public sealed record SteamOwnedGamesQuery(string SteamId64, IReadOnlyList<uint>? AppIdsFilter);
 
