@@ -6,6 +6,18 @@ Personal game library web application. Angular PWA frontend, ASP.NET Core Web AP
 
 Feature 011 (Steam Integration) is implemented. The app supports linking a Steam account via OpenID, previewing owned Steam games, and importing selected titles into the user's library with deterministic concurrency. Features 001–010 are preserved, including Supabase auth/JWT validation, platform management, VideoGame/BoardGame CRUD, Library browse/search/filter/sort, Random Picker result states/history semantics, Play Shelf UX/PWA/E2E, Play Log, domain invariants, cross-user isolation, and cover image search assistance.
 
+Feature 013 is **not releasable**. Angular Phase 2 implementation and automated
+verification are complete: explicit `coverUpdate` saves, local camera/file editing,
+upload/recovery and authenticated managed-cover display. Keep production uploads
+disabled; do not deploy this worktree. Physical-device camera/PWA review, real
+Storage permissions and deployment operations gates remain open. Bounded local
+whole-API Linux verification now passes; see the
+[current G03/G06 follow-up](specs/013-camera-cover-upload/g06-operational-verification.md).
+See the
+[Phase 2 report](specs/013-camera-cover-upload/phase-2-implementation-report.md) for
+current verification and the [Phase 1 report](specs/013-camera-cover-upload/phase-1-implementation-report.md)
+for backend configuration and outstanding G03/G06 evidence.
+
 ## Documentation
 
 Authoritative specifications (read before implementing a feature):
@@ -15,6 +27,10 @@ Authoritative specifications (read before implementing a feature):
 - `docs/architecture/architecture-specification.md`
 - `specs/` — approved feature specifications
 - `AGENTS.md` — coding-agent instructions
+- [Railway private QA GO/NO-GO](docs/deployment/private-qa-railway.md) — current
+  Railway/Vercel/Supabase proposal; stop before provisioning or deployment.
+- [Earlier Render QA deployment plan](docs/deployment/private-qa.md) — historical preparation;
+  separate approval required for all provisioning, migrations and deployment.
 
 ## Repository Layout
 
@@ -517,6 +533,14 @@ npm run e2e
 ```
 
 ## Backend
+
+Feature 013 native preparation: run `bash tools/cover-native/prepare.sh` before
+building on supported macOS development or Noble Linux amd64 hosts. This prepares
+the pinned JPEG prevalidator; no package is installed system-wide. See
+`tools/cover-native/README.md` for provenance, Linux verification and publish steps.
+G01 Passed verification under the approved bounded-normalization policy, not
+exhaustive JPEG conformance. Feature 013 Phase 1 remains partial and must not be deployed
+or enabled until its remaining integration/security gates are complete.
 
 Apply migrations (direct connection):
 

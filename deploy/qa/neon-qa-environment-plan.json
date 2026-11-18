@@ -1,0 +1,98 @@
+{
+  "status": "names-and-public-values-only-not-installed",
+  "applied": false,
+  "baseRailwayPlan": "deploy/qa/railway-service-plan.json",
+  "railwayPublicVariables": {
+    "PORT": "10000",
+    "RAILWAY_DOCKERFILE_PATH": "deploy/qa/Dockerfile",
+    "RAILWAY_DEPLOYMENT_DRAINING_SECONDS": "60",
+    "ASPNETCORE_ENVIRONMENT": "Production",
+    "ASPNETCORE_HTTP_PORTS": "10000",
+    "Authentication__Schemes__Bearer__MetadataAddress": "https://yqngxhryzklrhhryzzoi.supabase.co/auth/v1/.well-known/openid-configuration",
+    "Authentication__Schemes__Bearer__RequireHttpsMetadata": "true",
+    "Authentication__Schemes__Bearer__TokenValidationParameters__ValidAudiences__0": "authenticated",
+    "CoverUploads__Enabled": "false",
+    "CoverUploads__AllowLocalHttp": "false",
+    "E2E__Auth__Enabled": "false",
+    "E2E__CoverUploads__Enabled": "false",
+    "E2E__CoverImageSearch__Enabled": "false",
+    "E2E__SteamIntegration__Enabled": "false",
+    "SteamIntegration__Enabled": "false"
+  },
+  "railwayUnassignedPublicVariables": ["AllowedOrigins__0"],
+  "railwaySecretVariableNamesOnly": ["ConnectionStrings__Default"],
+  "runtimeConnectionValuePolicy": {
+    "provider": "Neon PostgreSQL 17",
+    "valueStoredHere": false,
+    "hostDatabaseAndRuntimeRole": "must match returned dedicated QA target; presently unknown",
+    "format": "Npgsql key/value, escaped with NpgsqlConnectionStringBuilder",
+    "requiredOptions": {
+      "Port": 5432,
+      "SSL Mode": "VerifyFull",
+      "GSS Encryption Mode": "Disable",
+      "Pooling": true,
+      "Minimum Pool Size": 0,
+      "Maximum Pool Size": 5,
+      "Timeout": 15,
+      "Command Timeout": 30
+    },
+    "useMigrationOwnerOrUserJwtAsDatabaseCredential": false,
+    "rootCertificate": "only if final runtime requires an independently verified public CA path; never Supabase CA substitution or trust bypass"
+  },
+  "vercelAssignedPublicVariables": {
+    "QA_SUPABASE_URL": "https://yqngxhryzklrhhryzzoi.supabase.co"
+  },
+  "vercelUnassignedPublicVariableNames": ["QA_API_BASE_URL", "QA_SUPABASE_PUBLISHABLE_KEY"],
+  "vercelKeyClassification": "QA_SUPABASE_PUBLISHABLE_KEY is browser-public, not a server secret; no value stored here",
+  "operatorOnlyPrivateInputNames": ["QA_MIGRATION_CONNECTION"],
+  "operatorOnlyPublicInputNames": ["QA_MIGRATION_EVIDENCE_FILE"],
+  "operatorPolicy": {
+    "mapQaMigrationConnectionTo": "ConnectionStrings__Default",
+    "mapOnlyInsideApprovedIsolatedOperatorProcess": true,
+    "removeInheritedTestDefaultAndDevelopmentFallbacks": true,
+    "directPrimaryConnectionWithPoolingFalse": true,
+    "requireFreshNeonTargetEvidenceAndSourceSqlHashes": true,
+    "doNotPutOperatorInputsInRailwayOrVercel": true,
+    "operatorRunnerImplemented": false
+  },
+  "authPolicy": {
+    "expectedIssuer": "https://yqngxhryzklrhhryzzoi.supabase.co/auth/v1",
+    "expectedQaTokenAlgorithm": "ES256",
+    "currentApiAllowedAlgorithms": ["ES256", "RS256"],
+    "es256OnlyEnvironmentOverrideExists": false,
+    "activeQaUserTokenVerified": false,
+    "supabaseQaUsage": "Auth only; no application PostgreSQL or Storage",
+    "configureSupabaseAuthSettingsInThisTask": false
+  },
+  "proposedUnsupportedVariablesDoNotInstall": {
+    "PrivateQa__DisableCoverCleanup": {
+      "proposedQaValue": "true",
+      "proposedAbsentOrFalseBehavior": "existing production cleanup behavior unchanged",
+      "supportedByCurrentCode": false,
+      "implementationApproved": false,
+      "review": "docs/deployment/neon-qa-cleanup-review.md"
+    }
+  },
+  "neverSupplyToFrontend": [
+    "ConnectionStrings__Default",
+    "QA_MIGRATION_CONNECTION",
+    "QA_MIGRATION_EVIDENCE_FILE",
+    "Neon passwords or owner/runtime connection strings",
+    "Supabase secret or service-role keys",
+    "Storage credentials",
+    "Steam or cover-search provider secrets",
+    "E2E flags or fake JWTs",
+    "BarBook or CRFuelScraper variables"
+  ],
+  "forbiddenQaRuntimeVariableNames": [
+    "ConnectionStrings__Test",
+    "ConnectionStrings__E2E",
+    "QA_MIGRATION_CONNECTION",
+    "QA_MIGRATION_EVIDENCE_FILE",
+    "CoverUploads__StorageBaseUrl",
+    "CoverUploads__StorageCredential",
+    "SteamIntegration__WebApiKey",
+    "CoverImageSearch__Brave__ApiKey"
+  ],
+  "remoteVariableInstallationApproved": false
+}

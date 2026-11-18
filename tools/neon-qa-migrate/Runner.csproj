@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="postgres-regression/**/*.cs" />
+    <!-- Operator only: no application reference, package download or API startup. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Reference Include="Npgsql"><HintPath>$(NpgsqlPath)</HintPath></Reference>
+  </ItemGroup>
+</Project>

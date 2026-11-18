@@ -1,0 +1,19 @@
+# Allow only current application/native build inputs. Never copy local secrets/output.
+**
+!src/
+!src/backend/
+!src/backend/GameLibrary.Api/
+!src/backend/GameLibrary.Api/**
+!src/backend/GameLibrary.Core/
+!src/backend/GameLibrary.Core/**
+!tools/
+!tools/cover-native/
+!tools/cover-native/**
+**/bin
+**/obj
+**/.env*
+**/appsettings.*.json
+**/*.user
+**/*.pfx
+**/*.pem
+**/*.key

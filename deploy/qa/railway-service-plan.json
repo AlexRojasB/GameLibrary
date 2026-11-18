@@ -1,0 +1,55 @@
+{
+  "status": "approval-required",
+  "workspaceId": "6636d7dc-798b-4470-8376-b36089020713",
+  "project": {
+    "name": "game-library-qa",
+    "defaultEnvironmentName": "qa",
+    "isPublic": false,
+    "prDeploys": false
+  },
+  "service": { "name": "game-library-qa-api" },
+  "settings": {
+    "rootDirectory": "/",
+    "dockerfilePath": "deploy/qa/Dockerfile",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 300,
+    "preDeployCommand": [],
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3,
+    "sleepApplication": false,
+    "limits": { "memoryGB": 0.5, "vCPUs": 0.5 },
+    "regions": { "sfo": { "numReplicas": 1 } },
+    "overlapSeconds": 0,
+    "drainingSeconds": 60,
+    "cdn": { "enabled": false },
+    "tracing": { "enabled": false, "autoInstrumentation": false }
+  },
+  "variables": {
+    "PORT": "10000",
+    "RAILWAY_DOCKERFILE_PATH": "deploy/qa/Dockerfile",
+    "RAILWAY_DEPLOYMENT_DRAINING_SECONDS": "60",
+    "ASPNETCORE_ENVIRONMENT": "Production",
+    "ASPNETCORE_HTTP_PORTS": "10000",
+    "Authentication__Schemes__Bearer__RequireHttpsMetadata": "true",
+    "Authentication__Schemes__Bearer__TokenValidationParameters__ValidAudiences__0": "authenticated",
+    "CoverUploads__Enabled": "false",
+    "CoverUploads__AllowLocalHttp": "false",
+    "E2E__Auth__Enabled": "false",
+    "E2E__CoverUploads__Enabled": "false",
+    "E2E__CoverImageSearch__Enabled": "false",
+    "E2E__SteamIntegration__Enabled": "false",
+    "SteamIntegration__Enabled": "false"
+  },
+  "requiredPublicVariableNames": [
+    "AllowedOrigins__0",
+    "Authentication__Schemes__Bearer__MetadataAddress"
+  ],
+  "requiredSecretVariableNames": ["ConnectionStrings__Default"],
+  "source": {
+    "repo": "AlexRojasB/GameLibrary",
+    "requireCommitSha": true,
+    "automaticDeploys": false
+  },
+  "publicNetworking": { "targetPort": 10000, "generateDomainAfterApproval": true },
+  "additionalResources": []
+}

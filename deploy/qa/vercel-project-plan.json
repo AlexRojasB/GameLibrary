@@ -1,0 +1,75 @@
+{
+  "status": "blocked-pending-workspace-authorization-plan-capacity-and-create-permission-verification",
+  "applied": false,
+  "ownerIntent": "Use the existing BarBook workspace for a separate Game Library QA project; no separate personal workspace required",
+  "authenticatedUser": {
+    "username": "proxtos-5361",
+    "id": "u9w3FMff1gwTyAWS7R2rEShX",
+    "observedUserBillingPlan": "hobby",
+    "observedUserBillingStatus": "active"
+  },
+  "scope": {
+    "targetTeamId": "team_06vOR8VzjmIVJfhtgodwg1wL",
+    "targetTeamSlug": "bar-book",
+    "workspaceIdentityEvidence": "authenticated user defaultTeamId, prior BarBook project accountId and current explicit-scope API error metadata agree",
+    "workspaceAuthorizationVerified": false,
+    "workspaceBillingPlan": null,
+    "workspaceBillingStatus": null,
+    "workspacePlanVerified": false,
+    "remainingProjectCapacityVerified": false,
+    "projectCreatePermissionVerified": false,
+    "noPaidUpgradeRequiredVerified": false,
+    "requireExplicitTeamIdForEveryFutureProjectOperation": true,
+    "allowImplicitDefaultScope": false
+  },
+  "proposedProject": {
+    "name": "game-library-qa-web",
+    "id": null,
+    "framework": "angular",
+    "rootDirectory": "src/frontend",
+    "nodeVersion": "24.x",
+    "installCommand": "npm ci",
+    "buildCommand": "npm run build:qa",
+    "outputDirectory": "dist/game-library/browser",
+    "publicSource": false,
+    "connectGitRepositoryOnCreate": false,
+    "automaticGitDeployments": false,
+    "useExistingFrontendVercelJson": true,
+    "paidFeaturesOrPlanChanges": false
+  },
+  "isolation": {
+    "requireNewProject": true,
+    "reuseExistingProject": false,
+    "protectedProjectIds": ["prj_OTIBpJxMSv6l6ktqk1iN9BQ3k0Qi"],
+    "protectedProjectNames": ["bar-book-web"],
+    "environmentVariables": "Game Library project-scoped QA values only; do not read, copy, attach or modify BarBook or shared workspace environment variables",
+    "domains": "New project's own generated Vercel hostname only initially; no BarBook domains, aliases, DNS changes or transfers",
+    "deployments": "Game Library project ID and approved immutable Game Library source only; never promote, alias, roll back or redeploy BarBook",
+    "settings": "Game Library project settings only; no team, BarBook, shared integration or default-setting changes",
+    "futureProjectIdAndAccountIdMustBeVerifiedBeforeAnyFollowUpWrite": true,
+    "sharedWorkspaceLimitsAndPermissionsRemainShared": true
+  },
+  "futureFrontendEnvironmentVariableNamesOnly": [
+    "QA_API_BASE_URL",
+    "QA_SUPABASE_URL",
+    "QA_SUPABASE_PUBLISHABLE_KEY"
+  ],
+  "neverSupplyToFrontend": [
+    "database credentials",
+    "Supabase secret or service-role keys",
+    "Storage server credentials",
+    "Steam or image-search provider secrets",
+    "local E2E authentication flags",
+    "BarBook credentials or environment variables"
+  ],
+  "executionPolicy": {
+    "createProject": false,
+    "linkProject": false,
+    "deploy": false,
+    "changeBilling": false,
+    "changeAccountDefaultTeam": false,
+    "modifyWorkspaceSettings": false,
+    "modifyBarBook": false,
+    "redeployBarBook": false
+  }
+}

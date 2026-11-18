@@ -1,0 +1,36 @@
+{
+  "entries": 407,
+  "excluded": [
+    {
+      "path": "opencode.json",
+      "sha256": "d419c6ab0ff5e8bba15239815a46896399f89e878ad6708e269eaaad294bc7d8",
+      "reason": "local OpenCode provider configuration; not application source"
+    },
+    {
+      "path": "render.yaml",
+      "sha256": "5f59fa3e08d72bacfb2727ee253f7951cdd5d75a785dc55e8d54553514d27303",
+      "reason": "retired Render blueprint; Railway is selected"
+    }
+  ],
+  "areas": {
+    "specifications-and-context": 29,
+    "deployment": 10,
+    "deferred-documentation": 1,
+    "backend": 130,
+    "frontend": 173,
+    "tests": 48,
+    "native-and-operational-gates": 16
+  },
+  "origins": {
+    "HEAD": 191,
+    "worktree": 101,
+    "untracked-worktree": 112,
+    "exact-security-candidate": 2,
+    "index": 1
+  },
+  "manifestSha256": "73899e7fd9732884421edefe0dbb0c65edfaa017655b3868d7286d084437e1fb",
+  "archiveSha256": "b3f2f41a9de588b06f8c28e84398c359522e0ebdc6327f01b1ce1afcdfabb455",
+  "archiveBytes": 3962880,
+  "doubleExportIdentical": true,
+  "source": "/private/var/folders/fd/h4rhj_wn5_71qy5q79xm8r_m0000gn/T/opencode/qa-security-snapshot/proposed-qa-source"
+}

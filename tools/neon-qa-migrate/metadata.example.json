@@ -1,0 +1,29 @@
+{
+  "verified": false,
+  "observedAt": null,
+  "source": "authenticated-neon-control-plane",
+  "target": {
+    "projectName": "GameLibraryQa",
+    "projectId": "super-fire-30188358",
+    "organizationId": "org-falling-fog-81506005",
+    "branchName": "production",
+    "branchId": "br-muddy-base-be5m73fj",
+    "computeId": "ep-wispy-cherry-beqkq4cc",
+    "database": "neondb",
+    "role": "neondb_owner",
+    "databaseMetadataId": 612895,
+    "host": "ep-wispy-cherry-beqkq4cc.c-9.us-east-2.aws.neon.tech",
+    "port": 5432,
+    "postgresVersionNum": 180007,
+    "region": "aws-us-east-2",
+    "endpointType": "read_write",
+    "minCu": 0.25,
+    "maxCu": 2,
+    "suspendTimeoutSecondsRaw": 0,
+    "organizationPlan": "free",
+    "ownerSubscriptionType": "free_v3"
+  },
+  "neonAuthEnabled": null,
+  "dataApiEnabled": null,
+  "otherBrowserDataSurfaceEnabled": null
+}

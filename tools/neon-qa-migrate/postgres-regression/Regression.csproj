@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Reference Include="Npgsql"><HintPath>$(NpgsqlPath)</HintPath></Reference>
+    <Compile Include="../SqlSession.cs" Link="SqlSession.cs" />
+    <Compile Include="../Engine.cs" Link="Engine.cs" />
+    <Compile Include="../Policy.cs" Link="Policy.cs" />
+  </ItemGroup>
+</Project>

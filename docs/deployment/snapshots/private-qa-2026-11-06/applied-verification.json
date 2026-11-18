@@ -1,0 +1,136 @@
+{
+  "status": "exact-approved-security-candidate-applied; publication-and-remote-actions-not-approved",
+  "dependencyVerification": {
+    "appliedHashes": {
+      "package.json": "6779fe54babeda3f3da1f8973544369c350658edf4f72bf8d2da5c8ef158cdd2",
+      "package-lock.json": "cf4e8d5b6f6b3e08b8ca0ec0b4a13f7960c6000085152de0206f6c88c63e1575"
+    },
+    "exactPatchSha256": "7b1d013fbe8e33df988c5839849129f8150a6e3dae7fd3387463a478ce84c034",
+    "changedLockRecords": 275,
+    "versionRecordChanges": 272,
+    "metadataOnlyRecords": 3,
+    "changedNonDevelopmentRecords": [],
+    "indexUnchanged": true
+  },
+  "freshFrontendVerification": [
+    {
+      "check": "npm-ci",
+      "exit": 0,
+      "seconds": 11.14
+    },
+    {
+      "check": "installed-tree",
+      "exit": 0,
+      "seconds": 0.76
+    },
+    {
+      "check": "qa-config",
+      "exit": 0,
+      "seconds": 0.47
+    },
+    {
+      "check": "frontend-tests",
+      "exit": 0,
+      "seconds": 16.69
+    },
+    {
+      "check": "frontend-lint",
+      "exit": 0,
+      "seconds": 6.21
+    },
+    {
+      "check": "frontend-typecheck",
+      "exit": 0,
+      "seconds": 4.68
+    },
+    {
+      "check": "production-build",
+      "exit": 0,
+      "seconds": 7.3
+    },
+    {
+      "check": "qa-build",
+      "exit": 0,
+      "seconds": 7.32
+    },
+    {
+      "check": "e2e-build",
+      "exit": 0,
+      "seconds": 6.54
+    }
+  ],
+  "freshAudits": [
+    {
+      "check": "full",
+      "exit": 1,
+      "seconds": 53.72,
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 17,
+        "high": 0,
+        "critical": 0,
+        "total": 17
+      },
+      "error": null,
+      "command": [
+        "npm",
+        "audit",
+        "--json",
+        "--timing",
+        "--fetch-retries=0",
+        "--fetch-timeout=15000"
+      ]
+    },
+    {
+      "check": "production",
+      "exit": 0,
+      "seconds": 1.64,
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "error": null,
+      "command": [
+        "npm",
+        "audit",
+        "--json",
+        "--timing",
+        "--fetch-retries=0",
+        "--fetch-timeout=15000",
+        "--omit=dev"
+      ]
+    }
+  ],
+  "verificationIsolation": "fresh extraction matching all 407 selected checkout paths; npm ci in new private HOME/cache; existing checkout node_modules and owner port-4200 process untouched",
+  "priorSameSnapshotChecksNotRerun": {
+    "CoreTests": 337,
+    "PostgreSQLIntegrationTests": 994,
+    "BrowserTestsZeroRetries": 22,
+    "RailwayOfflineChecks": 10,
+    "EFModelCheck": "no pending model changes",
+    "NuGetAudit": "no known vulnerabilities; direct and transitive"
+  },
+  "riskAcceptance": "Owner provisionally accepts 17 moderate package records for private QA preparation only, subject to documented risk assessment and continued monitoring",
+  "sourcePublicationStatus": "owner review required",
+  "applicationSourceManifestSha256": "73899e7fd9732884421edefe0dbb0c65edfaa017655b3868d7286d084437e1fb",
+  "personalVercelReadiness": "identity verified; personal project owner ID/create permission not verified; no remote writes",
+  "installedGraphComparison": {
+    "installedGraphMatchesPreviouslyValidatedCandidate": true,
+    "normalizedGraphSha256": "49c3dbf69c5a542eab057c54cf065eb6d0151fa83894860070c05a1b274edf59",
+    "dependencyTreeOccurrences": 1030,
+    "comparison": "recursive name/version/resolved/invalid/missing/extraneous/problems graph; machine-local paths omitted"
+  },
+  "publicationCompanionsSecretScan": {
+    "paths": 11,
+    "findings": 0,
+    "exit": 0,
+    "tool": "gitleaks 8.30.1",
+    "valuesIncluded": false
+  },
+  "personalVercelPlanOfflineChecks": "passed: blocked/null owner, no writes/default scope, command consistency"
+}

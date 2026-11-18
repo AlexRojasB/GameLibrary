@@ -1,0 +1,3174 @@
+{
+  "status": "local-runner-review-only-not-release-or-execution-approved",
+  "revision": "neon-runner-local-2026-11-15",
+  "previousInventoryPath": "docs/deployment/neon-qa-source-manifest-discovery.json",
+  "previousInventorySha256": "e00326c9a39df0ded5edb4adc23b11f9c9966ed697565b7d34d02b18eec3053a",
+  "frozenManifestSha256": "73899e7fd9732884421edefe0dbb0c65edfaa017655b3868d7286d084437e1fb",
+  "entries": [
+    {
+      "path": ".config/dotnet-tools.json",
+      "mode": "100644",
+      "bytes": 168,
+      "sha256": "7bee793e9d04adb17b9e135e1a144d315304a574f84200185eece6ffbc0fe633",
+      "gitBlobSha1": "58b1d148769a4b7bff1551fee04dca1ae1536408"
+    },
+    {
+      "path": ".editorconfig",
+      "mode": "100644",
+      "bytes": 291,
+      "sha256": "2c5c91571a40a496d365000631e1e14c1df1c856e30b344453abce5163d5d9c5",
+      "gitBlobSha1": "d2749e5cb40b28a6f31053a20faa85056c42aa36"
+    },
+    {
+      "path": ".gitignore",
+      "mode": "100644",
+      "bytes": 324,
+      "sha256": "d9b4d25a72a91a6fae5ea160465b5293f2e9327896e594e12ff5b3a396187029",
+      "gitBlobSha1": "de9c16606fd4046f3d9824c8fd6f1b2b6322a2a8"
+    },
+    {
+      "path": "AGENTS.md",
+      "mode": "100644",
+      "bytes": 12477,
+      "sha256": "282d7d3d93603f1bbcffb4f87f8cb5456f90310edbdb266d5661da87d7e91a9b",
+      "gitBlobSha1": "326dfddc1f180624a2c8724d52bd63f62012a4ec"
+    },
+    {
+      "path": "README.md",
+      "mode": "100644",
+      "bytes": 44819,
+      "sha256": "58396db39032d70ef87853ea4f5116280cef9e0147e846e4bedb84725ded47a7",
+      "gitBlobSha1": "427ae027bc7b9f8815679a41a4f38c8fc2b561bb"
+    },
+    {
+      "path": "deploy/qa/.env.example",
+      "mode": "100644",
+      "bytes": 1227,
+      "sha256": "73476c0835c3d336ee5cd46d4c793c72beb498b0a9bb3bf073c49cf7849cd71c",
+      "gitBlobSha1": "3605bfa52a9875f9ea639cca6bd6d0aa57958273"
+    },
+    {
+      "path": "deploy/qa/Dockerfile",
+      "mode": "100644",
+      "bytes": 1518,
+      "sha256": "4ff27c697a3c2b0d0148fe355aea57feea0fdd6ad7cd4cbc6b6e3bb6884e6e4e",
+      "gitBlobSha1": "c41089c34a706b26aa135845e32b6adb080e20e4"
+    },
+    {
+      "path": "deploy/qa/Dockerfile.dockerignore",
+      "mode": "100644",
+      "bytes": 370,
+      "sha256": "5a723f62c1fd462d79eba0d90c3dd9748a08b3c0c25aa43a77e28c76625f2eb0",
+      "gitBlobSha1": "116db95da2ff67bb26fb1011d408a9fa2f55eec1"
+    },
+    {
+      "path": "deploy/qa/check-neon-plan.py",
+      "mode": "100644",
+      "bytes": 17823,
+      "sha256": "fe5b37da95fa260d2845bea176866f616c4545e1ec3a01796c27d10ea3e053d2",
+      "gitBlobSha1": "d3c91fb3084c1e1afad702bde6879ce5aebee4d3"
+    },
+    {
+      "path": "deploy/qa/check-railway-plan.py",
+      "mode": "100644",
+      "bytes": 6497,
+      "sha256": "3843689a2f91fcbcc49adee6d7491ac763cb38a8a37b2179188c5ed541702bec",
+      "gitBlobSha1": "7c29aa88229858fc0fbc2c8b9217b3aa0fdf5b0c"
+    },
+    {
+      "path": "deploy/qa/neon-project-plan.json",
+      "mode": "100644",
+      "bytes": 7836,
+      "sha256": "be77485a2f54b2b4c81245304da2d8ebdc54215116c54eb4984dfcf728a09358",
+      "gitBlobSha1": "9e8fb4648c0fe8b93af0cd097689d4365400acc8"
+    },
+    {
+      "path": "deploy/qa/neon-qa-environment-plan.json",
+      "mode": "100644",
+      "bytes": 4248,
+      "sha256": "be5f6f179011c969f5c7430d65cbe11fd015e3f1e6b8fa69b60b694501580869",
+      "gitBlobSha1": "4c0e6d2501af70a40bfbf61b8ee7c385458bd5ac"
+    },
+    {
+      "path": "deploy/qa/railway-service-plan.json",
+      "mode": "100644",
+      "bytes": 1923,
+      "sha256": "3915b54fa10ab7b467fe3217737d72142409e1f9004588a1b787dea6e6519d1d",
+      "gitBlobSha1": "44c5a67a46ba1ee5e52d2db052dd8fa18cfd3547"
+    },
+    {
+      "path": "deploy/qa/supabase-project-plan.json",
+      "mode": "100644",
+      "bytes": 13668,
+      "sha256": "3c13b630d05c4a334b1d223cc37f98595097212672e704199ab569ee6e8a2313",
+      "gitBlobSha1": "d63393233f1822daef72cc2507835f3a4eaac1ac"
+    },
+    {
+      "path": "deploy/qa/vercel-personal-project-plan.json",
+      "mode": "100644",
+      "bytes": 1841,
+      "sha256": "98f87a952fea0df6c0f0722570452af75986454fe95c1f3235bb7fc4a04edd64",
+      "gitBlobSha1": "200d835e032fcb8d0c7bec347bea52771e81124f"
+    },
+    {
+      "path": "deploy/qa/vercel-project-plan.json",
+      "mode": "100644",
+      "bytes": 3151,
+      "sha256": "bae909f03d50cebf35abba25fe1812c96d79255f69ad09e209edc6784537b344",
+      "gitBlobSha1": "06459f705e81cc508af1a1222d6fe141cbbaefd6"
+    },
+    {
+      "path": "docs/architecture/architecture-specification.md",
+      "mode": "100644",
+      "bytes": 47304,
+      "sha256": "01c1ea5d5ceeb6aee7f68cff7eb3351d91bbe517ec1e2ca9172eaf3b4e882f53",
+      "gitBlobSha1": "6a49e92a2702da6e8918d2c40ccedd2dd3af6596"
+    },
+    {
+      "path": "docs/architecture/private-qa-neon-amendment.md",
+      "mode": "100644",
+      "bytes": 5075,
+      "sha256": "eef6dab3e18633b3769f1cd8351783ba4f58d485a6567673bde62af56de311b6",
+      "gitBlobSha1": "44ced2711d7f8b99432b51fb83538d470b767934"
+    },
+    {
+      "path": "docs/deployment/README.md",
+      "mode": "100644",
+      "bytes": 1581,
+      "sha256": "b517ef9d087a826ef1c7f07f3ffea628cd30b52313dbb4b843537cbe5dd7d9b3",
+      "gitBlobSha1": "2cc81e3a8028891b28b21f76c29e81d45286df86"
+    },
+    {
+      "path": "docs/deployment/neon-qa-cleanup-review.md",
+      "mode": "100644",
+      "bytes": 5220,
+      "sha256": "31bd837cfad11427735e2faf72fbfd86be1b595e8b5af5ca8f4f375692d8fb8d",
+      "gitBlobSha1": "9ba414c44633e2a8f88ddb62e1f41223a01e4c14"
+    },
+    {
+      "path": "docs/deployment/neon-qa-migration-strategy.md",
+      "mode": "100644",
+      "bytes": 7968,
+      "sha256": "04cb61fd4ec2d24df04be7d2a5c3a478453a62f94120f635a1f26b36dddb0f73",
+      "gitBlobSha1": "caf93eec3f0a41efddba300a64b61b6658cfa244"
+    },
+    {
+      "path": "docs/deployment/neon-qa-plan.md",
+      "mode": "100644",
+      "bytes": 10337,
+      "sha256": "49d1fef371c9438320323a7f239c217f269975b38601db2e7255279d2da8d030",
+      "gitBlobSha1": "fb75e42960d7c3a55f3f212f186d5083439eeccc"
+    },
+    {
+      "path": "docs/deployment/neon-qa-project-discovery.md",
+      "mode": "100644",
+      "bytes": 7996,
+      "sha256": "ef08d1d178dc81d6ed672d80267cf4a52e65311cb9727e2472495b3c5c49b30e",
+      "gitBlobSha1": "4f00a9c22a64e240d7a174501b5cc5bb561c2995"
+    },
+    {
+      "path": "docs/deployment/neon-qa-source-manifest-discovery.json",
+      "mode": "100644",
+      "bytes": 222139,
+      "sha256": "e00326c9a39df0ded5edb4adc23b11f9c9966ed697565b7d34d02b18eec3053a",
+      "gitBlobSha1": "5ed297f29a211291273e2f18912dc50087b69cf5"
+    },
+    {
+      "path": "docs/deployment/neon-qa-source-manifest.json",
+      "mode": "100644",
+      "bytes": 221103,
+      "sha256": "c85c859bd1396dcb881b259cdaa209d8b015e60c575e972373da9ea6bca64c26",
+      "gitBlobSha1": "1345114e0b6e1949e751a33dd5798ae57b20303c"
+    },
+    {
+      "path": "docs/deployment/neon-qa-source-review.md",
+      "mode": "100644",
+      "bytes": 8495,
+      "sha256": "ded7d96354d6ab93b2bb73eb43e13a22c769c4f796e0d4860faed7e8406940a0",
+      "gitBlobSha1": "5055e93a832d020448b6056e5e5fd0b1ef8d91d4"
+    },
+    {
+      "path": "docs/deployment/private-qa-preflight.md",
+      "mode": "100644",
+      "bytes": 19992,
+      "sha256": "a658886116306306069028f281c553f493eae072dd07e023c1cb1fee7d7962a0",
+      "gitBlobSha1": "5f59c21a7c31315ed2176a4c1facbf4a055165df"
+    },
+    {
+      "path": "docs/deployment/private-qa-railway.md",
+      "mode": "100644",
+      "bytes": 31517,
+      "sha256": "d361ced48dd0f30546f5d882a978de447095eb95d4aa6292b1bfbfeb4c770a7c",
+      "gitBlobSha1": "64a2b5b2a01cbcf084ee3e1ba695ccf7037e51c5"
+    },
+    {
+      "path": "docs/deployment/private-qa-verification.md",
+      "mode": "100644",
+      "bytes": 10166,
+      "sha256": "8886820e3ad3fca2a3c6f027205497d2b70fabd2389425fba715f78c2c9b6538",
+      "gitBlobSha1": "eb91129109da269c6537498ce27815de642b2b0c"
+    },
+    {
+      "path": "docs/deployment/private-qa.md",
+      "mode": "100644",
+      "bytes": 24844,
+      "sha256": "721828e1a92d0dbe6fea1b5f99d51a711b1c1749f220a03fa7abf3d2c3f24e0f",
+      "gitBlobSha1": "9fea0df1f9c550d56a010bc54eed52e3789f2edb"
+    },
+    {
+      "path": "docs/deployment/qa-dependency-security-approval.md",
+      "mode": "100644",
+      "bytes": 5091,
+      "sha256": "20af02f054c6181ba492f8899e8ca0d954570343565d05e0a1dcb7a22ad50828",
+      "gitBlobSha1": "c6a97dfdc892d079cb15953e9f325038e8888f21"
+    },
+    {
+      "path": "docs/deployment/qa-ef-tooling-alignment.md",
+      "mode": "100644",
+      "bytes": 14423,
+      "sha256": "4d4e49dfec66eda006fb7a886c6a7ae6ec2ba2d2cc74323dd4cc1de0eead2586",
+      "gitBlobSha1": "8b469d677bf7ddf80eb61f71e75770010bc45e8e"
+    },
+    {
+      "path": "docs/deployment/qa-postgres-connectivity-preflight.md",
+      "mode": "100644",
+      "bytes": 11136,
+      "sha256": "cc7e167743d44ceff6bb1b1f0ce52a47a696f571911cc4bcbd8eb5ca72b8be38",
+      "gitBlobSha1": "63e2e6d24c97bd9ed42bc28ba2c65abcb98e2959"
+    },
+    {
+      "path": "docs/deployment/qa-pre-migration-verification.md",
+      "mode": "100644",
+      "bytes": 18501,
+      "sha256": "ef08d33cbbe91fb5992e3683c98a3fe760dcca996bd6414671bd5726f7401783",
+      "gitBlobSha1": "b52cb24efbc94d2e3b16c80be59c69d8f588cecf"
+    },
+    {
+      "path": "docs/deployment/qa-real-session-pooler-validation.md",
+      "mode": "100644",
+      "bytes": 13844,
+      "sha256": "8ced7a8a375090e5b0d262a027762b34be68cf76b0062b197a1a714de6cb976e",
+      "gitBlobSha1": "be45daef6a82586c5be54a0abb656794304e60b8"
+    },
+    {
+      "path": "docs/deployment/qa-security-application.md",
+      "mode": "100644",
+      "bytes": 18106,
+      "sha256": "a6a0cc7a44954013aee5d9c12182f3d1e2cc76a3838312c658c57a15318dff49",
+      "gitBlobSha1": "880f90044cfd1c0149ffa8195aed85c59ecce4a0"
+    },
+    {
+      "path": "docs/deployment/qa-security-snapshot-review.md",
+      "mode": "100644",
+      "bytes": 24839,
+      "sha256": "ea3aeb0645b6cc494b6af2df716c9a3616a27191805ca4db067e8d6fa6ef6baf",
+      "gitBlobSha1": "f65a507a1a84c2ee1f1cbd9948b58b3cf05eb63a"
+    },
+    {
+      "path": "docs/deployment/snapshots/private-qa-2026-11-06/README.md",
+      "mode": "100644",
+      "bytes": 4642,
+      "sha256": "8976140922a36fa9d264ffc255d496cc212dcabb60b7935f5cf3c4fab5c20a78",
+      "gitBlobSha1": "81b7f225e4f9b2259a549cf3b582fd01be2a18f7"
+    },
+    {
+      "path": "docs/deployment/snapshots/private-qa-2026-11-06/SHA256SUMS",
+      "mode": "100644",
+      "bytes": 470,
+      "sha256": "1574e222a102aa9952e49ee5dab7341580c5bb292682b4c2685fdb828b195e20",
+      "gitBlobSha1": "d83bc356902de2b04b6f25f9e93efc2c7d64a59f"
+    },
+    {
+      "path": "docs/deployment/snapshots/private-qa-2026-11-06/applied-verification.json",
+      "mode": "100644",
+      "bytes": 3835,
+      "sha256": "e96ea9647ae83793d55d02eb24f05ae7fde70cfecedf0cb5d31ac7d9eed1215d",
+      "gitBlobSha1": "34861ba2a61bff832827422f1899e44d6f067db3"
+    },
+    {
+      "path": "docs/deployment/snapshots/private-qa-2026-11-06/dependency-candidate.patch",
+      "mode": "100644",
+      "bytes": 194372,
+      "sha256": "7b1d013fbe8e33df988c5839849129f8150a6e3dae7fd3387463a478ce84c034",
+      "gitBlobSha1": "8fc8fe95e9ff7d496f831821868a7c1cc8652386"
+    },
+    {
+      "path": "docs/deployment/snapshots/private-qa-2026-11-06/proposed-snapshot-manifest.json",
+      "mode": "100644",
+      "bytes": 182116,
+      "sha256": "73899e7fd9732884421edefe0dbb0c65edfaa017655b3868d7286d084437e1fb",
+      "gitBlobSha1": "2c52e73d82abd9a04abbdccaffe8fa045ad096dd"
+    },
+    {
+      "path": "docs/deployment/snapshots/private-qa-2026-11-06/proposed-snapshot-summary.json",
+      "mode": "100644",
+      "bytes": 1142,
+      "sha256": "8b5df724b4a5eca52984184893fe9c9ace03998544a71f74b92aa33e04f56f74",
+      "gitBlobSha1": "0af2faf86deab58f05f94bb35031eb4bf8d27cb1"
+    },
+    {
+      "path": "docs/deployment/snapshots/private-qa-2026-11-06/secret-scan-review.json",
+      "mode": "100644",
+      "bytes": 2885,
+      "sha256": "a04165a9dac48f4ebea069ecf7c9fd474cc83a8dc96c5ad0230ec3051583a415",
+      "gitBlobSha1": "5e1a5c8d98425df7d6e6616101b9fbaf4c1418f9"
+    },
+    {
+      "path": "docs/deployment/supabase-existing-project-qa-readiness.md",
+      "mode": "100644",
+      "bytes": 26249,
+      "sha256": "92efc8b099b97031deefff70f9cae5e1a893323f97f0d3b1db1367fec91b50a1",
+      "gitBlobSha1": "5deae795f4a2d3aa54d3af300af92f9435f25200"
+    },
+    {
+      "path": "docs/deployment/vercel-personal-qa-readiness.md",
+      "mode": "100644",
+      "bytes": 7581,
+      "sha256": "c5bc911f9ea114d4544c3444bbf31b6adee0725882f54939123d1261beaa0fdb",
+      "gitBlobSha1": "4f6e82b1752165890bbbcaa442714c0365e08f73"
+    },
+    {
+      "path": "docs/deployment/vercel-workspace-qa-readiness.md",
+      "mode": "100644",
+      "bytes": 9387,
+      "sha256": "585f42dd3961fac09c4711d6cbe74ac7ad41720758b8ff2c50a874d5408686ad",
+      "gitBlobSha1": "d303db174954f058fe919d1ecf53098f18874622"
+    },
+    {
+      "path": "docs/domain/domain-specification.md",
+      "mode": "100644",
+      "bytes": 33729,
+      "sha256": "0e2e14741cf0e3ad7abc4c349bd70603b775a32f4c4499427f62fef8d60a84cc",
+      "gitBlobSha1": "0f1a96d7fb56b003a445453ee252032a8caf14ac"
+    },
+    {
+      "path": "docs/product/product-specification.md",
+      "mode": "100644",
+      "bytes": 31924,
+      "sha256": "d5deba0c184c3f19cf745db91548045ea3e79705cc3c6f3fb31367e06ec9ace0",
+      "gitBlobSha1": "4370758332405cdd80dd45fede9ad1fdd9bd14ed"
+    },
+    {
+      "path": "specs/001-project-foundation/spec.md",
+      "mode": "100644",
+      "bytes": 32179,
+      "sha256": "a1709ba388781c51406677813e3e1068ca8b19bed3bec7797199913be0f83e84",
+      "gitBlobSha1": "a7d349f6a72ae07edffe06be4b980e04808674d2"
+    },
+    {
+      "path": "specs/002-authentication/spec.md",
+      "mode": "100644",
+      "bytes": 40919,
+      "sha256": "a0c5c52846b4a6b0c46449b8c8ece6fccd47a7f11a91a27bab980585c964d5d3",
+      "gitBlobSha1": "2878976443dac006b90b41d223dfb2080c7786d2"
+    },
+    {
+      "path": "specs/003-platform-management/spec.md",
+      "mode": "100644",
+      "bytes": 48090,
+      "sha256": "3ed818a6456c90bfd17834e1d3dec521f59a8362f1db1ab216b65c64248f8fd0",
+      "gitBlobSha1": "b1d2bdf5a857fcf728de308003b838cd30871aa7"
+    },
+    {
+      "path": "specs/004-video-game-management/spec.md",
+      "mode": "100644",
+      "bytes": 139794,
+      "sha256": "dee0d9de848f703725275135f4682872f12f068267ebb6e080be8c295bc91e6e",
+      "gitBlobSha1": "ba80bf00d97445670b95c829578fd09ab55adcfb"
+    },
+    {
+      "path": "specs/005-board-game-management/spec.md",
+      "mode": "100644",
+      "bytes": 94560,
+      "sha256": "3d0d6633cfdbb45652922f98e0cb5030f4a944f5987fa187eb1d56a61bb39603",
+      "gitBlobSha1": "3f73186f7e0020c87db04f4202aa1a64c1e03e12"
+    },
+    {
+      "path": "specs/006-library/spec.md",
+      "mode": "100644",
+      "bytes": 81726,
+      "sha256": "d1646e3c23674f8fb15cecfe5669abe69f55b119678a406bda443242d8a9ba86",
+      "gitBlobSha1": "3b4a421a7596e238c8a59150bcbc8f91ad567483"
+    },
+    {
+      "path": "specs/007-random-picker/spec.md",
+      "mode": "100644",
+      "bytes": 43690,
+      "sha256": "60d00416cfdc7db054e3b1ad2d3bef32f1beecbe17dad279c8d56cbba9933894",
+      "gitBlobSha1": "073ce4adc52ab9310945adeb71320ffe46b0a2ec"
+    },
+    {
+      "path": "specs/008-ux-pwa-polish-e2e/spec.md",
+      "mode": "100644",
+      "bytes": 53757,
+      "sha256": "57ad64a9ec7bb4a153591781bf61ecf4e8f11b06c5f5dbac7513fe513fcd7110",
+      "gitBlobSha1": "9d78573f3948ddd2415706439fe15dfc3ddd82dd"
+    },
+    {
+      "path": "specs/009-play-log/spec.md",
+      "mode": "100644",
+      "bytes": 53385,
+      "sha256": "dd90e8cb15712beb57bf2577ee223789ec75bcee721533952492da64526bf493",
+      "gitBlobSha1": "3798240f6010e4391ca85c6b019c7cf96eb2a384"
+    },
+    {
+      "path": "specs/010-cover-image-search/spec.md",
+      "mode": "100644",
+      "bytes": 40705,
+      "sha256": "ee11a7908ef9991b85857893c703c6dc69dca4f0e7ee051ed07aaaffe3437c8c",
+      "gitBlobSha1": "333dfb69ce1bbbe7f11b13b120cf8075509a4c4f"
+    },
+    {
+      "path": "specs/011-steam-integration/playtime-delta-lifecycle-proposal.md",
+      "mode": "100644",
+      "bytes": 4415,
+      "sha256": "34f8551793c641164196e98afc68c8cb57fa0ba5b38fded6618a343ba2b4ce2f",
+      "gitBlobSha1": "aaf7b487101b30828761120c99fd5da4be6807d3"
+    },
+    {
+      "path": "specs/011-steam-integration/spec.md",
+      "mode": "100644",
+      "bytes": 55926,
+      "sha256": "822f8a76702591f1ed959744d277b03e25f094b997ce20bc4fa89d407ad8c8a8",
+      "gitBlobSha1": "7803c2febee9746458dbc28897fc1a15f46e2ed4"
+    },
+    {
+      "path": "specs/011-steam-integration/stabilization-report.md",
+      "mode": "100644",
+      "bytes": 9421,
+      "sha256": "30261cf3e5a7cb086e9c66b4c898e69e3722529f99637a9c17c71ba01cdf17a0",
+      "gitBlobSha1": "0f0b3036aeb422c776890ccc3039628287c8faa0"
+    },
+    {
+      "path": "specs/012-family-friendly/spec.md",
+      "mode": "100644",
+      "bytes": 27612,
+      "sha256": "b868da50b26b944d9308639624208432d2c7570b329c1ccad4230283ad4866e4",
+      "gitBlobSha1": "1c5628d7c6183d992e2cfa39ab55ac76d4f75467"
+    },
+    {
+      "path": "specs/013-camera-cover-upload/dependency-security-review.md",
+      "mode": "100644",
+      "bytes": 15971,
+      "sha256": "9a09fa271f9e0f5bea05d9c40f03666a5aea6844a8d57819690eda0e2732afb0",
+      "gitBlobSha1": "9c5f8c5c2b15fe7b906edcd8c3ad8afd73b575e7"
+    },
+    {
+      "path": "specs/013-camera-cover-upload/g01-jpeg-compatibility-review.md",
+      "mode": "100644",
+      "bytes": 12688,
+      "sha256": "36a68319b231aaa5c04ad400198c629828c9f3eb44d421028f2455dc6f4ccaa0",
+      "gitBlobSha1": "a5a8889bb671530a5434ef1ded335ab04242bdd8"
+    },
+    {
+      "path": "specs/013-camera-cover-upload/g01-jpeg-validation-investigation.md",
+      "mode": "100644",
+      "bytes": 19615,
+      "sha256": "233d562238d361a3c8ab88cda3f84f6e55256b16cc3ea97ce7445efd14e04ada",
+      "gitBlobSha1": "2810504ad67b1f4cbc0cec3b194822828903c574"
+    },
+    {
+      "path": "specs/013-camera-cover-upload/g01-strict-jpeg-implementation-report.md",
+      "mode": "100644",
+      "bytes": 18600,
+      "sha256": "d3aaa265724588d5cd47bdfc88e1e6ca1e03df794f1233faa8ae329144c927fe",
+      "gitBlobSha1": "1b9b1710f9502c7ce3097aa4bc58f8fca443a154"
+    },
+    {
+      "path": "specs/013-camera-cover-upload/g03-storage-verification.md",
+      "mode": "100644",
+      "bytes": 32820,
+      "sha256": "abf7d2bd6ae816753e0685c3225e581b52ba376a2ec48c955ae108586d40c1af",
+      "gitBlobSha1": "53e3c5f97cc932275f53d70de160d8a566181de1"
+    },
+    {
+      "path": "specs/013-camera-cover-upload/g06-operational-verification.md",
+      "mode": "100644",
+      "bytes": 14900,
+      "sha256": "72c5391d8cb6e60a0259fb3eb5f0b610403d50943a882d82f38677713d74a659",
+      "gitBlobSha1": "b499884cca881d9aefd2e26913a6c5a154307a22"
+    },
+    {
+      "path": "specs/013-camera-cover-upload/phase-1-implementation-report.md",
+      "mode": "100644",
+      "bytes": 22828,
+      "sha256": "1c5888c706b2b9f8e85397622eef4913bd9ff4bdfeb4721c0ec26bd0ce1c503d",
+      "gitBlobSha1": "56314c7f0845b7e2bcfe29c6bd7b89df25de3c6e"
+    },
+    {
+      "path": "specs/013-camera-cover-upload/phase-2-implementation-report.md",
+      "mode": "100644",
+      "bytes": 15433,
+      "sha256": "2676f467b9d8a0e1a755f9ad4baa20bbb38271d9c6fa5655595d022dd7b8c9ba",
+      "gitBlobSha1": "ebc77235d539d5599a99a0642f726d948556aa36"
+    },
+    {
+      "path": "specs/013-camera-cover-upload/spec.md",
+      "mode": "100644",
+      "bytes": 107948,
+      "sha256": "248282da31586c4a3691799c124ab566c8a47b4948fb00e071d81cb5e42c3dd4",
+      "gitBlobSha1": "2af37d464b4e3f130c8800ffa3048cced34e4022"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Auth/ClaimsPrincipalExtensions.cs",
+      "mode": "100644",
+      "bytes": 956,
+      "sha256": "24b631d2c7a18476cc48ae51832328b1165eaa432e1cf1217e9d5d073943e239",
+      "gitBlobSha1": "67730be8d653396dfc8fb940c97b4e58e0056f22"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/BoardGames/BoardGameContracts.cs",
+      "mode": "100644",
+      "bytes": 1947,
+      "sha256": "f67891aaf6cdcac01397bf8d95298f0d76e2601b56ca2c0fb88d9149f9b99e4d",
+      "gitBlobSha1": "699509ac40bf2dc06333d28be5aa9fa49deefa00"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Controllers/AuthController.cs",
+      "mode": "100644",
+      "bytes": 661,
+      "sha256": "c7b89ad9c37ef342247821a827c3d9ce9920c9c2fbd1d8487c6811dcab04bb51",
+      "gitBlobSha1": "6287bed93170133909e69113603aaf5bd2c775de"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Controllers/BoardGamesController.cs",
+      "mode": "100644",
+      "bytes": 4496,
+      "sha256": "a7d4102a2fbd9675b346cc94cd11012be48bb41688427d2d6adea7907a8e5bce",
+      "gitBlobSha1": "bd4b403f57837a0fd4b9fc4add656d59c5a28a19"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Controllers/CoverImagesController.cs",
+      "mode": "100644",
+      "bytes": 2129,
+      "sha256": "c89c06e71df0dca3a5eab7e2e47c7121edfbcbdd5530c731d3f24f1e53af49e0",
+      "gitBlobSha1": "eb4c1d286a05b71343a87f489f4f473437d0f009"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Controllers/CoverUploadsController.cs",
+      "mode": "100644",
+      "bytes": 3646,
+      "sha256": "1a5cf5959a763f7787d6da6138a52a8fa84416b90f1be0bcdb75b15c4620cfb2",
+      "gitBlobSha1": "9ff7422d9f2cab865d9528c8e3217418ceb87c77"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Controllers/E2eController.cs",
+      "mode": "100644",
+      "bytes": 6935,
+      "sha256": "4d0488057d088add5e932810ef77c2c1c5c7bb91b234a251973ee92904104beb",
+      "gitBlobSha1": "04d3e282fe2e0cfadf4c8a0fe4a786e5e8280ad6"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Controllers/GameCoversController.cs",
+      "mode": "100644",
+      "bytes": 1142,
+      "sha256": "1dcccaf0c252e3d5544a04d412885dd966c30f5f61d194ca4566a047f58613e9",
+      "gitBlobSha1": "c06ea77d52fc70a573341aee488a88de9b730fb5"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Controllers/GenresController.cs",
+      "mode": "100644",
+      "bytes": 1193,
+      "sha256": "73d46555af6698b2f71001823392d44f91719a23666ea63a08ad73569c38b8ca",
+      "gitBlobSha1": "630fe7309b497e9ae9e9614d196a224b367c209c"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Controllers/HealthController.cs",
+      "mode": "100644",
+      "bytes": 291,
+      "sha256": "7e49bf870b478175edf971a7e2b2c46fd1467af365f947a809cc9513ef166b14",
+      "gitBlobSha1": "b270cf1616971ed7ab0d5474384997e811db4f58"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Controllers/LibraryController.cs",
+      "mode": "100644",
+      "bytes": 2479,
+      "sha256": "b6b9e74e99b87257f81beeb33a31ef2b96c0180ef3a3090d0a357a60a8d0df86",
+      "gitBlobSha1": "1fb64b2563349f41e2bc2dc03d52e689602973c3"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Controllers/PlatformsController.cs",
+      "mode": "100644",
+      "bytes": 3888,
+      "sha256": "36b7ae3ce57990b44707de0f0cf8432f4980a8c6f54a0dd0bf5eea0b1a802e4b",
+      "gitBlobSha1": "2fe51a316328099bc11aa493866fbdc3f029d99a"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Controllers/PlayLogController.cs",
+      "mode": "100644",
+      "bytes": 3270,
+      "sha256": "d7495d7f0cd1f9b93c095b155626034cd4cf4498f32edb079b807bc62fe9f609",
+      "gitBlobSha1": "8294d80e72775bcbebb8af6b351012ddc86eb18b"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Controllers/RandomPickerController.cs",
+      "mode": "100644",
+      "bytes": 2419,
+      "sha256": "df02a4521062cb4551fa4566fe718c5c5dce34af0e349a87229ec1cde714541c",
+      "gitBlobSha1": "68b8fe4986ab6d25d2214f2380ec4f9ba2f18f60"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Controllers/SteamController.cs",
+      "mode": "100644",
+      "bytes": 10169,
+      "sha256": "a734b5eecbc7d756b0125d9bc396b1feddffe101428f73e2767e27b8f2ba3fc7",
+      "gitBlobSha1": "02c45fcf89629f25021d14f6b9e30bc668c045fa"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Controllers/VideoGamesController.cs",
+      "mode": "100644",
+      "bytes": 4591,
+      "sha256": "d068b65f9981245f46eb5a7b59103eea5f2697dbf55419e856db0da09fb6c12b",
+      "gitBlobSha1": "70615e570692b60a77a4fbdf66e4bb10cd368336"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverImages/BraveCoverImageSearchClient.cs",
+      "mode": "100644",
+      "bytes": 5698,
+      "sha256": "6e698db86dc74239871fe8351c49c5df16329277e2ecc8b2aa312df209875df7",
+      "gitBlobSha1": "b5ae250ad0566b8b62d452f6d5670163d6bcaac5"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverImages/CoverImageSearchContracts.cs",
+      "mode": "100644",
+      "bytes": 426,
+      "sha256": "e3d0020193c472c2ae31d33c760da048575de028d25c137f209a5c649f6e0938",
+      "gitBlobSha1": "a43d99ed34ab92a7efeecf36ddec87261882f891"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverImages/CoverImageSearchOptions.cs",
+      "mode": "100644",
+      "bytes": 580,
+      "sha256": "cdab44bb364710cd616dce8aa60f6970c8db028a9095927b5a7276ba8e6cd6dd",
+      "gitBlobSha1": "f0800e1523c46d293dd13cbf9c0954314217d4fe"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverImages/E2eCoverImageSearchClient.cs",
+      "mode": "100644",
+      "bytes": 1476,
+      "sha256": "3edc32a6e4b9d1f7a9a4a4e214ccaa52eb6ebae07d99e40433530f6d8a13d673",
+      "gitBlobSha1": "013923d220a03e5e4a74f4e2a8d36cc6e81d19e4"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverUploads/CoverCleanupService.cs",
+      "mode": "100644",
+      "bytes": 1611,
+      "sha256": "f5e1575d8b125f15a5c013a5320602b804147ff50fadc2df2a3159b20b24e16d",
+      "gitBlobSha1": "272f609a6e56e3c513e258f0206aa9f4c2679466"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverUploads/CoverHttp.cs",
+      "mode": "100644",
+      "bytes": 6166,
+      "sha256": "6fe7dbf0f8d308b9f86f5aaa8518f9693c9f3b57982985a27c401c782207485f",
+      "gitBlobSha1": "4075eece22d951a38911ee13254d1c96c0e56621"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverUploads/CoverImageContainer.cs",
+      "mode": "100644",
+      "bytes": 9428,
+      "sha256": "c71b7f7ef288da9767bb77ba80b0a024b2ff7f3a8fbb3b36e4a88fe09e525da8",
+      "gitBlobSha1": "ab47602acdfc6d174df6461c89f0f29fee16140e"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverUploads/CoverImageProcessor.cs",
+      "mode": "100644",
+      "bytes": 6174,
+      "sha256": "7ab151e330722d2bd54733eb1ac717e912bcd2f5c791acb97a192d3580b08cf0",
+      "gitBlobSha1": "8182f4143aed9d7eeb005cdef78aed66a6348166"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverUploads/CoverJpegStructure.cs",
+      "mode": "100644",
+      "bytes": 9796,
+      "sha256": "88943a0ea800c3522f74819de9b5ea5295b32c692c530a5555964ef34439e209",
+      "gitBlobSha1": "ec2c2e8acf33ee3ca8d47d658682dc0cf878d3f2"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverUploads/CoverJpegValidator.cs",
+      "mode": "100644",
+      "bytes": 5515,
+      "sha256": "39481ae4887de5c0f1bf6ddd8810cc34e339033e4556d164fc4e454c88b5a9be",
+      "gitBlobSha1": "4efee0fd8958d8866d670862ed1bbefce4333e7c"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverUploads/CoverMultipartAttribute.cs",
+      "mode": "100644",
+      "bytes": 812,
+      "sha256": "9af9c72a12df920cba7063a9a4b6701cfcd6826c78c775d31c1af3638bd899ff",
+      "gitBlobSha1": "afb821e5258c186f50795569cba6ca149bea6282"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverUploads/CoverMultipartReader.cs",
+      "mode": "100644",
+      "bytes": 4724,
+      "sha256": "b182c8a1a30c64b7e1dbf3d90c6fae71833e9240e0bb93c5e6c0229277a50ba2",
+      "gitBlobSha1": "89f37c5ec2eb52867388e927c8c4f1c6bfebe70c"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverUploads/CoverStorageSafety.cs",
+      "mode": "100644",
+      "bytes": 1418,
+      "sha256": "f59b5f1d79776016febb88974c4b07b33a3ea7fd419c1e7fe8f40a75d8d87f8b",
+      "gitBlobSha1": "ec9df85855fd2b21c9280059b2416bbf696d2067"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverUploads/CoverUpdateParser.cs",
+      "mode": "100644",
+      "bytes": 4741,
+      "sha256": "144f2729735971ec2c93e1d8e8672b3a9b1be27ad07720559ea814bff3b8d578",
+      "gitBlobSha1": "79b3b99edfabb0f5e732638ccbb420f52bf6fd3d"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverUploads/CoverUploadOptions.cs",
+      "mode": "100644",
+      "bytes": 4004,
+      "sha256": "a77fbf99aed7a4e0296b9780b8bd760703c5025090bf8f4fa4d2378db1602ef0",
+      "gitBlobSha1": "a4b5ad5bb9af2097ac32c098ab794aeed04bb289"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverUploads/E2eCoverStorage.cs",
+      "mode": "100644",
+      "bytes": 3267,
+      "sha256": "6108d43240d7ecba9ea60be057691c81bf306219d3b48102cd4e8cf0f778b782",
+      "gitBlobSha1": "a678dc13429199c2e425099561f13704df833b50"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/CoverUploads/SupabaseCoverStorage.cs",
+      "mode": "100644",
+      "bytes": 8952,
+      "sha256": "7ffddd33fd6b78f5a5e5ec68e6b55e658bcf4504641baafa0f004ef9fc6bb973",
+      "gitBlobSha1": "60d3468db86ab181ea2b4a6d983df1cb1b27df76"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/E2E/E2eTestMode.cs",
+      "mode": "100644",
+      "bytes": 2145,
+      "sha256": "26dec4e7570c7a6b0556a57d953336a8b38e88dace7c82d5fe216652cd8fb8d5",
+      "gitBlobSha1": "de5570eae80a0e9d9c96306b72ccfdeca111d1c5"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/GameLibrary.Api.csproj",
+      "mode": "100644",
+      "bytes": 2458,
+      "sha256": "174a02c968b4bfdc6851af5d481c8d33ee3da41ac32776325375bd3ec03874c6",
+      "gitBlobSha1": "3bf8513a944209094534180efa31d9263f0cb39f"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/GameLibrary.Api.http",
+      "mode": "100644",
+      "bytes": 126,
+      "sha256": "837f3546572e28c1ad5c2c290e08d65e418d73d2b3169e594d6115eff02c535f",
+      "gitBlobSha1": "1aff64327ee938ea84ae2e9e9d8657ff2e1236ca"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Genres/GenreContracts.cs",
+      "mode": "100644",
+      "bytes": 220,
+      "sha256": "65f956ec0efa644499074e50d530e6ee3601eaf25728f57e88a5debea95962e4",
+      "gitBlobSha1": "f450efd6ee8617f590ef1eff7dcf49269cbaef61"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Library/LibraryContracts.cs",
+      "mode": "100644",
+      "bytes": 538,
+      "sha256": "6d2d1eb8407f69fc4b2f1f2edde84bd40999c0ee66b326edf0959ebf744e458e",
+      "gitBlobSha1": "0fc82c311ba4672645b8033f44b15fbe089487e0"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Platforms/PlatformContracts.cs",
+      "mode": "100644",
+      "bytes": 479,
+      "sha256": "99a0183d8a35249c142ab7b97e40f432f940fda22f34aa11d9fb39ab68a54396",
+      "gitBlobSha1": "8d6bf429373991b4c5fe77e8d565eb023547b58e"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/PlayLog/PlayLogContracts.cs",
+      "mode": "100644",
+      "bytes": 547,
+      "sha256": "4a1cb34949acc0e6e99ed41928c87ab85ca6deeb4e0fd5dbd49ee547951d4270",
+      "gitBlobSha1": "60a04a8a49b2f6d6816d30d00bb012dde52fc056"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Program.cs",
+      "mode": "100644",
+      "bytes": 8714,
+      "sha256": "75ace78cc76030aecbf9ca9505a821d905f31844f2e0a2ae455fa9323c154593",
+      "gitBlobSha1": "71b4e5e076a51222da7954d163278fd3e32e3245"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Properties/launchSettings.json",
+      "mode": "100644",
+      "bytes": 343,
+      "sha256": "d8b91a12790b02898430faf548631e0ab43088835f21b223753d3a8e3ab69373",
+      "gitBlobSha1": "fb749b0359d8897879172b65b07d6435e8c7f5ed"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/RandomPicker/RandomPickerContracts.cs",
+      "mode": "100644",
+      "bytes": 994,
+      "sha256": "c7d41b12fb9277ce2a7527832b0b4b000f337b9f3ab784fd69aeef78fe3aff0a",
+      "gitBlobSha1": "7ce72d0fd9cd652a9dc2608b72ca1a8ec8d0e668"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Steam/E2eSteamClient.cs",
+      "mode": "100644",
+      "bytes": 935,
+      "sha256": "6c3652be8972ee6e3388a306d12c6aeba91c5dcd962158f104ea888d8d623ae3",
+      "gitBlobSha1": "e6b43c2da1ed7b46eeaae868337202be495f1275"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Steam/SteamClient.cs",
+      "mode": "100644",
+      "bytes": 5574,
+      "sha256": "9085e25f74a0a17ffed6ceff131a8a6ff1da9bfe66fc96be16c7632226a95be2",
+      "gitBlobSha1": "293f385867403ce6e85baf05fe6e9120dd3f432c"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Steam/SteamContracts.cs",
+      "mode": "100644",
+      "bytes": 1013,
+      "sha256": "aabaf4f4d085aedff9be5ac8c345f1f7db29a1496b7ba32c4fdcbe2c12abaa30",
+      "gitBlobSha1": "ccb3c3c9919a9b8692b65c2c5012270b4db7d320"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/Steam/SteamOptions.cs",
+      "mode": "100644",
+      "bytes": 2944,
+      "sha256": "53a0fa82ab6db3d7bdd6a1a9f8af93167c0f089b76ca33349bf9eaee57565e06",
+      "gitBlobSha1": "606fab391908cd7fb75207a964f62039f9d42f06"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/VideoGames/VideoGameContracts.cs",
+      "mode": "100644",
+      "bytes": 1945,
+      "sha256": "bcc6aa0571ced92fd6e3c9f5be651203c3e2185a19fffaebb3be704d8fcb7f75",
+      "gitBlobSha1": "bea681d41ab64fc40914b1da98aeaca84f690a53"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/appsettings.Development.example.json",
+      "mode": "100644",
+      "bytes": 924,
+      "sha256": "752de2165ccea7222dad9122b1717f5a1b420add50d08916d2a0977647a72af1",
+      "gitBlobSha1": "325c4b854e07b662210246cc0e7cae5d3d0bba86"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/appsettings.json",
+      "mode": "100644",
+      "bytes": 991,
+      "sha256": "f8b35a592e067fe6a4d3f6e1b85c191d413923ffa33ca599b9706fc512a05a3d",
+      "gitBlobSha1": "b02e1982852295935daa8e02210d1ebbcb847ee8"
+    },
+    {
+      "path": "src/backend/GameLibrary.Api/packages.lock.json",
+      "mode": "100644",
+      "bytes": 13921,
+      "sha256": "b05b7cc92a8aac330446163be07e868ba140cb3235583bd02af4e3286ed54bc9",
+      "gitBlobSha1": "eaba33ee40fb91d553664bc6ad9d647e632b6be7"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/CoverImages/CoverImageSearchExceptions.cs",
+      "mode": "100644",
+      "bytes": 998,
+      "sha256": "026e04211221fc9a120389a7fe589d38ad8fb3c32dc34fce8976dc19eee3db94",
+      "gitBlobSha1": "480cb7dbd91513bb94a91a3b48979914c98a58fe"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/CoverImages/CoverImageSearchQuery.cs",
+      "mode": "100644",
+      "bytes": 293,
+      "sha256": "8192f07660b3ecd56f0b0f4fc92e85641b64ba9d6b906c337f2ebe3a104233dc",
+      "gitBlobSha1": "898732b896c123c43d1ccf561f6d85c64f31b921"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/CoverImages/CoverImageSearchResult.cs",
+      "mode": "100644",
+      "bytes": 308,
+      "sha256": "278897da110e382b71f2a28f27d98249f6a9e9ac12272fab00a845c65e96265e",
+      "gitBlobSha1": "883209388dd062a18a8a521b75fcb411c9b80f7c"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/CoverImages/CoverImageSearchRules.cs",
+      "mode": "100644",
+      "bytes": 4532,
+      "sha256": "e91470e12b7c2e8b3c0ea000ef5ee65e6ac58f98757abc7a1cef894e786eb4aa",
+      "gitBlobSha1": "285199c9a9d2c3420557d1ac54e13ee669b30a9f"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/CoverImages/CoverImageSearchService.cs",
+      "mode": "100644",
+      "bytes": 594,
+      "sha256": "f66a2ce759470d3f66c7e4b89b1c3ea63b85d431196bdd987595f1f0d6a43748",
+      "gitBlobSha1": "337fb6ae14fce9dd2b3508b02bb2b993c289355c"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/CoverImages/ICoverImageSearchClient.cs",
+      "mode": "100644",
+      "bytes": 195,
+      "sha256": "f703d9288952f9580bc13ecda4926edc23e751859e3d8ecfbab3610ed86705ca",
+      "gitBlobSha1": "608dc9a48651dddb850cb7284f860c21b77e3867"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/CoverUploads/CoverContracts.cs",
+      "mode": "100644",
+      "bytes": 1681,
+      "sha256": "1ae9af4f17f3c6edfc41b87f81e3b0c2c3c96aa9412d14a52b6a3bb9ddc64076",
+      "gitBlobSha1": "a4cdcdbcadd65bd48475e27961565f09c242c2fb"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/CoverUploads/CoverRules.cs",
+      "mode": "100644",
+      "bytes": 2478,
+      "sha256": "5f89b98d0a0c1d192e7d08014cfdd644673767d8979ccc5da867a8750b6b6933",
+      "gitBlobSha1": "3f4143615852107ba7e47567109a7b710c2b60c8"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/CoverUploads/CoverUpload.cs",
+      "mode": "100644",
+      "bytes": 2715,
+      "sha256": "7d963b97db04cae0de569301f9584dbf3cf68f294ff16a79aa3ddf8dd4c9ae3d",
+      "gitBlobSha1": "5b4eb7ea9ec41eca1cab36b18c4584208ab46447"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/CoverUploads/CoverUploadService.cs",
+      "mode": "100644",
+      "bytes": 22655,
+      "sha256": "c6217e1fc63b2a7cbd8c4b63fca9a265233ae7724c62324802fbf04c6feeebab",
+      "gitBlobSha1": "74a4a44f210cf3de944be078652f481a54b32960"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/GameLibraryDbContext.cs",
+      "mode": "100644",
+      "bytes": 21171,
+      "sha256": "d98d18b0cecef55e281677fba60e9d3f15d56f0e2a83ec3572f02865a742d238",
+      "gitBlobSha1": "19f5428a19ab6e03f128275dcb0ae5ad4321df1d"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/GameLibraryDesignTimeFactory.cs",
+      "mode": "100644",
+      "bytes": 715,
+      "sha256": "4db380eaab0e88d0c11a03e22055e80e9ebeaf3b5fd4e4ddc4c31fd500d1a51f",
+      "gitBlobSha1": "6aed524460ec8e1ddc4e5479f00db7717ccfa58c"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260816220833_InitialCreate.Designer.cs",
+      "mode": "100644",
+      "bytes": 940,
+      "sha256": "cf8af4c3387b55914015cfa21660213ef5049388f4fefeee629b65fa5e8eae66",
+      "gitBlobSha1": "c7c393968151c1b94a8359e8ca0050c1102ecb24"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260816220833_InitialCreate.cs",
+      "mode": "100644",
+      "bytes": 443,
+      "sha256": "0ba1204187fc315220e893d844fcec59374a03c244d8364e35c31f90baa2ced8",
+      "gitBlobSha1": "a52888e07608f179304b02ebf7c49ecd516f6a4c"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260817034441_AddPlatformManagement.Designer.cs",
+      "mode": "100644",
+      "bytes": 3586,
+      "sha256": "3dd472b62694ac1f72cb95e2f78396f09b0aae389ac895b37b1cb97f399d2fb7",
+      "gitBlobSha1": "d3a5d3e3367ccaa07623ba8b3ab81b4a0ecf54d7"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260817034441_AddPlatformManagement.cs",
+      "mode": "100644",
+      "bytes": 2526,
+      "sha256": "f87c1229e62cdf2221fe779105d34356ed03c805e983379fb5909a1f00ed4704",
+      "gitBlobSha1": "5c38409afe94077ee66d44bdf156d7e560aaefee"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260818012723_AddVideoGameManagement.Designer.cs",
+      "mode": "100644",
+      "bytes": 15661,
+      "sha256": "ea3a2272a9aaf815900678c367272383c26dcdd4001ffc1c6876c02d51b2fcc2",
+      "gitBlobSha1": "842809558c9677695f0978ab8b285aed1dd8673e"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260818012723_AddVideoGameManagement.cs",
+      "mode": "100644",
+      "bytes": 9276,
+      "sha256": "bb0215bb1f8e1d01dd3bcdd418c2b2abe77ba1e5d65937ec70919ed31fb90a06",
+      "gitBlobSha1": "f7f05d06f7f63ffce531052ed1a2bfbb35998375"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260818035247_AddBoardGameManagement.Designer.cs",
+      "mode": "100644",
+      "bytes": 17410,
+      "sha256": "b8d9d701eeb8cb19efeab540bf2d29abd6b4e0e52dfc019678a7140d28171fcd",
+      "gitBlobSha1": "f2c107997be9ab791cd6b6ddcf210495e25d9c89"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260818035247_AddBoardGameManagement.cs",
+      "mode": "100644",
+      "bytes": 4007,
+      "sha256": "b2f1ce70ed7e1afc48e34c41da3937070809a2d984f436629ae6a06b77187b2d",
+      "gitBlobSha1": "fa7cc7757f3b7aaf2a1e28904d11231692fe714b"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260819183609_RelaxVideoGamePlayerCountConstraints.Designer.cs",
+      "mode": "100644",
+      "bytes": 17626,
+      "sha256": "e68b133f8f4e46c0c5aa6aed8fdf9da83d38b460bf7cb540a3cc703af352829f",
+      "gitBlobSha1": "717004d022ced070952b3e0e4601324d0c90547b"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260819183609_RelaxVideoGamePlayerCountConstraints.cs",
+      "mode": "100644",
+      "bytes": 1777,
+      "sha256": "eb79773f0962be4438193b55e172e6d704a59af610346900195b4d1013bcdab8",
+      "gitBlobSha1": "ad8731d2874dfcafb97249157fd98998dd0e3e12"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260825025118_AddPlayLogEntries.Designer.cs",
+      "mode": "100644",
+      "bytes": 19314,
+      "sha256": "94cbac620782b189fbff413865b356444825d9422f60083202e42ac4185334f1",
+      "gitBlobSha1": "6a9e99b2d17067ea437b65a959b1cbfc280addbb"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260825025118_AddPlayLogEntries.cs",
+      "mode": "100644",
+      "bytes": 1783,
+      "sha256": "63d683d964883f041b26ed0cb978eede7e0a68d8ebfda78380d4fe404284eb4c",
+      "gitBlobSha1": "f627b657b12e290d574dd14d72d8e174383c317d"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260825034331_AddPlayLogDurationMinutes.Designer.cs",
+      "mode": "100644",
+      "bytes": 19698,
+      "sha256": "93026536c316c4fd9cd33fdd8c8d66131f2ea37d743e13051040d8027ebd03a0",
+      "gitBlobSha1": "6b42eef1a119daa9e7f64275af1ebf31bdcfe232"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260825034331_AddPlayLogDurationMinutes.cs",
+      "mode": "100644",
+      "bytes": 1180,
+      "sha256": "ec35bf3e372496f1155b46fc8ea1aef71e45a1c6faeef891c23769f44fb43f26",
+      "gitBlobSha1": "283932b542f496431161870f294968b4499f8e9f"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260826034524_AddSteamIntegration.Designer.cs",
+      "mode": "100644",
+      "bytes": 24547,
+      "sha256": "b1a4ad2935dbb900dc671056760f7ca14fc8bc7688a1ad25325a7887ca42cda2",
+      "gitBlobSha1": "fba5997c0647b80155ba238bff697f3b4cd12a27"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260826034524_AddSteamIntegration.cs",
+      "mode": "100644",
+      "bytes": 5068,
+      "sha256": "461dfd990cb311012fe20c88784b7c2476b1b9649bf84a8e8709cdf0a0307901",
+      "gitBlobSha1": "d310a2d8ca24c4d66cf8c06d9cff57489964ff35"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260827154518_AddSteamPlaytimeTracking.Designer.cs",
+      "mode": "100644",
+      "bytes": 24896,
+      "sha256": "d9eeef72b781592d52c65c69662fe409cdaa69714497b31e153f9e7d08ee5356",
+      "gitBlobSha1": "80c01cdea39cbcf6c792dd7219302db69dcf2ce2"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20260827154518_AddSteamPlaytimeTracking.cs",
+      "mode": "100644",
+      "bytes": 1192,
+      "sha256": "16daa900f8903fbbca18cdf33417c4433a0b7d77de8fa624a076db8443fa42cf",
+      "gitBlobSha1": "d326f97a78be4bc2acbd1d13ac2d2fb84cbfd544"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20261028185426_AddFamilyFriendly.Designer.cs",
+      "mode": "100644",
+      "bytes": 25147,
+      "sha256": "107c2193ae7456004c093ebf658db199d2d6f27c1f85422fd117d46443f59550",
+      "gitBlobSha1": "9862e6894047ed32190679099041313b7ed2631d"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20261028185426_AddFamilyFriendly.cs",
+      "mode": "100644",
+      "bytes": 789,
+      "sha256": "c49da6d3614fde53dad253dc7ecc682b837f720910d80a8c9d6c471f2254b634",
+      "gitBlobSha1": "ced6387901079f80bbe904e63a077ec019083d96"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20261029134813_AddCoverUploads.Designer.cs",
+      "mode": "100644",
+      "bytes": 30092,
+      "sha256": "cf96d4c7173732d850b6f7efc37a50d573e21a7acb8f51a19bd0eef6c3aac5f0",
+      "gitBlobSha1": "623094f84fc52e80a8f6d448c389f8219b445b32"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/20261029134813_AddCoverUploads.cs",
+      "mode": "100644",
+      "bytes": 6249,
+      "sha256": "03075aa8271a087e5f815765c4d88d1f063280ab6c2391b277e8541e993a5c75",
+      "gitBlobSha1": "f4a31301c09bc6458f5cf3c06c9178c17b3a5737"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Data/Migrations/GameLibraryDbContextModelSnapshot.cs",
+      "mode": "100644",
+      "bytes": 29995,
+      "sha256": "3fbfad0f0d9de10d04d2469517acb799fc8d769ec13cd9910d31591faef8f780",
+      "gitBlobSha1": "357e9ba9d3cb333bb781bc3b2352113eae13a975"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/GameLibrary.Core.csproj",
+      "mode": "100644",
+      "bytes": 597,
+      "sha256": "1fd53358d0b779cd80fe789ec7d368902b260d9abefd63d813210f689ce9228b",
+      "gitBlobSha1": "cbc072e12dc1b8265e1288aa64444e124cdf27b4"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/AcquisitionStatus.cs",
+      "mode": "100644",
+      "bytes": 109,
+      "sha256": "892eb435dea61a4046eeca249bb4375e9a73167eda7458bd74c86d2028384036",
+      "gitBlobSha1": "9af6a3d806f144813778c509f2bd15acec575747"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/BoardGameExceptions.cs",
+      "mode": "100644",
+      "bytes": 328,
+      "sha256": "f8a488abd7d1b7a9a7d1c8627cf9c8882de2b32f73ba9cf96071ffdd0685b97c",
+      "gitBlobSha1": "44d954c0f6d8e09d86b0d982dbe0830083de828d"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/BoardGameRules.cs",
+      "mode": "100644",
+      "bytes": 6493,
+      "sha256": "2c0bac380311b5779fc77a7efcf9a749e381f43b65f1614cc256c961258d6408",
+      "gitBlobSha1": "5418288b8eef57ee93d3590a00b6a3171888125f"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/BoardGameService.cs",
+      "mode": "100644",
+      "bytes": 8696,
+      "sha256": "cb2775883e7369da9a25d995618a68afe8e507cdad32637daf73c9cf5f71e919",
+      "gitBlobSha1": "53bf496edf7b93bc2381d273b5f1860b4458821f"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/Game.cs",
+      "mode": "100644",
+      "bytes": 1998,
+      "sha256": "3b68efaf25e4ff74f8d1489a17264e139328c186886bc6298378fb564f5d614d",
+      "gitBlobSha1": "4585a74a1e40288b207307d1c81c989879036086"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/GameGenre.cs",
+      "mode": "100644",
+      "bytes": 358,
+      "sha256": "84d05f8ba3e3aa6521788c5a210f7fc89fb67f6356b20dc078c9332bbc777144",
+      "gitBlobSha1": "ad3b5447e40791134e239abd9d97bf68c4260793"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/GamePlatform.cs",
+      "mode": "100644",
+      "bytes": 464,
+      "sha256": "dfe13295295fe1e33a885108bb2d48f7e1dc6d18bfb3a855941e7fc582738322",
+      "gitBlobSha1": "908da9912e85c5b170b86ffd69eb883b2ce7b6e9"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/GameRules.cs",
+      "mode": "100644",
+      "bytes": 147,
+      "sha256": "ae4c24ce0073901b965ea383f8437b4ea0a4bcbc0504ca8b97daf3ee46d6f1fd",
+      "gitBlobSha1": "5c72e40b0b74999b47436131bac9eb9950f99f11"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/GameStatus.cs",
+      "mode": "100644",
+      "bytes": 302,
+      "sha256": "5fcb629178b71bbe3155e817e5b50467319a719a3badc5a2e7441333e2d5d4f3",
+      "gitBlobSha1": "c7f4c4badfea4a28ab80bd30ae1ac6ba18d02ed2"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/GameType.cs",
+      "mode": "100644",
+      "bytes": 342,
+      "sha256": "fc877db5f08b4523be8314bcb08c0ea6143804229ea4d4a2f93238f7812e9a84",
+      "gitBlobSha1": "ad408fd9e3a0a2a78b6c5386438300a02ba349fd"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/Genre.cs",
+      "mode": "100644",
+      "bytes": 418,
+      "sha256": "9fd6f658053bd35dd8774226a336a8132c94ef73dea0eb1b474fc00ce820103a",
+      "gitBlobSha1": "2e1da8bf429ac156d62cb5e5e2f9d2cbd472c1f3"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/GenresCatalog.cs",
+      "mode": "100644",
+      "bytes": 2261,
+      "sha256": "82209bb5380c24b56d740dae2537d59fb3c1d0cbec79fa3c572740a3bdf905f2",
+      "gitBlobSha1": "8a8e2749a9c77d04385a33aaca848a79d3e2748b"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/InteractionType.cs",
+      "mode": "100644",
+      "bytes": 359,
+      "sha256": "e2e9fe78a109ff6a08c4f5459db79457b9930c7cecea66ef4e84420b6a1bc792",
+      "gitBlobSha1": "f8864002f800437ffa377dee4aeecceedd770806"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/LibraryEntry.cs",
+      "mode": "100644",
+      "bytes": 1554,
+      "sha256": "fac2a97cd64f8474eea78d23d6d0c1027a8e37eaea492651e62eb2ca58d27287",
+      "gitBlobSha1": "a7621db9d9ce691f04a024d7e0bd6a2b0ba40624"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/VideoGameExceptions.cs",
+      "mode": "100644",
+      "bytes": 327,
+      "sha256": "f23fbef74b6344cd4d97c50a5212833daf812fd3ed7c0598e1f27db9e604062c",
+      "gitBlobSha1": "11674d52a8cba43e9b7f30050aa8de3101ef0452"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/VideoGameRules.cs",
+      "mode": "100644",
+      "bytes": 8558,
+      "sha256": "ab4828df7af9ccd181913ad471c728652d602e80b267479052b27c3fc0627782",
+      "gitBlobSha1": "acd6528a4fd38b0d9f541809fbd8cefd43565887"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Games/VideoGameService.cs",
+      "mode": "100644",
+      "bytes": 15285,
+      "sha256": "986a1005b312990fdb1bcefd408d7970911e448d782ba09654a627f870cec506",
+      "gitBlobSha1": "d46fe2439cc3ead3c4f3d258a327f7ff73cd84ec"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Libraries/Library.cs",
+      "mode": "100644",
+      "bytes": 1033,
+      "sha256": "9543ef1d0b1c65db546b333ecf1cb6149201474aef4bfe4109f1936837c5f441",
+      "gitBlobSha1": "026f3a96f9c6296c5d4f6aadc4889057efbecef8"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Libraries/LibraryExceptions.cs",
+      "mode": "100644",
+      "bytes": 196,
+      "sha256": "9654b922f6f450ab2392f1b674bb87afd9b2fc028bd6c70dcebae234c45f1e40",
+      "gitBlobSha1": "57e61fa2141f67c298f156836847ac487de1cd21"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Libraries/LibraryFilterRules.cs",
+      "mode": "100644",
+      "bytes": 4346,
+      "sha256": "d17b7550b071db08e41581d5fd472a4b2aecfa9400527fbb4641093e668b4878",
+      "gitBlobSha1": "2e13e61af533665abb4148a85057f4964fe72dd9"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Libraries/LibraryQuery.cs",
+      "mode": "100644",
+      "bytes": 1485,
+      "sha256": "c0dbd6c72d6e8d5690396415b0c02bcecd11f5dfc689c98be3f4f3904383b67d",
+      "gitBlobSha1": "42aaca57438a41becdad0817e2121fe7794eaa34"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Libraries/LibraryService.cs",
+      "mode": "100644",
+      "bytes": 6661,
+      "sha256": "4988fd0aad2ac464b13705bc224b345c6e6fbbd7d68f7971f2b3cc942e7020f2",
+      "gitBlobSha1": "573c8f8bc20b10dfd81849177510d51352312130"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Platforms/Platform.cs",
+      "mode": "100644",
+      "bytes": 752,
+      "sha256": "275900bebe191478226c6d5b5c8fe8cc02cbaf3775c5cb067657b6300d82f156",
+      "gitBlobSha1": "3e54827e9d1e4232782a1268ea804a1547dcb24d"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Platforms/PlatformExceptions.cs",
+      "mode": "100644",
+      "bytes": 653,
+      "sha256": "0bd730cacec49840937e2cc9eadc6e751664c6dfc5dd5eb80fea1c65d4ca1fe8",
+      "gitBlobSha1": "f93529d30ade295169b070674bc1f064375c31ce"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Platforms/PlatformService.cs",
+      "mode": "100644",
+      "bytes": 5708,
+      "sha256": "6d5257278fe30d17476e3e4c5a64ded25fa031786124182a01d912de8f62519d",
+      "gitBlobSha1": "dd1461295db3464a59dd523b6ee02674b7f8740c"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/PlayLog/PlayLogEntry.cs",
+      "mode": "100644",
+      "bytes": 386,
+      "sha256": "52497901f2329f53c4ee3e59a67e17a23c0b0680f0ad19a710b739bb6b226a0f",
+      "gitBlobSha1": "92fbfb5329678c445a0b4244e8dc83a866352745"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/PlayLog/PlayLogExceptions.cs",
+      "mode": "100644",
+      "bytes": 514,
+      "sha256": "f917de2bf01a024f483ae297e2ed9f5701432fb6200522ffae677d472005aaf0",
+      "gitBlobSha1": "81814108af1d42acdd2b27036cd5a4a4f8bcb870"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/PlayLog/PlayLogRules.cs",
+      "mode": "100644",
+      "bytes": 1948,
+      "sha256": "60c517586c06c462091e0c07074f2835dffeb70245d1a707be4b57b008c00e46",
+      "gitBlobSha1": "af3c8009e11bb07095ee515e9c9796fbe452dfb4"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/PlayLog/PlayLogService.cs",
+      "mode": "100644",
+      "bytes": 4392,
+      "sha256": "183020b9b99310cc56820838b366013d350c9a7677c3963ae8953c656714a3d1",
+      "gitBlobSha1": "c6deb278d6c01b72a4fb5f2f100577d9a404d843"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/PlayLog/PlayLogView.cs",
+      "mode": "100644",
+      "bytes": 571,
+      "sha256": "5b9fd12a98cc9b64c5630695c085bd22608a4af1851a43a40e631e176eb1f27b",
+      "gitBlobSha1": "dcae27204af15e7455eb378dfdd5605d9e3851b4"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/RandomPicker/RandomPickerExceptions.cs",
+      "mode": "100644",
+      "bytes": 202,
+      "sha256": "34907eace1561e4c2f433ec9e6b047db90a34594abc1c5a7bc823f110b9037f2",
+      "gitBlobSha1": "302e6192ac984969a4a3612da270ed3acb143c11"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/RandomPicker/RandomPickerQuery.cs",
+      "mode": "100644",
+      "bytes": 1585,
+      "sha256": "05f2207daa5b2b96caac7448436c71bf6706601b7cc16fa1f415c96344622dc9",
+      "gitBlobSha1": "9a1b90ba632d1edcf18b482ad21eccc0c411a500"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/RandomPicker/RandomPickerRules.cs",
+      "mode": "100644",
+      "bytes": 4583,
+      "sha256": "066b996883f9bf03dfff1705f37cf0bbe015c3f2587d218a7f582a4f07c85ede",
+      "gitBlobSha1": "1c16948870e8c6b8383062ca8db664df7bb6ef3b"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/RandomPicker/RandomPickerService.cs",
+      "mode": "100644",
+      "bytes": 3999,
+      "sha256": "d32763119ff991aa6959bfd8bd993c29f45888db2f87b28690eeb97f4704e5cc",
+      "gitBlobSha1": "b5814f4987ad52d93ff80b45093b573b4b4c7498"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Steam/ISteamClient.cs",
+      "mode": "100644",
+      "bytes": 285,
+      "sha256": "b249a8a0936a5da4ce7b3caa5ae8f6e4d50ab07c81e550b59a2eb28c423b3837",
+      "gitBlobSha1": "5e52c18f481567fe382a0eda32500eec81471e20"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Steam/SteamAccount.cs",
+      "mode": "100644",
+      "bytes": 334,
+      "sha256": "391a4c4bb74a802626151c61c0c3073374863ca5b0e2218edaa1b98403ad28dd",
+      "gitBlobSha1": "16a457851be672b5087a349bfef6b4cd95e7db5c"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Steam/SteamExceptions.cs",
+      "mode": "100644",
+      "bytes": 1731,
+      "sha256": "d650150df47ef8102c195c372cfa1b104d9c0e137fcc93e92d7a48f85b8faf7e",
+      "gitBlobSha1": "ba1279619412fcedd26c19f3dfb938facabfa2e2"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Steam/SteamIntegrationRules.cs",
+      "mode": "100644",
+      "bytes": 5927,
+      "sha256": "249be202da79ca6b6f5fb1645ceba6f19efa79f9f45112fec81b38030618cd30",
+      "gitBlobSha1": "7b234c4ecfeaea50b46ab59da1697bf9688307f4"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Steam/SteamIntegrationService.cs",
+      "mode": "100644",
+      "bytes": 12600,
+      "sha256": "cc620d89b32c47313b95adf7af871c25a57809670440c0723d10ec4bac7ea5eb",
+      "gitBlobSha1": "ddb2c36df51bb3cb6ae5f9ca1222131ca89e1fc9"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Steam/SteamLinkRequest.cs",
+      "mode": "100644",
+      "bytes": 443,
+      "sha256": "9605523b196ff1a6383079f20e6338461a193f9304dea924b7cb10db0ad77084",
+      "gitBlobSha1": "378c56408a5c257f8b9e9ab835b808ffbaf57f27"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/Steam/SteamOwnedGame.cs",
+      "mode": "100644",
+      "bytes": 1013,
+      "sha256": "90758d8f8fff7ce69fcc2a77262f52b174ca0c2637a775543910ac674a26181a",
+      "gitBlobSha1": "57711c69e50977f2117b56b4edf797f91edf54b7"
+    },
+    {
+      "path": "src/backend/GameLibrary.Core/packages.lock.json",
+      "mode": "100644",
+      "bytes": 5651,
+      "sha256": "f5fb780305881033358c83a6eb3b06e23ce24425a14effd12feca7e52978e9de",
+      "gitBlobSha1": "71684c0f6f7d94d6650c6533de662b0c53a39dd4"
+    },
+    {
+      "path": "src/backend/GameLibrary.sln",
+      "mode": "100644",
+      "bytes": 5181,
+      "sha256": "74d56e28174b735ce886d3be93dc8e902391c3ddc91823bb2fd92ed4ec4f4bb2",
+      "gitBlobSha1": "2bc288ea5ef0493b1ac37c7d2b87caebb872409f"
+    },
+    {
+      "path": "src/frontend/.editorconfig",
+      "mode": "100644",
+      "bytes": 314,
+      "sha256": "d62fd282eadb5b3ff888a23ba5968e490cc0a77dded2fbc4f704b7e6e247f4db",
+      "gitBlobSha1": "f166060da1cbc9f216e9f5e99a1ef6074ce2a8f8"
+    },
+    {
+      "path": "src/frontend/.env.example",
+      "mode": "100644",
+      "bytes": 219,
+      "sha256": "a86dbde5dfc5abc4a6dfb99d8968964c9162133750ba0c417c56019b0123e497",
+      "gitBlobSha1": "b3ad3d4bd0710807bae1a0a0a190ed56b47024e4"
+    },
+    {
+      "path": "src/frontend/.gitignore",
+      "mode": "100644",
+      "bytes": 762,
+      "sha256": "c80c8d7015c34d1eec2b5242ff85b9dfb25b4e3433964a2e58f8ef3b73e59fb1",
+      "gitBlobSha1": "609ca51735a1346505105432119b5f875a254550"
+    },
+    {
+      "path": "src/frontend/.prettierrc",
+      "mode": "100644",
+      "bytes": 161,
+      "sha256": "8cd4a6408c3eadd007f0e8986754f4f03e6f2ea451a0181040555671491069a9",
+      "gitBlobSha1": "d6c16d7ee77b5ec0520b2645500a51864b3ec996"
+    },
+    {
+      "path": "src/frontend/README.md",
+      "mode": "100644",
+      "bytes": 1464,
+      "sha256": "d228f45e6b86e6552be3fcb5b6391c3f5cee553792eb0051bef89f6d49836954",
+      "gitBlobSha1": "54dd5170ea0e92fc559b1ee4a9535d2f79d6f2e7"
+    },
+    {
+      "path": "src/frontend/angular.json",
+      "mode": "100644",
+      "bytes": 3379,
+      "sha256": "0401e06db9bf5c85adb63bb9fa8a48b5c18a2e4bdb1e3de3baa120f135256f3d",
+      "gitBlobSha1": "bdd42ffd54467022dcea7f345ade1f76305cd37a"
+    },
+    {
+      "path": "src/frontend/e2e/app.spec.ts",
+      "mode": "100644",
+      "bytes": 12847,
+      "sha256": "69e4773c1018f0a46fde0af2c492f5a3ffbdb482ce5a3c17f554884effb84eb9",
+      "gitBlobSha1": "a760b9b0e37c0f66bbb9287853a2d62787dc7d11"
+    },
+    {
+      "path": "src/frontend/e2e/cover-fixture.ts",
+      "mode": "100644",
+      "bytes": 1488,
+      "sha256": "870acd9252087013447f5be7137766a7ae7fdbc6448cfb6317fa287af2079693",
+      "gitBlobSha1": "51633f01442f9059e36ce522e3625446999547fb"
+    },
+    {
+      "path": "src/frontend/e2e/covers.spec.ts",
+      "mode": "100644",
+      "bytes": 15530,
+      "sha256": "807d94aa84f8c010bdd3f512d9bfff101dc25b4578835ce4364c843cbc61bf83",
+      "gitBlobSha1": "81a34a32893bd91ebc3ca03f5407129369c05889"
+    },
+    {
+      "path": "src/frontend/eslint.config.js",
+      "mode": "100644",
+      "bytes": 986,
+      "sha256": "c92a49968fab95fd7ea538ae9e7501567682fd3cb4c202775ef5a7ed2e49a4a7",
+      "gitBlobSha1": "a870aa0f599e2b65c237d82b25c8fb20c5a0f980"
+    },
+    {
+      "path": "src/frontend/ngsw-config.json",
+      "mode": "100644",
+      "bytes": 619,
+      "sha256": "49ee4c67f0030d70dbc5d062f077ec660ecabe56e93aed910940b172283c8525",
+      "gitBlobSha1": "216012784f14a3d911973d97f0118a5ada7917b1"
+    },
+    {
+      "path": "src/frontend/package-lock.json",
+      "mode": "100644",
+      "bytes": 310774,
+      "sha256": "cf4e8d5b6f6b3e08b8ca0ec0b4a13f7960c6000085152de0206f6c88c63e1575",
+      "gitBlobSha1": "8ef97e77bbc3c9df974c5d6c2bfbdf434465ce29"
+    },
+    {
+      "path": "src/frontend/package.json",
+      "mode": "100644",
+      "bytes": 1409,
+      "sha256": "6779fe54babeda3f3da1f8973544369c350658edf4f72bf8d2da5c8ef158cdd2",
+      "gitBlobSha1": "c5ccd74fa2615790d6f7bbfba3c1566e92dfffec"
+    },
+    {
+      "path": "src/frontend/playwright.config.ts",
+      "mode": "100644",
+      "bytes": 1294,
+      "sha256": "baff458e53f8393c2254c3f04b10dbbc053d4296f4f87c982e716f4d7fd676fd",
+      "gitBlobSha1": "6477e0d98f91870abf3ddf3988a96bbfadc74db6"
+    },
+    {
+      "path": "src/frontend/public/favicon.ico",
+      "mode": "100644",
+      "bytes": 15086,
+      "sha256": "f9102be80297c0529207607be5277b4f90bca89d65988fa1771b91c7894e815f",
+      "gitBlobSha1": "57614f9c967596fad0a3989bec2b1deff33034f6"
+    },
+    {
+      "path": "src/frontend/public/icons/icon-128x128.png",
+      "mode": "100644",
+      "bytes": 2875,
+      "sha256": "2f17085589c393dd593fbb1dada76c83bc5421cadb0efbfd2999020127b57d7e",
+      "gitBlobSha1": "5a9a2ccdb34a97a06510d04238d8bedd8e063d3a"
+    },
+    {
+      "path": "src/frontend/public/icons/icon-144x144.png",
+      "mode": "100644",
+      "bytes": 3077,
+      "sha256": "d09450d82d89a6abe872d5a3dffe0c59e25d7ad4e293506da6591eb490539653",
+      "gitBlobSha1": "11702cd7bd67cee3c26172d0b69968b568c210e0"
+    },
+    {
+      "path": "src/frontend/public/icons/icon-152x152.png",
+      "mode": "100644",
+      "bytes": 3293,
+      "sha256": "e36832c8b62acf6612fae9aba0f6ca13d06c43faad219919c2ebaa3a4005b1cd",
+      "gitBlobSha1": "ff4e06b858a99219b03d2ae746d496bffe33ee97"
+    },
+    {
+      "path": "src/frontend/public/icons/icon-192x192.png",
+      "mode": "100644",
+      "bytes": 4306,
+      "sha256": "8cea7177bd110420d3b495f9e13567a7f068d4eead1bb99babfd2984a2f4e0b8",
+      "gitBlobSha1": "afd36a48c6813121eab025f3fa96cb531ba8ccb8"
+    },
+    {
+      "path": "src/frontend/public/icons/icon-384x384.png",
+      "mode": "100644",
+      "bytes": 11028,
+      "sha256": "f31a48335d3a82fab7b6f3baa50c08a03639b209afdb46af76831da4c49063e4",
+      "gitBlobSha1": "613ac793e063b1da8d0dc36dcbd1cc0ae620291d"
+    },
+    {
+      "path": "src/frontend/public/icons/icon-512x512.png",
+      "mode": "100644",
+      "bytes": 16332,
+      "sha256": "7faee466b0bcb0dadb14ae0ba4c6c71ef335facdea3b099c2afe546885764571",
+      "gitBlobSha1": "7574990f2001ffa60820e770b254e80844de1e7b"
+    },
+    {
+      "path": "src/frontend/public/icons/icon-72x72.png",
+      "mode": "100644",
+      "bytes": 1995,
+      "sha256": "eaf1af0ed115345d558609b32d44b42e77c8380711667d1a7d013f09253abaf0",
+      "gitBlobSha1": "033724e15f5485c4d86af398a68ca293e6116f72"
+    },
+    {
+      "path": "src/frontend/public/icons/icon-96x96.png",
+      "mode": "100644",
+      "bytes": 2404,
+      "sha256": "69df10ee4742febf5a66c1639cd411a18c00b9516bf6261d95d55fcc7e22c16f",
+      "gitBlobSha1": "3090dc2d8f93429535c667e616e367c010d941ad"
+    },
+    {
+      "path": "src/frontend/public/manifest.webmanifest",
+      "mode": "100644",
+      "bytes": 1368,
+      "sha256": "18a2d314baa137a23d654acb16ddc5219d17f2c6112f28e94ec1c676b658f8e7",
+      "gitBlobSha1": "015bc7f4d318a0e03901d9e1d26d99f6e9cbaaf0"
+    },
+    {
+      "path": "src/frontend/scripts/build-qa.mjs",
+      "mode": "100644",
+      "bytes": 2368,
+      "sha256": "92813565b509025a7a43fef520834000394fde484503dbb0e18afe7b3c0d7562",
+      "gitBlobSha1": "4dd94062b5c68d5f22cc77dee7e0de0627c0f0f2"
+    },
+    {
+      "path": "src/frontend/scripts/build-qa.test.mjs",
+      "mode": "100644",
+      "bytes": 2086,
+      "sha256": "190638fb9595ab79a63cc018d1a734bd30ddcf746ab9ae58ab96610a4b10903a",
+      "gitBlobSha1": "27196aa8a553cf868a0a8856690423148d73a6f8"
+    },
+    {
+      "path": "src/frontend/src/app/app.config.ts",
+      "mode": "100644",
+      "bytes": 889,
+      "sha256": "ac023053e043b113ec340172023680c039491d072f666cae223e4a64476aa4bd",
+      "gitBlobSha1": "81dd4b1146157f8a8a064103300b31b6d3cfc84b"
+    },
+    {
+      "path": "src/frontend/src/app/app.html",
+      "mode": "100644",
+      "bytes": 1745,
+      "sha256": "87b934fc1bcb364c7bdc2e15a51c8615caaacaff5bf049b227e026db963ef534",
+      "gitBlobSha1": "ca0ef3ffb1fc89ae68bd40ef3e00a015dd54c0bc"
+    },
+    {
+      "path": "src/frontend/src/app/app.routes.ts",
+      "mode": "100644",
+      "bytes": 1900,
+      "sha256": "c5024fd8a4b5d27d1d003c2f7df8a711f77d4a19125a1385c6f985d4290ca0be",
+      "gitBlobSha1": "9db184ba47ac2b9b5f8ab6cf3590228051b921c4"
+    },
+    {
+      "path": "src/frontend/src/app/app.scss",
+      "mode": "100644",
+      "bytes": 3185,
+      "sha256": "36bd6979980c3cea3f57e085b6bb802193a40bffcf33b41a5eb2b2a076d21bca",
+      "gitBlobSha1": "aa8b8673dd406458f5b92aaf715601b100148dbb"
+    },
+    {
+      "path": "src/frontend/src/app/app.spec.ts",
+      "mode": "100644",
+      "bytes": 2202,
+      "sha256": "5a3c0b6057ab8c2f0f0d640ad3bdc60802d84a3cfe9b086741d833af079761fb",
+      "gitBlobSha1": "a99c221b7dc88ff493635f429899fd248d17411e"
+    },
+    {
+      "path": "src/frontend/src/app/app.ts",
+      "mode": "100644",
+      "bytes": 1231,
+      "sha256": "fdc525cc4e2fddc3549fb9ad4185c40e797da5c2600681dea5f472484d7e35dd",
+      "gitBlobSha1": "1111cb39b8bdff71c3a36f68f99aa9b35ce95fee"
+    },
+    {
+      "path": "src/frontend/src/app/core/.gitkeep",
+      "mode": "100644",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlobSha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "src/frontend/src/app/core/auth/auth.guard.spec.ts",
+      "mode": "100644",
+      "bytes": 3460,
+      "sha256": "0aed0e52afb11fe2ba74f68340b2fe2d12b8b8eec8bea12664c5d5d6f203b7ee",
+      "gitBlobSha1": "1aaba9a9dfa727dc3b6eb12dc874f6d3719acfb4"
+    },
+    {
+      "path": "src/frontend/src/app/core/auth/auth.guard.ts",
+      "mode": "100644",
+      "bytes": 643,
+      "sha256": "e51b1bc7e0515854b9a9fb871b727b30b7685b9086bc2c119eb4fa7e362e38a9",
+      "gitBlobSha1": "b912d3b6dd352db940a14ce7b6257544dacc8c0e"
+    },
+    {
+      "path": "src/frontend/src/app/core/auth/auth.service.spec.ts",
+      "mode": "100644",
+      "bytes": 5239,
+      "sha256": "6a2e77b695cd70811d0d7d5707123719d8faf36d966dcdac56e6f7b493855879",
+      "gitBlobSha1": "344822f660b0729a248418ee3ebb76e91a5f4692"
+    },
+    {
+      "path": "src/frontend/src/app/core/auth/auth.service.ts",
+      "mode": "100644",
+      "bytes": 5618,
+      "sha256": "f7b0e5c8ce1675ac50161dc673c09a7b57534368fe621cd7a7d2a2dbb885f11c",
+      "gitBlobSha1": "c7cb0cc0421dc6c23ccea9bc2e9a4ea70ef97950"
+    },
+    {
+      "path": "src/frontend/src/app/core/auth/supabase-client.ts",
+      "mode": "100644",
+      "bytes": 571,
+      "sha256": "b928710367052d38a25f9b1370152f3f37251fba53554876fe364abf3bcf9365",
+      "gitBlobSha1": "617289d22992a037904680315be5e3267479dda7"
+    },
+    {
+      "path": "src/frontend/src/app/core/auth/testing/supabase-client.mock.ts",
+      "mode": "100644",
+      "bytes": 1746,
+      "sha256": "fa4759d4fbbd4d8adee3aad2ac126c45d7900dce94b11128d69c7c220c6ec091",
+      "gitBlobSha1": "3043e3ea7e9ce122c4eae1301b5306594bb7bd6b"
+    },
+    {
+      "path": "src/frontend/src/app/core/auth/token.interceptor.spec.ts",
+      "mode": "100644",
+      "bytes": 3645,
+      "sha256": "f8fe341353db195552b8ecdae856d97a148b5d1d74007071aad638f4dbe18413",
+      "gitBlobSha1": "29c5589c23952aa1cbc34e7fc73911fa09c56dda"
+    },
+    {
+      "path": "src/frontend/src/app/core/auth/token.interceptor.ts",
+      "mode": "100644",
+      "bytes": 1021,
+      "sha256": "98895bdbd77fcac1a5a79cbd2181385de31436667592768ea1c0d74b020f9d56",
+      "gitBlobSha1": "ecd26331ddd082ee891c1715af1fec79ce8eec29"
+    },
+    {
+      "path": "src/frontend/src/app/core/health/api-health.service.ts",
+      "mode": "100644",
+      "bytes": 524,
+      "sha256": "8ed8529e7907af59dc6230ad5d429036c5d9ca7d3459c9bc4c1144bb34ae66b8",
+      "gitBlobSha1": "bb384084a319b63ae0874a5495dd85a3e4fc7b2b"
+    },
+    {
+      "path": "src/frontend/src/app/core/health/health-check/health-check.html",
+      "mode": "100644",
+      "bytes": 474,
+      "sha256": "1fb522c2805ee8c9e6a992cb4c0391c44af00b77b275591c3b8d420087018078",
+      "gitBlobSha1": "f9248de86adf5e3fdc60e7b65213b9b8187ecdc2"
+    },
+    {
+      "path": "src/frontend/src/app/core/health/health-check/health-check.scss",
+      "mode": "100644",
+      "bytes": 276,
+      "sha256": "673638218f094205c02f6c262abdedbe0efa30608543df5c2a7ac9571c586c1e",
+      "gitBlobSha1": "7bcb98ce6787176cf8965b598b1a0e5bde6178a8"
+    },
+    {
+      "path": "src/frontend/src/app/core/health/health-check/health-check.spec.ts",
+      "mode": "100644",
+      "bytes": 1682,
+      "sha256": "198a6efec96c5ad756f46dc93ec143a2e35cd2a3a5b1ee412247ebbf9110c0dc",
+      "gitBlobSha1": "0be6a36b828ab1d3b4147fc4b7e5922451f7b655"
+    },
+    {
+      "path": "src/frontend/src/app/core/health/health-check/health-check.ts",
+      "mode": "100644",
+      "bytes": 781,
+      "sha256": "455528c99d9bd26cb3f290d38e730005cf78da7425d2e0f45d4f91813c09c6b9",
+      "gitBlobSha1": "1243ccab32b3cd509b56c73303f736e3f6a81241"
+    },
+    {
+      "path": "src/frontend/src/app/features/auth/.gitkeep",
+      "mode": "100644",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlobSha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "src/frontend/src/app/features/auth/home/home.html",
+      "mode": "100644",
+      "bytes": 1643,
+      "sha256": "65d7e992e8f3a848fe0fe6e0dd2e27c6e49674e3d47985ca8349389ffd9109db",
+      "gitBlobSha1": "5a7f420cb15fbee2c51843467a7dc1fbb4e3e05a"
+    },
+    {
+      "path": "src/frontend/src/app/features/auth/home/home.scss",
+      "mode": "100644",
+      "bytes": 1336,
+      "sha256": "79c4fa7f8bd78eb9fdcba99ca3bc401702b7151f00deda1cad4a71c87f9370ac",
+      "gitBlobSha1": "556ae3f3b87d960ac8ac8cd46c1f3ee6696891d0"
+    },
+    {
+      "path": "src/frontend/src/app/features/auth/home/home.spec.ts",
+      "mode": "100644",
+      "bytes": 2827,
+      "sha256": "874812fd97d2024ad7f009f4c655cb28de92d2a23e3036134790a14f7459e3c6",
+      "gitBlobSha1": "d8704c835e73f1d0672d4210c879ac2d1c8c38a3"
+    },
+    {
+      "path": "src/frontend/src/app/features/auth/home/home.ts",
+      "mode": "100644",
+      "bytes": 1170,
+      "sha256": "0143a7b158e32c45ad446aa33b8a81b36d85db819d2c3bcbf3dcb149a44d61df",
+      "gitBlobSha1": "51d0b223c8b3ff8f31301c8264ccebb05c2226fe"
+    },
+    {
+      "path": "src/frontend/src/app/features/auth/login/login.html",
+      "mode": "100644",
+      "bytes": 789,
+      "sha256": "9c6562acad8dce3e189ff41a791ccf4494d2a20731f1fcdba8d5093f748facf6",
+      "gitBlobSha1": "15b850276f979f71d9c57b937c0c95e2f69bd6b4"
+    },
+    {
+      "path": "src/frontend/src/app/features/auth/login/login.scss",
+      "mode": "100644",
+      "bytes": 345,
+      "sha256": "304ef932f7e7c59b6618dadb8e0f0b4ce075ffa6a5e769c7a3850181a0815485",
+      "gitBlobSha1": "f5691a9211e94b77e560b83bda48bcfbc14dd7cc"
+    },
+    {
+      "path": "src/frontend/src/app/features/auth/login/login.spec.ts",
+      "mode": "100644",
+      "bytes": 2586,
+      "sha256": "a640c304c82f93e43a304337d9cc43343616fc4a6050066e79bf9c68354fd5d4",
+      "gitBlobSha1": "5ff02c29301e5e7f8f4896d471c5fd29c45c5dcc"
+    },
+    {
+      "path": "src/frontend/src/app/features/auth/login/login.ts",
+      "mode": "100644",
+      "bytes": 1367,
+      "sha256": "69fef8b7182de46f2504ae9210005f1b7e1081b0f86a58921ab922fdf94efb34",
+      "gitBlobSha1": "0ccdc43f7d5895e2cd8fa5c5ca174897234a8f94"
+    },
+    {
+      "path": "src/frontend/src/app/features/auth/register/register.html",
+      "mode": "100644",
+      "bytes": 1017,
+      "sha256": "941d4af82bb25c22c1a35f141b2956b9951fb3c14e7da4a557206179d00d13cd",
+      "gitBlobSha1": "0479c599ffbcb30b910dbce60a34f591c16fb379"
+    },
+    {
+      "path": "src/frontend/src/app/features/auth/register/register.scss",
+      "mode": "100644",
+      "bytes": 345,
+      "sha256": "304ef932f7e7c59b6618dadb8e0f0b4ce075ffa6a5e769c7a3850181a0815485",
+      "gitBlobSha1": "f5691a9211e94b77e560b83bda48bcfbc14dd7cc"
+    },
+    {
+      "path": "src/frontend/src/app/features/auth/register/register.spec.ts",
+      "mode": "100644",
+      "bytes": 3166,
+      "sha256": "b7099bcb966926f1f6c1f0ff0c3896322c862432016525e152b4b321dd44662b",
+      "gitBlobSha1": "9243bd7bd00c5da430142ac02380f08b4cd4ad53"
+    },
+    {
+      "path": "src/frontend/src/app/features/auth/register/register.ts",
+      "mode": "100644",
+      "bytes": 1690,
+      "sha256": "755509085dca212124503b695e815546fee7957c2721abefac386f5556a54aa4",
+      "gitBlobSha1": "3f765a185367431218a7dac522cb90f32728396e"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/acquisition-status.ts",
+      "mode": "100644",
+      "bytes": 68,
+      "sha256": "ec04ba59946cbea0532dfd33dc92adb8a231d348849836e76f61b74577a3d56b",
+      "gitBlobSha1": "e5f7c55b3f8a05b97de840c301b8941b08acae50"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/board-game.ts",
+      "mode": "100644",
+      "bytes": 927,
+      "sha256": "7503fd005cb2f37268c43eac5a185842057e1ab929be01275c77774cd0c1baca",
+      "gitBlobSha1": "d287ea9d35e386f1d4542a9c1f6ffe95e0cc5e1a"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/board-games.service.spec.ts",
+      "mode": "100644",
+      "bytes": 3871,
+      "sha256": "e096307b1b8b249663ffea57a58858027ca332429479da7d6507f1173633c47a",
+      "gitBlobSha1": "7b4f9e888f706524cce84382c3d17d4dc83dd029"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/board-games.service.ts",
+      "mode": "100644",
+      "bytes": 1648,
+      "sha256": "576f1d975785ea50d87287ebbdff9b507033eada277050048042bad1d2843326",
+      "gitBlobSha1": "6a8ede6f443ddb64c1060ffd4e1d365e07da8c87"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/board-games/board-game-form/board-game-form.html",
+      "mode": "100644",
+      "bytes": 4853,
+      "sha256": "d2a7c1c073fa5edd8ccafedff0d40fffd1c5da8295219d186376b2929ece078d",
+      "gitBlobSha1": "9d9370bf6c8b19f48017f91692be627eb1d3137c"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/board-games/board-game-form/board-game-form.scss",
+      "mode": "100644",
+      "bytes": 926,
+      "sha256": "99ff2cab0796870f5f5a0c1f1af74eb94fb87debdfb4e177a70d5fc19ecdbaaa",
+      "gitBlobSha1": "29285bc01d8aff389a5b583fbe5ff2035d98f6d9"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/board-games/board-game-form/board-game-form.spec.ts",
+      "mode": "100644",
+      "bytes": 17876,
+      "sha256": "55ee1812b2298fbbdf7d3c4c8d3deef787f834abeda3710b878ea82c14400f0f",
+      "gitBlobSha1": "2f9455478352b1e33b4c674f96e740b20b9d48f7"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/board-games/board-game-form/board-game-form.ts",
+      "mode": "100644",
+      "bytes": 6633,
+      "sha256": "126a0791d4027fc8940217420a29abc8319fc0e58ca9de8c220ae22017c08073",
+      "gitBlobSha1": "924f6a509b41425fa98a89911e7eacbf3f4868ee"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/board-games/board-games-list/board-games-list.html",
+      "mode": "100644",
+      "bytes": 5617,
+      "sha256": "883934cc4900a3c6247c2b32f136ee0c250bd0706c172909e3a38ebd0ac00598",
+      "gitBlobSha1": "b323c8dde20342cba73cdd72bea5afb6080882cb"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/board-games/board-games-list/board-games-list.scss",
+      "mode": "100644",
+      "bytes": 2977,
+      "sha256": "591c42a9adf09a954980991fe72198b661ccc9efbdd796d3143ccaa73fbbbcef",
+      "gitBlobSha1": "e77b596d1fc939f681f476ea43be91e9d9bc4157"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/board-games/board-games-list/board-games-list.spec.ts",
+      "mode": "100644",
+      "bytes": 24800,
+      "sha256": "a8136a75ee7a9306fb47591d6fab552e968753de844edc120b5587f96e6bf084",
+      "gitBlobSha1": "2c5ffb5af35707a6daa62f559d8c6025fb2f5972"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/board-games/board-games-list/board-games-list.ts",
+      "mode": "100644",
+      "bytes": 6464,
+      "sha256": "e1dbe45e641c12909d8f3b2236f4daf15cd94fc91ec8335d81fab21ccd55821e",
+      "gitBlobSha1": "ce53a241a267ada680a4b7107b6d9f941b63bde2"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image-search/cover-cropper.spec.ts",
+      "mode": "100644",
+      "bytes": 5110,
+      "sha256": "3da76fbbb7b051c6c4be452dbc5acf1a4d7eefe1c0d487498aeee55dd16aaf68",
+      "gitBlobSha1": "6c21d4f42ffbe12452c2645040bddf8f4021d06c"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image-search/cover-cropper.ts",
+      "mode": "100644",
+      "bytes": 7377,
+      "sha256": "185eb91501c3f20504fcbbeba8900b2cde199d5092332887d9b22983dcc988d2",
+      "gitBlobSha1": "ce2e74a6224a08f13355ee1815190dccc75a83b6"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image-search/cover-editor.html",
+      "mode": "100644",
+      "bytes": 2772,
+      "sha256": "e31795756a81f9be5ab2269b7d9182ef37a3c6a5bafddbfefc7a9385f685971d",
+      "gitBlobSha1": "8b33088da76752017b98e9ea0bce63ec1af13fd6"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image-search/cover-editor.scss",
+      "mode": "100644",
+      "bytes": 978,
+      "sha256": "151823a4ed6af36c078765df6d767ab3fdf50deb59b50e6e78f818ad22f6be7d",
+      "gitBlobSha1": "aa11720f40056b6b1979327b20a53ceb04e1cb46"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image-search/cover-editor.spec.ts",
+      "mode": "100644",
+      "bytes": 6422,
+      "sha256": "eb21ce3e5c3764e9c6b86dd6c1ce4e40301f351855fbd8b5284384111f27aea8",
+      "gitBlobSha1": "307ebec3e8518bbe0217713a50dd5b2c88f79690"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image-search/cover-editor.ts",
+      "mode": "100644",
+      "bytes": 5941,
+      "sha256": "511cc0aee65020265a3efdf576a95e80391764c40ea62b464bbbb47c861cf1d0",
+      "gitBlobSha1": "5a6c9d5e18a2f82edd21c5111797919a8eacaf25"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image-search/cover-image-search.html",
+      "mode": "100644",
+      "bytes": 5622,
+      "sha256": "eae638c8c29c13ac8b7ca603f7569b63e8ca3104f42988614f31206435423201",
+      "gitBlobSha1": "b1e5b4c1a5531c1ae633037e0bbb5d3d82286884"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image-search/cover-image-search.scss",
+      "mode": "100644",
+      "bytes": 3184,
+      "sha256": "3cf018e4eb1bea1faa1316ca04965bf862fc246d75b1a3850c2a1e4769175a16",
+      "gitBlobSha1": "6ea99dc037a8f4287699c031c98ff73ece09053b"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image-search/cover-image-search.service.spec.ts",
+      "mode": "100644",
+      "bytes": 1460,
+      "sha256": "c97cbc937f2126940382a3460a3943014eee51d4bd5e5cabdf2c35814d436c74",
+      "gitBlobSha1": "40998432ed18b63c7f38384404e07aa849f72744"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image-search/cover-image-search.service.ts",
+      "mode": "100644",
+      "bytes": 1009,
+      "sha256": "bf85a8d6f711b38fff9e7a7e8e389e11e29eb4d033b7f63cd1e5c1a2f1e6dad5",
+      "gitBlobSha1": "a291b2222cfffd6a3508e18989b462086332201c"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image-search/cover-image-search.spec.ts",
+      "mode": "100644",
+      "bytes": 16105,
+      "sha256": "dd71704dca1dc91f635612b1897165d5a282cc1d72ded2004b3cce0f284528ef",
+      "gitBlobSha1": "e1ea0188802ce63777fa5e28b9870752009cf064"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image-search/cover-image-search.ts",
+      "mode": "100644",
+      "bytes": 14069,
+      "sha256": "6ab4319b5fa7f7524b89ec8e1230706b1b4387e241f65c7a56f5137ba97b1492",
+      "gitBlobSha1": "ab4c336aec580b496791ef04b4a753db57ddfcaa"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image-search/cover-selector.spec.ts",
+      "mode": "100644",
+      "bytes": 15217,
+      "sha256": "c06bcca54a4e0054ee29a7b20dac636817928b8814c500a6e6564c9ef1d5dbcf",
+      "gitBlobSha1": "51746a723f7e75ac21ac113bb3da68212951b547"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image-search/image-preparation.spec.ts",
+      "mode": "100644",
+      "bytes": 10361,
+      "sha256": "023b44d5615ce583dfb126481e09f1aa8442954bbb74eb006096475509169a66",
+      "gitBlobSha1": "85c555b9a4242ea7697b68760a9e05bd1c971e83"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image-search/image-preparation.ts",
+      "mode": "100644",
+      "bytes": 8911,
+      "sha256": "823a9757565281c562e86fd64a8fc3f203be191bf0d08c8aa7bda44f8c2463d5",
+      "gitBlobSha1": "3818d01cb4c679f978a37ff0ae1823b117e3fbdf"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image/cover-content-coordinator.service.spec.ts",
+      "mode": "100644",
+      "bytes": 7429,
+      "sha256": "6323ae47dff5665a6dbbc4f873b4cb9519da5b70d9d2b8371ebf812880d3806a",
+      "gitBlobSha1": "3277f7ceca66a9a25a4d5c842613422d288f1b16"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image/cover-content-coordinator.service.ts",
+      "mode": "100644",
+      "bytes": 4019,
+      "sha256": "8d2b50fcb14489c53d408ee1e737bd51595c2486e2aace0deaeef9ed2a1d3ebc",
+      "gitBlobSha1": "0f2caaaec3303e6e2e36d549a1fc500321e6ecef"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image/cover-display-integration.spec.ts",
+      "mode": "100644",
+      "bytes": 8332,
+      "sha256": "77a34b4aa09fafac179da55b246ff201886c1fc34e602caee8cd4b3410d0bc5c",
+      "gitBlobSha1": "9347b55588357d44f8d61235face620f19aca6a9"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image/cover-image.html",
+      "mode": "100644",
+      "bytes": 586,
+      "sha256": "5de1ab61e1c5cd7cc8a2f0e9b5ed2d4cee48408b63b0de8d59eba86e8fd1d78d",
+      "gitBlobSha1": "217d75c19f96f70862cb2f35e5faeacb3395cb91"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image/cover-image.scss",
+      "mode": "100644",
+      "bytes": 762,
+      "sha256": "58bdd79b7301f1d50d8ee98dc96ee82084c2f2d63715b6f52ceae40940c414e3",
+      "gitBlobSha1": "18b28ad151b2e20573710ea63dd0cab4535f7fdc"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image/cover-image.spec.ts",
+      "mode": "100644",
+      "bytes": 12290,
+      "sha256": "f10b1dda356d04d9721958be249a8079fcb6dc5a5357d910919e0a7a27bf78d5",
+      "gitBlobSha1": "bedbc3733d86138ada048a4fbe0e03b3e1445ebf"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image/cover-image.testing.ts",
+      "mode": "100644",
+      "bytes": 693,
+      "sha256": "5f6139ee26ee517f078b749fe88813b28590fcafe1cd5cc99195f18b6a14c8e0",
+      "gitBlobSha1": "5cfea44daa2ca8807401a59586bd03b05cee92f9"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/cover-image/cover-image.ts",
+      "mode": "100644",
+      "bytes": 5408,
+      "sha256": "e20fe121ff1cf4eb0b09d8fc88d0cdcb18221064612a11791d0dbffda1d74409",
+      "gitBlobSha1": "60839a58f3673e6fc4dc8aa5cb61dbf90b840684"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/covers/cover-save.spec.ts",
+      "mode": "100644",
+      "bytes": 21663,
+      "sha256": "84cdb6599747d637abf5be6da185f11a28c055ee11a70a168844843eb96ceb4b",
+      "gitBlobSha1": "18ec2fcf15c2ef12ab5d62b932e3c68a5dcbe77b"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/covers/cover-save.ts",
+      "mode": "100644",
+      "bytes": 18126,
+      "sha256": "a54bbe115e5c9c5fc76600d2e9afa381bc3836942892ce9ba4332f899a1517a4",
+      "gitBlobSha1": "ba960226b8fd27b5a550709230d3fc8a4c1c7205"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/covers/cover-session.ts",
+      "mode": "100644",
+      "bytes": 818,
+      "sha256": "676a6528a2c1d65b54a4c5f4c188234ea533c37cbe8b9cb97231dfaefb6b1afb",
+      "gitBlobSha1": "fe7483a2e911f9558ce45fc4716c641f74fa33df"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/covers/cover-types.ts",
+      "mode": "100644",
+      "bytes": 1041,
+      "sha256": "4f9a35ff23dc61923585359b2a9cb97155f4d16dbba5a4ed46c39b1bfb45c483",
+      "gitBlobSha1": "1b30eaf49554f22b400aeeedf6cb850638c4fe6e"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/covers/cover-uploads.service.spec.ts",
+      "mode": "100644",
+      "bytes": 3368,
+      "sha256": "5688b5426c98353999660adbfedbde8f333038e7a1165ac7025c1673b6abbddf",
+      "gitBlobSha1": "25e9d7eec02fab4e266174c79bfaf4218f8bd957"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/covers/cover-uploads.service.ts",
+      "mode": "100644",
+      "bytes": 1129,
+      "sha256": "4b9c88183f30adeaa58e4d0858cbd3a574e7f622ee01bb7f9cd7c8ecf51acfb4",
+      "gitBlobSha1": "3c86098700ffa9566c7084da4c6520923b0b6f5d"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/genres.service.spec.ts",
+      "mode": "100644",
+      "bytes": 1182,
+      "sha256": "4b4b4f0bed0eab69ba72e5e407064cc66d4bbb7d9dad00349c2e5c3a4686becc",
+      "gitBlobSha1": "35616948b11bcef8956bd13533f30840bda0bb76"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/genres.service.ts",
+      "mode": "100644",
+      "bytes": 460,
+      "sha256": "a991ab0dfe0dd0f908986cc22feceab23bc1d141abdd03199bd399ec5dfa1a4b",
+      "gitBlobSha1": "84b175b7b2d915419c794e366d378cda7fa2b675"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/genres.ts",
+      "mode": "100644",
+      "bytes": 56,
+      "sha256": "31b7f6ec69e193035f620367de533b345a8fc2204ca5f3da691e1c469d8147a8",
+      "gitBlobSha1": "f9315fdb6a61fb6f61bc309db6264bb7de883dde"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/video-game-form/video-game-form.html",
+      "mode": "100644",
+      "bytes": 5965,
+      "sha256": "01af421a92216cf089276fb0b6897a2c317474c4f851de15a971b4a54978d986",
+      "gitBlobSha1": "a227e3bb62e7cb3b019e1635a3ac6ab9cc072d9c"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/video-game-form/video-game-form.scss",
+      "mode": "100644",
+      "bytes": 1317,
+      "sha256": "e553196bba2f2ac90c43118811260d482749058c7f45edda02551b914022fefb",
+      "gitBlobSha1": "dfe771d2ebd0b3a468954174762b6af4a47ce8a8"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/video-game-form/video-game-form.spec.ts",
+      "mode": "100644",
+      "bytes": 21261,
+      "sha256": "e412c2897afb83ad5b8df5dbf8a72e18391ccaad2e45d77a449cb30a5e9de19a",
+      "gitBlobSha1": "21aaef4dc9d31f38e9b76fff541c0f3d329ab6a1"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/video-game-form/video-game-form.ts",
+      "mode": "100644",
+      "bytes": 10317,
+      "sha256": "bfb25887cee0055f53bc2e22144d102e88b723fc83ce3eb3df0295aaca36ac54",
+      "gitBlobSha1": "b3a1724df7b075f97a46868d9df24c928e92b6ec"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/video-game.ts",
+      "mode": "100644",
+      "bytes": 1079,
+      "sha256": "614e87a395ab9b68978930a047085cbe584fbf030da7ef6cf7a160bcd708e005",
+      "gitBlobSha1": "366bb48e821854989026470c329222cb585a93d8"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/video-games-list/video-games-list.html",
+      "mode": "100644",
+      "bytes": 5695,
+      "sha256": "b582714253576fc8f0b697c6305da6593b9e51325818038af8b21feaaeda5022",
+      "gitBlobSha1": "44fa8db61d0118e521da522e978fd7ea0a658682"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/video-games-list/video-games-list.scss",
+      "mode": "100644",
+      "bytes": 2977,
+      "sha256": "6fe6410af542448b9287f4fc2c32427c80cbf7398918f17f1f6982fb1f0d0486",
+      "gitBlobSha1": "6ac91c597bf78dc4c9ba6253e0a00f3e11522b8a"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/video-games-list/video-games-list.spec.ts",
+      "mode": "100644",
+      "bytes": 25327,
+      "sha256": "418f3819eb44c03e48cce4648adb2b3d513efb1862ffefca6c2962f31c5b44e2",
+      "gitBlobSha1": "b50e4f1fbe4be3673527fcd8374f9d89f032514b"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/video-games-list/video-games-list.ts",
+      "mode": "100644",
+      "bytes": 8173,
+      "sha256": "eb9d350194ce0b1ebc9ea25a14a12295e0139d003a4e4aef5144d8ccfa058233",
+      "gitBlobSha1": "89eba84790cf3e3a72b71b8dccec68dff4e09c91"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/video-games.service.spec.ts",
+      "mode": "100644",
+      "bytes": 3698,
+      "sha256": "e3940d1aeeebf57608b6f58f8d1d68b882154eaaa36b5cd2fdf99e89514cf0ea",
+      "gitBlobSha1": "469cd5619a765ec1715a91d5cb3f5dfdd3e73b76"
+    },
+    {
+      "path": "src/frontend/src/app/features/games/video-games.service.ts",
+      "mode": "100644",
+      "bytes": 1682,
+      "sha256": "8848c271735e2aeb35e02bcae426dc56373f6d7d1b41a7d6fea281ab66bfba1f",
+      "gitBlobSha1": "7cbbfdd130135fb9f05dad3bc8227b365c67a17c"
+    },
+    {
+      "path": "src/frontend/src/app/features/library/.gitkeep",
+      "mode": "100644",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlobSha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "src/frontend/src/app/features/library/library-page/library-page.html",
+      "mode": "100644",
+      "bytes": 8220,
+      "sha256": "78f3e199e4f03937ecffb1f35e7a20fbc0a4ff53dbe223e4b0e19966e6415d0e",
+      "gitBlobSha1": "c43d0a88ac0aa4e22feaa50b5609458e5258ab16"
+    },
+    {
+      "path": "src/frontend/src/app/features/library/library-page/library-page.scss",
+      "mode": "100644",
+      "bytes": 2827,
+      "sha256": "79c2faf96712eea29b3a6dbeff2ee118bf12ceed14fdd50db3a7bc3235979ed4",
+      "gitBlobSha1": "106b921b0da377ce5bf2df786e87ab85fcc845ae"
+    },
+    {
+      "path": "src/frontend/src/app/features/library/library-page/library-page.spec.ts",
+      "mode": "100644",
+      "bytes": 17304,
+      "sha256": "2885c3cc3180893613788b3e9816a82602bb0a58a1d466a4b7d4d3c468fc24f7",
+      "gitBlobSha1": "53d42e77b8dd6f492ffb808e7bfc959c12916d89"
+    },
+    {
+      "path": "src/frontend/src/app/features/library/library-page/library-page.ts",
+      "mode": "100644",
+      "bytes": 12699,
+      "sha256": "9dece94c669518e095d02f157d99cf2983c89e8d0a738d8a746a0498f01e1279",
+      "gitBlobSha1": "c54cfb574dadf1a1725a1d86232bef197acf4940"
+    },
+    {
+      "path": "src/frontend/src/app/features/library/library.service.spec.ts",
+      "mode": "100644",
+      "bytes": 3615,
+      "sha256": "f63ed330e1b584d5cec7493dd540ab2e951aee414931edc945ef82f9c3aecc07",
+      "gitBlobSha1": "eb0320d33c470c41e2c852c4e17619b5df0e31c6"
+    },
+    {
+      "path": "src/frontend/src/app/features/library/library.service.ts",
+      "mode": "100644",
+      "bytes": 1824,
+      "sha256": "db91aac8cd005b9874cb76079de140bfbefb0c55938e7d2047789663f8103946",
+      "gitBlobSha1": "4f7a04e84d667e3e54cbdb643c48e4162a3d70d9"
+    },
+    {
+      "path": "src/frontend/src/app/features/library/library.ts",
+      "mode": "100644",
+      "bytes": 1271,
+      "sha256": "b1b94f90873c573eaa4a206debe0992d708aae5157ed07439ff9674fcee3f79e",
+      "gitBlobSha1": "563e1a7ceab74a8a8c6c7402b2fdbb8240ca829c"
+    },
+    {
+      "path": "src/frontend/src/app/features/manage/manage-hub.html",
+      "mode": "100644",
+      "bytes": 1163,
+      "sha256": "ced80f7f8ef3a32a1fe5c7525b0b0e3f0257f928be5ac9ed71a72584556b1b29",
+      "gitBlobSha1": "b57e9ca65db82b885fd6a022a74b3b5065747463"
+    },
+    {
+      "path": "src/frontend/src/app/features/manage/manage-hub.scss",
+      "mode": "100644",
+      "bytes": 1061,
+      "sha256": "01347ce794e20c910c6fc74c5fe563352fe4510f581bc07caf8e82218a5ad6d5",
+      "gitBlobSha1": "dc0e4d9c6beac55d37cf3f4e0e4eb13b8b3b8efd"
+    },
+    {
+      "path": "src/frontend/src/app/features/manage/manage-hub.ts",
+      "mode": "100644",
+      "bytes": 256,
+      "sha256": "0e8b87811a9083d12e0ce1860c2ac1093da11244c27dc19aa74ed3ee28c50d85",
+      "gitBlobSha1": "28f676fbb80d15fab3e27c1568ad83f0f05109d6"
+    },
+    {
+      "path": "src/frontend/src/app/features/manage/steam/steam-page.html",
+      "mode": "100644",
+      "bytes": 4952,
+      "sha256": "c64eb7dfe14f1b895038f4f79447832c2d9694db2bfc9a163659de37a5f26854",
+      "gitBlobSha1": "d543fc673b526d41b7bf0e337a0d48427e0bbc8c"
+    },
+    {
+      "path": "src/frontend/src/app/features/manage/steam/steam-page.scss",
+      "mode": "100644",
+      "bytes": 4249,
+      "sha256": "717f8baf3c38f2412710d2d4f5286b9503ab9d64ebca7e9d87819356663abab7",
+      "gitBlobSha1": "c4b64503130f8aff32523466e93787baabf9170e"
+    },
+    {
+      "path": "src/frontend/src/app/features/manage/steam/steam-page.spec.ts",
+      "mode": "100644",
+      "bytes": 28016,
+      "sha256": "a40b24ddb7b33aeb482911e8e9c0bde7199f38149cecea3fa5a0e224d9688a0a",
+      "gitBlobSha1": "7d3a22265d102e9c18fa0f2756e2df00c8a79cc2"
+    },
+    {
+      "path": "src/frontend/src/app/features/manage/steam/steam-page.ts",
+      "mode": "100644",
+      "bytes": 6746,
+      "sha256": "25e948b2b087d733661ef414e9652362a08ef51b36799ba5bed3dda354f05bee",
+      "gitBlobSha1": "bcb69aeca39d18b1e5b9e2266b2362676a6278ea"
+    },
+    {
+      "path": "src/frontend/src/app/features/manage/steam/steam.service.spec.ts",
+      "mode": "100644",
+      "bytes": 2898,
+      "sha256": "5c15b37fec90ef41a5842e5ff234303346482a68a08649ee51cc7ee9be01b072",
+      "gitBlobSha1": "d2aba820ab41c6ca3e0172dedcc195d02bd73db2"
+    },
+    {
+      "path": "src/frontend/src/app/features/manage/steam/steam.service.ts",
+      "mode": "100644",
+      "bytes": 1943,
+      "sha256": "4f6dc50bfcada83a138fbaf11e67df548a626140880b786a1821ab59c42cf773",
+      "gitBlobSha1": "22b7bec73fc07d93c75548e17cfa8256196782d4"
+    },
+    {
+      "path": "src/frontend/src/app/features/platforms/platform-form/platform-form.html",
+      "mode": "100644",
+      "bytes": 871,
+      "sha256": "c737477576ee5c4cfc3d46474eccffb2f5424d1296c4b9d8f1d7a203fddfe48a",
+      "gitBlobSha1": "956a4f31941397de3fa8855c29ecb184076f361d"
+    },
+    {
+      "path": "src/frontend/src/app/features/platforms/platform-form/platform-form.scss",
+      "mode": "100644",
+      "bytes": 205,
+      "sha256": "893b4487a91fc6fbfe6efa64d85a4c26c400f16debda47bc7141e1ff794c029e",
+      "gitBlobSha1": "c5821e7acf2aaaf6e5210be08821f04a7f53f772"
+    },
+    {
+      "path": "src/frontend/src/app/features/platforms/platform-form/platform-form.spec.ts",
+      "mode": "100644",
+      "bytes": 2430,
+      "sha256": "ebdfa72a94ace904cd20c00f8636e5c3044bc10638adc0d7152b624f4725dd33",
+      "gitBlobSha1": "485d18ae0739b64f179d844be0dcdcda374927d5"
+    },
+    {
+      "path": "src/frontend/src/app/features/platforms/platform-form/platform-form.ts",
+      "mode": "100644",
+      "bytes": 1329,
+      "sha256": "8358eee6e1de1e5766ed5e4b4000f47fbf5365ee2848a5c9e995b80660d973ee",
+      "gitBlobSha1": "36028d2ca5bad2562d96e0bc00ef8c88d581c24a"
+    },
+    {
+      "path": "src/frontend/src/app/features/platforms/platform.ts",
+      "mode": "100644",
+      "bytes": 59,
+      "sha256": "be36f4e688760763db80446fd155e982616c5ba89688de1cad88266fb18179ae",
+      "gitBlobSha1": "e314e848f9db6014f5aa3cfa32a793a3c2a17375"
+    },
+    {
+      "path": "src/frontend/src/app/features/platforms/platforms-list/platforms-list.html",
+      "mode": "100644",
+      "bytes": 1509,
+      "sha256": "db7b82ac1f19c35aefedbbd76d418fe215a852b42babfbf40f81e7a30f1c1230",
+      "gitBlobSha1": "988a08a28af0209ce64803c38fb7184ed2835a18"
+    },
+    {
+      "path": "src/frontend/src/app/features/platforms/platforms-list/platforms-list.scss",
+      "mode": "100644",
+      "bytes": 444,
+      "sha256": "4fdcb6def954439aa7dfc8c5317d0cb0486f4faddf0adf95a1092342dc3cb1b5",
+      "gitBlobSha1": "f44bd3630e1a3af908db56d661156e01faaa06d1"
+    },
+    {
+      "path": "src/frontend/src/app/features/platforms/platforms-list/platforms-list.spec.ts",
+      "mode": "100644",
+      "bytes": 10441,
+      "sha256": "5850f1989ca83eed6208106f3c1daaf993bea75fa7557e23886b44bb5b493ee4",
+      "gitBlobSha1": "1880b2a2c86d4bf6c10531f61e345dc167b92901"
+    },
+    {
+      "path": "src/frontend/src/app/features/platforms/platforms-list/platforms-list.ts",
+      "mode": "100644",
+      "bytes": 4471,
+      "sha256": "95033dd5e1d385cf4cc30944920dcf0afcd54775c8cc88409db55a1c003d0e7b",
+      "gitBlobSha1": "8fd9261803ebe9cfab3b402e97ad0c5c292eb1ae"
+    },
+    {
+      "path": "src/frontend/src/app/features/platforms/platforms.service.spec.ts",
+      "mode": "100644",
+      "bytes": 2505,
+      "sha256": "40091ff073c322d4b29bbb3ec674d459e4b6cc6dad929d8a703ba425dc9b33e2",
+      "gitBlobSha1": "a96e9e134c28bbda349ddc41e5135c0a0b6e8b28"
+    },
+    {
+      "path": "src/frontend/src/app/features/platforms/platforms.service.ts",
+      "mode": "100644",
+      "bytes": 896,
+      "sha256": "e977745fdab3b4529b88e5d58238522ebb85118638a6dd8765af1457305941a8",
+      "gitBlobSha1": "a93be6e78e80953fc18f5cb2820cbff5d15163c7"
+    },
+    {
+      "path": "src/frontend/src/app/features/play-log/log-play-dialog/log-play-dialog.html",
+      "mode": "100644",
+      "bytes": 1635,
+      "sha256": "8e324e2ffc9227bbe643becc5e4f11652341fdab86da8891aac4d3c889d17fc9",
+      "gitBlobSha1": "d2880abdb006d57e5634e39eed378085cec14f5d"
+    },
+    {
+      "path": "src/frontend/src/app/features/play-log/log-play-dialog/log-play-dialog.scss",
+      "mode": "100644",
+      "bytes": 925,
+      "sha256": "8a274d384337726e234f5f36636dad8cb8627d7b8c6114f3eb0ee9cfb964609b",
+      "gitBlobSha1": "a1299dbb17dcbf6a16225c22b662b733a7405645"
+    },
+    {
+      "path": "src/frontend/src/app/features/play-log/log-play-dialog/log-play-dialog.spec.ts",
+      "mode": "100644",
+      "bytes": 6471,
+      "sha256": "6817656374ef5865db4e7742b5c95bac894ec1e008b43e4a623e7813248f013e",
+      "gitBlobSha1": "5e96a8925f0731bec85bba229d8ebd709fa706e8"
+    },
+    {
+      "path": "src/frontend/src/app/features/play-log/log-play-dialog/log-play-dialog.ts",
+      "mode": "100644",
+      "bytes": 5966,
+      "sha256": "ac8757046c9e776cc81c5c08f6c26da3c4055ad7e00f1af52081a2beaa70f3f3",
+      "gitBlobSha1": "22ecb445fbe3cf9a23320e2a50bad8eea8e5782b"
+    },
+    {
+      "path": "src/frontend/src/app/features/play-log/play-log-page/play-log-page.html",
+      "mode": "100644",
+      "bytes": 2074,
+      "sha256": "537e74e7958a356015ecbeda0312242b57af6c2beb12d3e8c289fcc773d284bf",
+      "gitBlobSha1": "21985992bfe57c8c8a312e08cf7b5b419e89407c"
+    },
+    {
+      "path": "src/frontend/src/app/features/play-log/play-log-page/play-log-page.scss",
+      "mode": "100644",
+      "bytes": 1593,
+      "sha256": "3dcae33efb017c0965f27740d45b6c89e1e9bd17f436e615d99b9e8d5de8be67",
+      "gitBlobSha1": "bbacabe3fdabd739d47906fc37a3b7ecc149c028"
+    },
+    {
+      "path": "src/frontend/src/app/features/play-log/play-log-page/play-log-page.spec.ts",
+      "mode": "100644",
+      "bytes": 10143,
+      "sha256": "38044c81478216ed7fec72f7bb20347ba29c5166d0cf49ddb9b4b25dac0fe144",
+      "gitBlobSha1": "3b4f2080b4fd9549729e2bc2fc2eea65be54e3de"
+    },
+    {
+      "path": "src/frontend/src/app/features/play-log/play-log-page/play-log-page.ts",
+      "mode": "100644",
+      "bytes": 3901,
+      "sha256": "82167e0d2821b997266b97feceab9667d9b063578db63ee917ba0027fe689b19",
+      "gitBlobSha1": "88edfde354d3e72091d726d3c78ff886fde007f1"
+    },
+    {
+      "path": "src/frontend/src/app/features/play-log/play-log.service.spec.ts",
+      "mode": "100644",
+      "bytes": 2715,
+      "sha256": "8a72c06860f7b3b5fcdfe7bec245d077176742ae030a14629028823a4b56a245",
+      "gitBlobSha1": "72587b7a49bbf74cbbe7516f24c2fbf6a42acad8"
+    },
+    {
+      "path": "src/frontend/src/app/features/play-log/play-log.service.ts",
+      "mode": "100644",
+      "bytes": 891,
+      "sha256": "a21a40409142e69cb1e1265d672c02efe1f87649b76468815c5e075a6ca395e7",
+      "gitBlobSha1": "9a98ac3640a3f64859cf862959ffb7ad0c625a50"
+    },
+    {
+      "path": "src/frontend/src/app/features/play-log/play-log.ts",
+      "mode": "100644",
+      "bytes": 586,
+      "sha256": "fc90d32e64edfaad3958a2a838d8b548aed68764a37ffacea5b2ee60dc6abd6e",
+      "gitBlobSha1": "350d546d0d08682ce751a642fe8194ef168ff600"
+    },
+    {
+      "path": "src/frontend/src/app/features/random-picker/.gitkeep",
+      "mode": "100644",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlobSha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "src/frontend/src/app/features/random-picker/random-picker-page/random-picker-page.html",
+      "mode": "100644",
+      "bytes": 10002,
+      "sha256": "ecb381b6820ef657a11494502ac01f06a9d1b49a7db807d857c510a712f48441",
+      "gitBlobSha1": "34ee2b5ff1f6bc9862415e67e89ec7c0210aadd4"
+    },
+    {
+      "path": "src/frontend/src/app/features/random-picker/random-picker-page/random-picker-page.scss",
+      "mode": "100644",
+      "bytes": 4652,
+      "sha256": "cacd957a33fc59172143564db70a149457217744efb8ba3aaabb7c045c6286ae",
+      "gitBlobSha1": "f0e1bc2fdb660dfc7be185136d39855fbee924c3"
+    },
+    {
+      "path": "src/frontend/src/app/features/random-picker/random-picker-page/random-picker-page.spec.ts",
+      "mode": "100644",
+      "bytes": 36976,
+      "sha256": "de417185279e61fc1a958b709fe2c670d606e080b942f0b7956cdfe4a04a1bd0",
+      "gitBlobSha1": "27e23ba0b2c3430ba839c9ffbee7dedffc0decfd"
+    },
+    {
+      "path": "src/frontend/src/app/features/random-picker/random-picker-page/random-picker-page.ts",
+      "mode": "100644",
+      "bytes": 14440,
+      "sha256": "6e2a74749020279ef94c009a2d541b21abdad11dbbb83034cf5fd462d680860f",
+      "gitBlobSha1": "01f498490efb448cbf477404c50f2d8d09939019"
+    },
+    {
+      "path": "src/frontend/src/app/features/random-picker/random-picker.service.spec.ts",
+      "mode": "100644",
+      "bytes": 1999,
+      "sha256": "df67cbcf85457670ed836c5215cc09b13068769809b0c7bc329ca50a6866dcc3",
+      "gitBlobSha1": "c223b5d8d1b68814784ebc1c4e87f877e4bf94c3"
+    },
+    {
+      "path": "src/frontend/src/app/features/random-picker/random-picker.service.ts",
+      "mode": "100644",
+      "bytes": 606,
+      "sha256": "ffea981c5311b34c416fa1f56f20f16fc4994384976f3b93428c825e34a97a13",
+      "gitBlobSha1": "240a1589fce1800c32b3c12994a7e4f6743b9aea"
+    },
+    {
+      "path": "src/frontend/src/app/features/random-picker/random-picker.ts",
+      "mode": "100644",
+      "bytes": 1421,
+      "sha256": "bcee7478a0fc0b5b76f16370b1a7d95e66a9e4757939808890b556828cead9e6",
+      "gitBlobSha1": "5b47591338d262de946f17752d3103b5bc3ae580"
+    },
+    {
+      "path": "src/frontend/src/app/shared/.gitkeep",
+      "mode": "100644",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlobSha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "src/frontend/src/environments/environment.development.ts",
+      "mode": "100644",
+      "bytes": 229,
+      "sha256": "7e3e138c19271413fa04d3018fd3d033b4ddf7ae5c0d3f1b15baa5d6460ecbba",
+      "gitBlobSha1": "c3a1dee78e73b4bc22de1bee70713a128c107aff"
+    },
+    {
+      "path": "src/frontend/src/environments/environment.e2e.ts",
+      "mode": "100644",
+      "bytes": 183,
+      "sha256": "234caecd0b1a37d71ba1bca1f1abbd5be567c6551ad6c5eca8692a96c7351f2e",
+      "gitBlobSha1": "88ac6defca7e4c29cf0c989bd9201749760c56bd"
+    },
+    {
+      "path": "src/frontend/src/environments/environment.ts",
+      "mode": "100644",
+      "bytes": 122,
+      "sha256": "f94634be4eb921fb672f64dc9e5394e5d1509f9ca1f900c39b141bf5e8289015",
+      "gitBlobSha1": "3d37a31bfea9dd76e7b46f532a9c91b5865ab1ae"
+    },
+    {
+      "path": "src/frontend/src/index.html",
+      "mode": "100644",
+      "bytes": 467,
+      "sha256": "e649dd283a776f7e872ed1e62233aa39bf7f93c659bb0b6efddec053901363fa",
+      "gitBlobSha1": "b564f02824170916efd7acf6514e5eb655696ba2"
+    },
+    {
+      "path": "src/frontend/src/main.ts",
+      "mode": "100644",
+      "bytes": 222,
+      "sha256": "2341253f1a947c37dfa27838951cf7e224f7abb32dff45a8d425f042b5eeed13",
+      "gitBlobSha1": "5df75f9c838ea50f80ee4d5703b68dd8ac7243d4"
+    },
+    {
+      "path": "src/frontend/src/styles.scss",
+      "mode": "100644",
+      "bytes": 3770,
+      "sha256": "51c223216e5603ca975603c20df58e757b6822dd0a8d56909d3e04945865e561",
+      "gitBlobSha1": "3c0a4623bdbc67cc429145bfbdd5183e368b0fac"
+    },
+    {
+      "path": "src/frontend/tsconfig.app.json",
+      "mode": "100644",
+      "bytes": 398,
+      "sha256": "12e2786b56cc873a4e91f822894cc541082d16b90c0d7280aa5512469627d23f",
+      "gitBlobSha1": "cb151e101632a7991cb891d79bf14a9abd38ab41"
+    },
+    {
+      "path": "src/frontend/tsconfig.json",
+      "mode": "100644",
+      "bytes": 908,
+      "sha256": "3c3b6c2138f0a910f5284e1d64e9fc213af2b91409fdeaf5598ff495c28f79c2",
+      "gitBlobSha1": "d2fbb9c2b057731ece0e7ac10ae3875caf0df324"
+    },
+    {
+      "path": "src/frontend/tsconfig.spec.json",
+      "mode": "100644",
+      "bytes": 409,
+      "sha256": "958fd251a505c5d54d94d2694b8fde3d1c71aa244b522e3e053db1ac5b987dd0",
+      "gitBlobSha1": "9c8efb9b705f7962896da11eac8e06ec4684de2e"
+    },
+    {
+      "path": "src/frontend/vercel.json",
+      "mode": "100644",
+      "bytes": 697,
+      "sha256": "251e21fe4e89a63b1110d8ebdc768564ceaf54ec7e9f23bd4bf248a97d7395c0",
+      "gitBlobSha1": "ffb078cee540622a527626eff634df47355b25cb"
+    },
+    {
+      "path": "src/frontend/vitest-base.config.ts",
+      "mode": "100644",
+      "bytes": 250,
+      "sha256": "cb9b4f891e990842f7c37a543b11dedfca4154d239cd4e2675ff7c13a106304b",
+      "gitBlobSha1": "70c979ac25a9fe14b391599ab265d974a9c4d3f9"
+    },
+    {
+      "path": "tests/backend/GameLibrary.Core.Tests/BoardGameRulesTests.cs",
+      "mode": "100644",
+      "bytes": 8755,
+      "sha256": "975f703d9d17c85b21da3b4b38a054a8d2560f29a03fada026c924834695eea7",
+      "gitBlobSha1": "d2253d27b6883afc13dcd54db73fc3d306dab6ce"
+    },
+    {
+      "path": "tests/backend/GameLibrary.Core.Tests/CoverImageSearchRulesTests.cs",
+      "mode": "100644",
+      "bytes": 6913,
+      "sha256": "42bbafd22aef6eeec37ffaf863c56fd0bf47e382df8e626ebd3b5617181d422c",
+      "gitBlobSha1": "822a4d3095b9998d01fccd8f6a8e37819cf52970"
+    },
+    {
+      "path": "tests/backend/GameLibrary.Core.Tests/CoverIntentRulesTests.cs",
+      "mode": "100644",
+      "bytes": 2974,
+      "sha256": "0d993c467dfd4c1562cff2667e9337908261fac79de0c9deca59a461558b29c3",
+      "gitBlobSha1": "cd5cd05faec1669e90a36d636a42e0123a9a1197"
+    },
+    {
+      "path": "tests/backend/GameLibrary.Core.Tests/CoverLifecycleRulesTests.cs",
+      "mode": "100644",
+      "bytes": 2693,
+      "sha256": "5a68d15b0e7441e5e8374acb2a2db2795ff5d1e94604fff73ff470d8d9e21355",
+      "gitBlobSha1": "aa36043c94b6b96bdc2a7b4e24dc0e9d7ff7b3bd"
+    },
+    {
+      "path": "tests/backend/GameLibrary.Core.Tests/FamilyFriendlyRulesTests.cs",
+      "mode": "100644",
+      "bytes": 4536,
+      "sha256": "7c69eef7566426fe7c6c0445933049b18de3f860ffb1b395b970f7d33da9d8e1",
+      "gitBlobSha1": "7ca2c7e3de02be2815dde962a87a62c63ed6ca27"
+    },
+    {
+      "path": "tests/backend/GameLibrary.Core.Tests/GameLibrary.Core.Tests.csproj",
+      "mode": "100644",
+      "bytes": 738,
+      "sha256": "b811526bf930377dbe5eb585a19ab910c6895638583c4ddf1b437888e2b80ad4",
+      "gitBlobSha1": "ce8a6b7b62752dde46e94b7e8af4c99680b4c833"
+    },
+    {
+      "path": "tests/backend/GameLibrary.Core.Tests/LibraryFilterRulesTests.cs",
+      "mode": "100644",
+      "bytes": 6922,
+      "sha256": "4a9c5ef0e1ed9e3e7a00214ea3a4138da430cab4dbc51963a0e5255d2c91405c",
+      "gitBlobSha1": "29ac2f69d4eb9cbab94bfcc4448d0d0e418a9737"
+    },
+    {
+      "path": "tests/backend/GameLibrary.Core.Tests/PlayLogRulesTests.cs",
+      "mode": "100644",
+      "bytes": 3178,
+      "sha256": "d430165ae315e761e538d7dbd639414703a3f48663c4295421c3b920012416ee",
+      "gitBlobSha1": "353318e6287a5e7ad21eff914ea3264d7fc5e966"
+    },
+    {
+      "path": "tests/backend/GameLibrary.Core.Tests/RandomPickerRulesTests.cs",
+      "mode": "100644",
+      "bytes": 7069,
+      "sha256": "3423ae8305724f228ecc753be9b29039403afc2bb8fd9df8567b2ea42f1fa7c2",
+      "gitBlobSha1": "f64b6126e751806dca537f7f07640040be05fee1"
+    },
+    {
+      "path": "tests/backend/GameLibrary.Core.Tests/SteamIntegrationRulesTests.cs",
+      "mode": "100644",
+      "bytes": 9978,
+      "sha256": "74fc42e6aff0f8066d3a3d59c1551ae52f9506747f417754917420033f8d4f72",
+      "gitBlobSha1": "b2dfe01fcf65677e5e381ba12602360a6dc04a82"
+    },
+    {
+      "path": "tests/backend/GameLibrary.Core.Tests/VideoGameRulesTests.cs",
+      "mode": "100644",
+      "bytes": 12565,
+      "sha256": "a0f5cf9f83dda6f5b0e78b5d0a35bdc9db6575f39c1862d572fd4abca3ecf943",
+      "gitBlobSha1": "29550db702dfbdf9e2e64c755db209fd132bdb3a"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/AuthEndpointTests.cs",
+      "mode": "100644",
+      "bytes": 2912,
+      "sha256": "e109ecb9639089d849dff43f37543474d28e10790abaedcf191ef2ce3196aad3",
+      "gitBlobSha1": "c2c78e4c73bfd2da2eded35bbabee2d170aa031d"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/AuthTestFactory.cs",
+      "mode": "100644",
+      "bytes": 1851,
+      "sha256": "5e4b563d62b75e839c9d2908f23fed12478e42e0b163377fb5292df8e13d2321",
+      "gitBlobSha1": "4b58cb360e27f6ff3f5e60193340e63b6b7c2e29"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/BoardGameEndpointTests.cs",
+      "mode": "100644",
+      "bytes": 32314,
+      "sha256": "dee2a0e5e243b0d32593a364c1bdc34bb92a6f34caf41d2d4566f6f9b78647ac",
+      "gitBlobSha1": "e207f219bf5d03383a34fbdf60a49d3665cb68cd"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/BoardGameTestFactory.cs",
+      "mode": "100644",
+      "bytes": 2315,
+      "sha256": "cd0403ff1b9698221f1e6162eef5a21964e4ec9aa21cd1fc59e70b7ebaa60c8a",
+      "gitBlobSha1": "2cff2c806e9a0803b49263b6b358b1ad611314c1"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/BraveCoverImageSearchClientTests.cs",
+      "mode": "100644",
+      "bytes": 3937,
+      "sha256": "3132740cbc4fea5124beec33562694e2291714f7016bcfb6ff345ad2a9df3307",
+      "gitBlobSha1": "88f592145d2aebfec34f37ec0c1d58164fbc2d29"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/CoverFakeConfigurationTests.cs",
+      "mode": "100644",
+      "bytes": 16281,
+      "sha256": "4117ad6c98871be7b964d11fe3c642633df7aa8eedd200a21d8bd5d7b6710b76",
+      "gitBlobSha1": "dab5745d81fe561be1d76b9fb90b432b9febceae"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/CoverHttpEndpointTests.cs",
+      "mode": "100644",
+      "bytes": 78182,
+      "sha256": "92eee41028f9abec5f043104b357583a8cf9e6939a5e8b2e64ec3cb4d55d4cb1",
+      "gitBlobSha1": "48014d75dbed0a38e51a6dedbba187f91cea24d4"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/CoverHttpManualClock.cs",
+      "mode": "100644",
+      "bytes": 3289,
+      "sha256": "2799f812ce91a3d974f4842fab9289f77ad8629aec7139733a4623d468ceaa61",
+      "gitBlobSha1": "3c654d48c44881f3916eb52ef96b544a8b634824"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/CoverHttpTestFactory.cs",
+      "mode": "100644",
+      "bytes": 7380,
+      "sha256": "a524716b7f0d37b5e47c7fcc26c81939908c6be5b607101d36c0e793017e0f8b",
+      "gitBlobSha1": "3c081f662e69d37773177bb320ca9df9071222b2"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/CoverHttpTransportTests.cs",
+      "mode": "100644",
+      "bytes": 16755,
+      "sha256": "1c56bf8ecccc562cbd4ef4004e3885346c2c5107eabd279761c40dc99b8bd59b",
+      "gitBlobSha1": "42f95e409d941f648b2521db45ccc7e35c428b15"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/CoverImageProcessorTests.cs",
+      "mode": "100644",
+      "bytes": 36386,
+      "sha256": "b1fdd3b3304179c05b5fd099c2b5873a156295240a3dab65fb1d8d48e3ea167b",
+      "gitBlobSha1": "54d6b173f840d2e8a4755c0e0e88ace1f659588d"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/CoverImageSearchEndpointTests.cs",
+      "mode": "100644",
+      "bytes": 12313,
+      "sha256": "f63a7fd87abf6033c5f231605d0cc9b4ebc56cbb9d886f430e9c0578d122908d",
+      "gitBlobSha1": "85ba004c5091c3d7eb490dd70587b84ae63bbc31"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/CoverImageSearchTestFactory.cs",
+      "mode": "100644",
+      "bytes": 3608,
+      "sha256": "edf5d78c049e9baffe3191401a4249e28a5d375036176718b8a4437c9e72a938",
+      "gitBlobSha1": "ab31ed0f89c95f13ac7d3e00361d7976b6b1f69c"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/CoverJpegFixtures.cs",
+      "mode": "100644",
+      "bytes": 2707,
+      "sha256": "f38b04a42ec4cf87ac32ce7e9f030a02bdbd3a3bfc686a1674603c2fd213a4c2",
+      "gitBlobSha1": "52e35923db15f6b3bf984a9a8bc2b1403832a6e1"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/CoverLifecycleFixture.cs",
+      "mode": "100644",
+      "bytes": 7239,
+      "sha256": "cd523f32127fc100e6c5c891b3f34456811c86877206e904cbb2ead8e327d698",
+      "gitBlobSha1": "22a8d06f223c4e38cc24a6660c31e2ee2cb20b49"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/CoverLifecycleTests.cs",
+      "mode": "100644",
+      "bytes": 51682,
+      "sha256": "597d19ca6b2d2f793893ecb3a5b280cbd3da9e901bce237649b78cfe74f966ae",
+      "gitBlobSha1": "80c0c23673eb6ef39d0c409292255073c11abbde"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/CoverSecurityGateTests.cs",
+      "mode": "100644",
+      "bytes": 11013,
+      "sha256": "d51878f862be54dddb213e19c3e59d7ea018f7f39844a0627d454b32d92276d5",
+      "gitBlobSha1": "49ce4937dc4acd83ff9512fde749f092f056bd88"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/CoverStorageTests.cs",
+      "mode": "100644",
+      "bytes": 29186,
+      "sha256": "90298233bffe3824f10bf3627771a81beed8a5506074b1c107ac22fcbd37aea4",
+      "gitBlobSha1": "6360a74691de04c4a8ad0ced3ba648828c4a9f2c"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/CoverWriteContractTests.cs",
+      "mode": "100644",
+      "bytes": 11394,
+      "sha256": "fd86847b52b50fb55d27838706d53faa9b8de798a357e82e38557688cd4edec4",
+      "gitBlobSha1": "9cb898b8bc72b5624a7e5945b55a2c1abca25e6b"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/DatabaseMigrationTests.cs",
+      "mode": "100644",
+      "bytes": 18180,
+      "sha256": "99e480ceba74a602d85f1f27494359c37fd4f80cd1dfbc59a3fd6c7f9ac08052",
+      "gitBlobSha1": "bac80240ddfa35cd473e89e92518e285464ffa52"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/FamilyFriendlyEndpointTests.cs",
+      "mode": "100644",
+      "bytes": 19535,
+      "sha256": "8ae4cf28c368d46f0a29a24aea91dfbb4d67d8bcd2c7e8613f135daf83eec9d7",
+      "gitBlobSha1": "7a35bf0cfb10227c0d14edc8780dd30be3b5c83a"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/GameLibrary.IntegrationTests.csproj",
+      "mode": "100644",
+      "bytes": 825,
+      "sha256": "4f247af5cb48c06d24534e5798464fcc65d265a7d314263e3d05ef245143d663",
+      "gitBlobSha1": "2ad7de926d43f75e97a21b86c660f4e92f5326a2"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/HealthEndpointTests.cs",
+      "mode": "100644",
+      "bytes": 955,
+      "sha256": "022e851872a3d2cf4f974f80b895ef5434d17e55242c9eb44671e7fc232621d1",
+      "gitBlobSha1": "a802f29e8622b884dd96b7d93891b5fee67b3c9b"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/JwtValidationConfigurationTests.cs",
+      "mode": "100644",
+      "bytes": 1870,
+      "sha256": "dca227c8cb09e53262e0ed61535e851313408c207896dae20de0c73e42179d5c",
+      "gitBlobSha1": "dab5063ad40b9e019e2ee11574253aa23b361ad0"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/LibraryEndpointTests.cs",
+      "mode": "100644",
+      "bytes": 17498,
+      "sha256": "bc899762107207350352ff4061a9a5de3f7cb83b034c0881e6046e5e168354d5",
+      "gitBlobSha1": "dde8116540a2f4897ab1f051cc4e4308bcc4a7ad"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/LibraryTestFactory.cs",
+      "mode": "100644",
+      "bytes": 1783,
+      "sha256": "898f63852580856dba9c11de39d0a25fc7c2d9f043853c1dcbe4ca9617925262",
+      "gitBlobSha1": "f7194bd722065024380470f0c760bc64e1422e34"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/PlatformEndpointTests.cs",
+      "mode": "100644",
+      "bytes": 10701,
+      "sha256": "8aad112bfa32b6ecdca0ad22d484090cb094b7e27f770bc1a04e3fdede9f0b5f",
+      "gitBlobSha1": "b60c3cc7e643926144f54147358b125ce776fd55"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/PlatformTestFactory.cs",
+      "mode": "100644",
+      "bytes": 2311,
+      "sha256": "a19ff0e79b289906f466394d6246aed72b51e9af14e34d1187b7057ec1fda12c",
+      "gitBlobSha1": "3e2cdd2ecf43dbef31e5f3eedeb6d50af09d4ef5"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/PlayLogEndpointTests.cs",
+      "mode": "100644",
+      "bytes": 31404,
+      "sha256": "88e86bbf2a14d7cbed6938e5fcff43bb2a20223e2a28516c46c25bca882a0801",
+      "gitBlobSha1": "026d887b60d2f017f64a9516dee0463b82ad44e0"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/PlayLogTestFactory.cs",
+      "mode": "100644",
+      "bytes": 1783,
+      "sha256": "47fe597b21a25a9455939dacc8bb1698f8d1e1d856fe8057302328450e658f20",
+      "gitBlobSha1": "4057d32010a98381d4b1fabeb06ab2fbb6922f39"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/RandomPickerEndpointTests.cs",
+      "mode": "100644",
+      "bytes": 17830,
+      "sha256": "b6cdb77ec8025e0b602e3a5ab2204ff803a7774fd84aaec46c15aab2390f91be",
+      "gitBlobSha1": "6d21bce3f28ed45e961503ef62399ac70e7151b3"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/RandomPickerTestFactory.cs",
+      "mode": "100644",
+      "bytes": 1788,
+      "sha256": "078693dfb00a618b205174ccc368202c1af5c6b381c1dee4d073f46d6d249a87",
+      "gitBlobSha1": "6af3e3c9f16a2aa4079fefe507166ef17ac78b1f"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/SteamEndpointTests.cs",
+      "mode": "100644",
+      "bytes": 63521,
+      "sha256": "3a3bd60115a31c11e68132426f394b8ba9e69d8c4ab11b6289743d283750b479",
+      "gitBlobSha1": "edd0fe50cabc0575c83e5351ea4128f779e13d89"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/SteamTestFactory.cs",
+      "mode": "100644",
+      "bytes": 4209,
+      "sha256": "ad2e7b7f1d37e4d44ba045d69042dd0f93964c319c02f78ab94cbc9aa24ae6f3",
+      "gitBlobSha1": "83ef6becdf3f5366d2a7f595b0659926e7d5eb0d"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/TestTokens.cs",
+      "mode": "100644",
+      "bytes": 1566,
+      "sha256": "009cf1d82c3993e7b5694adae9196957cc0c1517a35f65d3e1172731b9c30869",
+      "gitBlobSha1": "d753efcf2d4191a2463023219d0e10c3f1cc74b1"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/VideoGameEndpointTests.cs",
+      "mode": "100644",
+      "bytes": 48876,
+      "sha256": "74a5c61ed794e6954dca00f87784ad87d29a6308b21cc711245336cabb4c2c87",
+      "gitBlobSha1": "d8a18242cf2963756c2100d8ef452f965329050d"
+    },
+    {
+      "path": "tests/backend/GameLibrary.IntegrationTests/VideoGameTestFactory.cs",
+      "mode": "100644",
+      "bytes": 2314,
+      "sha256": "b30305459e5570d1563c55a657b236bba874e494564fb62a380074c818f32b37",
+      "gitBlobSha1": "3a40c5f0ece9f9d95a55742cfbe641629d67a8aa"
+    },
+    {
+      "path": "tools/cover-api/Dockerfile",
+      "mode": "100644",
+      "bytes": 1396,
+      "sha256": "2df087a7f4f627a025d74298921447393f6e0fff9a69092975223fd7c564059d",
+      "gitBlobSha1": "5b25088646901c14bddba3c8f4a3e4a5dda4fb77"
+    },
+    {
+      "path": "tools/cover-api/Dockerfile.dockerignore",
+      "mode": "100644",
+      "bytes": 91,
+      "sha256": "585df575e1537818d982467b444679d22a3c54c219bd7a12945e0a687215fdc8",
+      "gitBlobSha1": "f522ad408d4afdd6d20bb9bef647d823fc0da696"
+    },
+    {
+      "path": "tools/cover-api/NonSeekableStream.cs",
+      "mode": "100644",
+      "bytes": 1300,
+      "sha256": "671bc7c991666557818a2151279c1bae2ccd6ce429201f0c4d1a4e11ec1df615",
+      "gitBlobSha1": "c24cb34068c659087c320860351f7e19465d4b75"
+    },
+    {
+      "path": "tools/cover-api/Program.cs",
+      "mode": "100644",
+      "bytes": 28059,
+      "sha256": "94cd769f8eeee9b6210229a8dcbc810b68843d1981db9f8cbc72d8744522dc6b",
+      "gitBlobSha1": "9d89214337a8b57d9e8f579b83298ad2ed26d1ef"
+    },
+    {
+      "path": "tools/cover-api/README.md",
+      "mode": "100644",
+      "bytes": 3415,
+      "sha256": "8a09b98e335eb14ec99bc98a86c4a292909c5282a9054becce60fe707082c442",
+      "gitBlobSha1": "26e5e7dd6b4b57f445d530ba680adad4530281d9"
+    },
+    {
+      "path": "tools/cover-api/StorageFixture.cs",
+      "mode": "100644",
+      "bytes": 5457,
+      "sha256": "9282b622da94ba24cc0f8db507642ef8fe4607bb5fc922dfa8c81ae428575148",
+      "gitBlobSha1": "3204fd7b85949aa614d102fb22c5ca43997da3ff"
+    },
+    {
+      "path": "tools/cover-api/Verify.csproj",
+      "mode": "100644",
+      "bytes": 1335,
+      "sha256": "341c17d1aeccc3a5062e665a7dd014ae5047f1810869b52ad6504f7c25076367",
+      "gitBlobSha1": "ed3fc9d3bba07e80619c35930d1ff6e5105489f8"
+    },
+    {
+      "path": "tools/cover-api/run.sh",
+      "mode": "100644",
+      "bytes": 1387,
+      "sha256": "7eff845adc8275352f1edee2bab1a73f4ab9ef1b766c841948d81539a2cf4e2a",
+      "gitBlobSha1": "974d8507fb276afe3ad5cacd728de89be62c4e5a"
+    },
+    {
+      "path": "tools/cover-native/Dockerfile",
+      "mode": "100644",
+      "bytes": 2078,
+      "sha256": "a8ccb57b100604802fa447644a072dafb3842d74c95700503ccf4186a607bb1f",
+      "gitBlobSha1": "5e51bea8e47165f08f5cf836a658923107154617"
+    },
+    {
+      "path": "tools/cover-native/Dockerfile.dockerignore",
+      "mode": "100644",
+      "bytes": 91,
+      "sha256": "585df575e1537818d982467b444679d22a3c54c219bd7a12945e0a687215fdc8",
+      "gitBlobSha1": "f522ad408d4afdd6d20bb9bef647d823fc0da696"
+    },
+    {
+      "path": "tools/cover-native/Program.cs",
+      "mode": "100644",
+      "bytes": 3182,
+      "sha256": "78c45ef7538988eff887711a85f43b15c7b7dcb5130cab906d8d3fff3f239f58",
+      "gitBlobSha1": "1dd2ba5f0ea9ce6fd0929d282dbfc011fbb4c539"
+    },
+    {
+      "path": "tools/cover-native/README.md",
+      "mode": "100644",
+      "bytes": 5873,
+      "sha256": "a186da534165dc1cd5d17f52fde9ba9ffa508b2e7ab68ec9841266e388e58c8d",
+      "gitBlobSha1": "60d7231f2188576238bca1b972a0f888bb1b0222"
+    },
+    {
+      "path": "tools/cover-native/Smoke.csproj",
+      "mode": "100644",
+      "bytes": 743,
+      "sha256": "dec7164941b98840efd7ebc145e906320ebe4349925c810b875bb62fa8da0df2",
+      "gitBlobSha1": "6d12c382a8177904a1e90361ddea58f3dd37b100"
+    },
+    {
+      "path": "tools/cover-native/THIRD-PARTY-NOTICES.txt",
+      "mode": "100644",
+      "bytes": 1993,
+      "sha256": "cc457c5d9c8f3d75a04b23dc3468fbf23b7801c56cb2cbed22bfc2b9bb659fb2",
+      "gitBlobSha1": "ab3b98df4c7ba951168c326354b416b6d3c3ace2"
+    },
+    {
+      "path": "tools/cover-native/invalid-native.txt",
+      "mode": "100644",
+      "bytes": 73,
+      "sha256": "f15fc523659c8c81c8f54b6d5ae5ade5b1a9dc9a55f3a6de510d521af958eb89",
+      "gitBlobSha1": "6e4cec4433335cd9c89a49370aa98a4039537b13"
+    },
+    {
+      "path": "tools/cover-native/prepare.sh",
+      "mode": "100644",
+      "bytes": 2995,
+      "sha256": "a37f9df1b13cf24b6273aa76743ff21fd2d03e9e9874a8ade1ed43c7a907deb1",
+      "gitBlobSha1": "664d857678b0ecd60e497dc6e3150b3411d50ed6"
+    },
+    {
+      "path": "tools/neon-qa-migrate/Engine.cs",
+      "mode": "100644",
+      "bytes": 3234,
+      "sha256": "79b49e09c2d036c3e9f58362602dab3edf6eb6fda91a04a91c18380e6c20b6e0",
+      "gitBlobSha1": "4cd4deb00ed1c89047e709564d4dc71d0cd28c5d"
+    },
+    {
+      "path": "tools/neon-qa-migrate/NuGet.Config",
+      "mode": "100644",
+      "bytes": 113,
+      "sha256": "2142cfb2dfa2c7feefbe40fabcc68b0dfecadafa99a1db9b70239d977cf2a7ef",
+      "gitBlobSha1": "9a611e303cfe42b16b3b09fcbfd33a3e505b5f72"
+    },
+    {
+      "path": "tools/neon-qa-migrate/OfflineTests.cs",
+      "mode": "100644",
+      "bytes": 18830,
+      "sha256": "e08f0c7f668548d40412c11997334e2386674c7a6eb4ef6f6f43393bfc007111",
+      "gitBlobSha1": "31e78a1f990a5b0a2ab7c2a3fc6169f474e19d1d"
+    },
+    {
+      "path": "tools/neon-qa-migrate/Policy.cs",
+      "mode": "100644",
+      "bytes": 16119,
+      "sha256": "ad2f1a312dc916cd0dafde92a06c46e7665a793cffb26ed1698f6ace97f7d73a",
+      "gitBlobSha1": "90e2dcf0d7184439fbfd2799d6407182823de096"
+    },
+    {
+      "path": "tools/neon-qa-migrate/Program.cs",
+      "mode": "100644",
+      "bytes": 4125,
+      "sha256": "d9b0ec6860533e0bc527a4bc3478d8323cfa5b312f01a1861dbd91860e30ad1b",
+      "gitBlobSha1": "9cc175ed3eef474ac0225ba1a90463ca22a8556b"
+    },
+    {
+      "path": "tools/neon-qa-migrate/README.md",
+      "mode": "100644",
+      "bytes": 18687,
+      "sha256": "54e93bcfaa5e41988cc71432eaaef34a0a42b1f620fb50a34d64eaea3b42fcb4",
+      "gitBlobSha1": "a124cfd6d3b4d82f3370f77a5a5ebd4d03650339"
+    },
+    {
+      "path": "tools/neon-qa-migrate/Runner.csproj",
+      "mode": "100644",
+      "bytes": 601,
+      "sha256": "26622dddd61cab37758fc3fad15f504e68ccb836a7131dd2c3889447fe329d9c",
+      "gitBlobSha1": "f2e5f10f6938afe33960edeb37295be1dad7f351"
+    },
+    {
+      "path": "tools/neon-qa-migrate/SqlSession.cs",
+      "mode": "100644",
+      "bytes": 11271,
+      "sha256": "06358af9050b643b5cb352b2004737ebf22a53a02fec71304b86adb456a320ad",
+      "gitBlobSha1": "d8604cff8b46f6ff6fb3a6c4c18a61bd72a64932"
+    },
+    {
+      "path": "tools/neon-qa-migrate/authorization.example.json",
+      "mode": "100644",
+      "bytes": 1290,
+      "sha256": "8a5b05ff4f73e46bb5561144f3de922e1f55744027cc31c1316b3f40af7d9d9b",
+      "gitBlobSha1": "65f886af300829918020da7c0ad1a303fedd939f"
+    },
+    {
+      "path": "tools/neon-qa-migrate/inventory.py",
+      "mode": "100644",
+      "bytes": 6544,
+      "sha256": "601276aef955da661e52065c74cfdcfe783e83a41baa04077da92260e65535ba",
+      "gitBlobSha1": "29413bef66a2265bade172b61edc45e4b195445f"
+    },
+    {
+      "path": "tools/neon-qa-migrate/metadata.example.json",
+      "mode": "100644",
+      "bytes": 867,
+      "sha256": "39c884e5efb424109a50891b0b857a229a70d9fb66f82b1b52e3b6f331ab449b",
+      "gitBlobSha1": "0a38696f43bc0ca28dea9de4385c16227dca97dc"
+    },
+    {
+      "path": "tools/neon-qa-migrate/run.py",
+      "mode": "100644",
+      "bytes": 5902,
+      "sha256": "1c250708c35a93a431b81789e6329a04ee22578eb4f27afb6d4572304a3372df",
+      "gitBlobSha1": "833138e8b387d9fb06b60fbcb8058bcf5805a2dc"
+    }
+  ],
+  "excluded": [
+    "docs/deployment/neon-qa-source-manifest-runner.json",
+    "opencode.json",
+    "render.yaml"
+  ],
+  "executionApproved": false,
+  "gitPublicationApproved": false,
+  "livePostgresRunnerGatesPassed": false
+}
