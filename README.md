@@ -1,6 +1,8 @@
 # Game Library
 
-Personal game library web application. Angular PWA frontend, ASP.NET Core Web API backend, Supabase PostgreSQL database and authentication.
+Personal game library web application. Angular PWA frontend and ASP.NET Core Web API,
+with PostgreSQL and Supabase Auth. The approved private-QA topology uses Neon for
+application PostgreSQL; this does not change the base production architecture decision.
 
 ## Status
 
@@ -27,8 +29,11 @@ Authoritative specifications (read before implementing a feature):
 - `docs/architecture/architecture-specification.md`
 - `specs/` — approved feature specifications
 - `AGENTS.md` — coding-agent instructions
-- [Railway private QA GO/NO-GO](docs/deployment/private-qa-railway.md) — current
-  Railway/Vercel/Supabase proposal; stop before provisioning or deployment.
+- [Deployment entry point](docs/deployment/README.md) — current QA status and historical plans.
+- [Development and release workflow](docs/development/release-workflow.md) — branch,
+  immutable QA, proposed CI and explicit release/deployment approvals; controls are not yet installed.
+- [Railway logging investigation](docs/deployment/logging-investigation-2026-11-19.md)
+  — evidence, locally prepared fix and remaining hosted/privacy gates.
 - [Earlier Render QA deployment plan](docs/deployment/private-qa.md) — historical preparation;
   separate approval required for all provisioning, migrations and deployment.
 

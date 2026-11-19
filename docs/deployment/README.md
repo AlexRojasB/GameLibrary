@@ -1,5 +1,19 @@
 # Private QA deployment — current entry point
 
+**2026-11-19 status:** the existing Railway API and Vercel frontend are live in QA
+at source `29ba0d97307739484363800450575b2666c37354`. QA uses Neon for application
+PostgreSQL and Supabase for Auth. The dated plans below are historical approvals/
+preparation, not instructions to recreate resources, reset credentials or rerun migrations.
+
+- [Development / immutable QA / main promotion workflow](../development/release-workflow.md)
+  records current branch/deployment alignment and proposed CI/approval gates.
+- [Railway logging investigation and local candidate](logging-investigation-2026-11-19.md).
+
+These local documents do not authorize publication, CI/provider settings, a main
+merge or production deployment. Preserve real QA data and the owner's current Steam link.
+
+## Historical preparation entry point
+
 **2026-11-15: Neon PostgreSQL 17 + existing Supabase QA Auth architecture approved.
 No cloud creation, migrations, deployment or Git publication approved.**
 
