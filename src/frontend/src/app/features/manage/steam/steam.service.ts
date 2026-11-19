@@ -54,7 +54,7 @@ export class SteamService {
   }
 
   createLinkRequest(): Observable<SteamLinkRequestResponse> {
-    return this.http.post<SteamLinkRequestResponse>(`${environment.apiBaseUrl}/steam/link-requests`, {});
+    return this.http.post<SteamLinkRequestResponse>(`${environment.apiBaseUrl}/steam/link-requests`, {}, { withCredentials: true });
   }
 
   unlink(): Observable<void> {

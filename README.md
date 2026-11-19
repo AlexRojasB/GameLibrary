@@ -469,28 +469,30 @@ Playwright E2E uses explicit non-Production `E2E__CoverImageSearch__Enabled=true
 
 ## Steam Integration (Feature 011)
 
-Linking a Steam account verifies identity through Steam OpenID, persists only a SteamID64 and a raw-state transcript (never the OpenID `openid.` parameters), and stores `steam_appid` on `library_entries` for imported games. `ISteamClient` abstracts Steam OpenID verification and `GetOwnedGames`; the backend owns validation, eligibility, and concurrency.
+Linking verifies identity through Steam OpenID and persists the verified SteamID64 plus hashed, expiring one-time link state (never raw state, Steam credentials or an OpenID transcript). Imported LibraryEntries store `steam_app_id` and optional external-reference `steam_playtime_minutes`. `ISteamClient` abstracts Steam verification and `GetOwnedGames`; the backend owns validation, user isolation and concurrency.
 
-Real Steam configuration is optional. The API and all existing CRUD/library/random-picker/play-log flows start and work without Steam configuration; `GET /steam/status` returns `enabled: false` and `linkAvailable: false` when configuration is missing. Steam integration is hidden in the UI when disabled.
+Steam configuration is optional: existing manual workflows work without it. `/manage/steam` displays an unavailable notice when the enable flag or required public URLs are missing. Status reports linking and importing separately; a missing Web API key disables preview/import, not OpenID linking.
 
-Configure Steam through user-secrets, environment variables, or deployment secrets:
+For local development only, configure the API through user-secrets or environment variables. Use the same hostname for frontend and API, with different ports:
 
 ```
-Steam__Enabled=true
-Steam__PublicApiBaseUrl=http://localhost:5218
-Steam__FrontendBaseUrl=http://localhost:4200
-Steam__OpenIdProviderUrl=https://steamcommunity.com/openid/login
-Steam__OpenIdVerifyUrl=https://steamcommunity.com/openid/login
-Steam__FrontendSuccessPath=/manage/steam?steamLink=success
-Steam__FrontendFailurePath=/manage/steam?steamLink=failure
-Steam__WebApiKey=<your-steam-web-api-key>
-Steam__TimeoutSeconds=5
-Steam__LinkStateLifetimeMinutes=10
+SteamIntegration__Enabled=true
+SteamIntegration__PublicApiBaseUrl=http://localhost:5218
+SteamIntegration__FrontendBaseUrl=http://localhost:4200
+SteamIntegration__OpenIdProviderUrl=https://steamcommunity.com/openid/login
+SteamIntegration__OpenIdVerifyUrl=https://steamcommunity.com/openid/login
+SteamIntegration__FrontendSuccessPath=/manage/steam?steamLink=success
+SteamIntegration__FrontendFailurePath=/manage/steam?steamLink=failure
+SteamIntegration__WebApiKey=<server-only-key-required-for-preview-and-import>
+SteamIntegration__TimeoutSeconds=5
+SteamIntegration__LinkStateLifetimeMinutes=10
 ```
 
-`Steam__WebApiKey` is required only for preview/import; linking works without it. `Steam__PublicApiBaseUrl` and `Steam__FrontendBaseUrl` are required for linking to function. `Steam__OwnedGamesUrl` defaults to `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/`.
+The section name is **SteamIntegration**, not `Steam`; `Steam__...` is ignored. The API key is never a frontend variable. `SteamIntegration__OwnedGamesUrl` defaults to `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/`. Production linking requires HTTPS API/frontend URLs. The authenticated link-request call alone uses a host-only HttpOnly correlation cookie and exact-origin credentialed CORS; it does not replace Supabase JWT authentication. A transferred URL or blocked cookie fails linking safely.
 
-Endpoints (all `[Authorize]` except `GET /steam/link/start/{rawState}`):
+**QA remains disabled until separate activation approval.** Required QA URLs, the minimal additional Neon runtime grants, browser-cookie compatibility gates and private owner key installation are documented in [Steam QA activation](docs/deployment/steam-qa-activation.md). Do not run migrations, reset the working runtime password, enable test providers in Production, or treat local verification as authorization to change Railway/Neon/Vercel/Supabase.
+
+Endpoints: JSON operations require the existing Supabase JWT. The start and callback redirects are anonymous browser navigations requiring matching browser proof and valid one-time SQL state; callback additionally requires Steam verification.
 
 | Method | Route | Success | Errors |
 | --- | --- | --- | --- |
@@ -504,12 +506,14 @@ Endpoints (all `[Authorize]` except `GET /steam/link/start/{rawState}`):
 
 Behavior:
 
-- **OpenID verification.** Steam OpenID parameters are validated against `Steam__OpenIdVerifyUrl` with `state` round-trip integrity. Raw state is generated per-request and hashed for DB lookup; only the hash is stored.
+- **OpenID verification.** Assertions are checked against the trusted `SteamIntegration__OpenIdVerifyUrl`, identity and exact return URL. Only state hashes are persisted; the bounded browser cookie also contains a hash, never raw state. SQL expiry/replay checks remain authoritative. Callback responses do not delete cookies, so delayed responses cannot erase a newer flow.
 - **Unlink-first relinking.** Linking when a Steam account is already linked returns `409`. The user must unlink first.
-- **Import concurrency.** Per-Library DB-level locking prevents concurrent imports for the same user. Duplicate AppID selection is deduplicated client-side before the lock.
-- **Cover images.** Imported Steam games use placeholder covers; no automatic cover fetching is performed.
-- **Random Picker eligibility.** Imported Steam games with `library_entries.steam_appid` participate in Random Picker like any other Owned game.
-- **Schema.** `AddSteamIntegration` migration adds `steam_accounts`, `steam_link_requests`, nullable `steam_appid` on `library_entries`, and appropriate indexes/constraints.
+- **Concurrency and identity.** Per-Library SQL locking serializes links/unlinks/imports. A SteamID64 is unique across Libraries; a Steam AppID is unique only within its Library. The backend validates/deduplicates selected AppIDs, refetches provider data and imports transactionally. Reimports skip existing AppIDs. Manual same-name games are never merged or overwritten.
+- **Explicit batches.** Select All caps selection at 100 and preserves explicit choices. Every batch requires user review and an explicit Import action; no automatic chunking or background sync.
+- **Private/empty libraries.** Recognized successful empty Steam responses show no-visible-games/privacy guidance. HTTP auth/rate-limit/server failures and malformed/network responses remain errors, not successful empty libraries.
+- **Covers/playtime.** Supported Steam logos may supply an external cover only when both cover references are empty, atomically. Existing user-selected covers win. Steam playtime is external reference data, never an automatic PlayLogEntry or GameStatus/progress update.
+- **Random Picker eligibility.** Steam-imported entries participate like any other Owned VideoGame.
+- **Schema.** Existing `AddSteamIntegration` and `AddSteamPlaytimeTracking` migrations contain the required tables/fields; linking stabilization adds no schema migration.
 
 Frontend: a protected `/manage/steam` route (`features/manage/steam/`) provides the full Steam integration UX. The Manage hub includes a Steam card linking to this route. The page handles linked/unlinked states, preview candidates with selectable checkboxes, import with summary, duplicate-click protection, and error states.
 

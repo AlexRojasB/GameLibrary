@@ -5,6 +5,11 @@
     <p>Link your Steam account to preview and import your owned games.</p>
   </div>
 
+  @if (callbackNotice()) {
+    <div class="steam-notice" [class.steam-notice--error]="callbackFailed()"
+      [class.steam-notice--info]="!callbackFailed()" role="status">{{ callbackNotice() }}</div>
+  }
+
   @if (errorMessage()) {
     <div class="steam-notice steam-notice--error">{{ errorMessage() }}</div>
   }
@@ -54,6 +59,7 @@
     @if (previewState() === 'NoVisibleGames') {
       <div class="steam-notice steam-notice--info">
         {{ previewMessage() ?? 'Steam returned no visible games. Your Steam game details may be private, or this account may have no visible owned or played games.' }}
+        <p>If you expect games here, check Steam Privacy Settings → Game details. Linking does not make private game details visible to the API. No games were imported.</p>
       </div>
     }
 
@@ -66,16 +72,17 @@
             (click)="onToggleAll()"
             [disabled]="importing() || previewing() || unlinking()"
           >
-            {{ allSelectableSelected() ? 'Deselect all' : 'Select all' }}
+            {{ allSelectableSelected() ? 'Deselect all' : selectableCount() > maxImportGames ? 'Select up to 100' : 'Select all' }}
           </button>
         </div>
+        <p role="status">{{ selectedCount() }} selected. Select at most {{ maxImportGames }} games per import; review each batch before importing.</p>
         <div class="steam-candidates">
           @for (candidate of candidates(); track candidate.steamAppId) {
             <label class="steam-candidate" [class.steam-candidate--imported]="candidate.alreadyImported">
               <input
                 type="checkbox"
                 [checked]="selected().has(candidate.steamAppId)"
-                [disabled]="candidate.alreadyImported || importing() || previewing() || unlinking()"
+                [disabled]="candidate.alreadyImported || importing() || previewing() || unlinking() || (!selected().has(candidate.steamAppId) && selectedCount() >= maxImportGames)"
                 (change)="onToggle(candidate.steamAppId)"
               />
               <span class="steam-candidate__info">

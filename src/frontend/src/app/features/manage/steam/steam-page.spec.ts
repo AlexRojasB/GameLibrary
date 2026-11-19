@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
 
@@ -39,6 +39,35 @@ describe('SteamPage', () => {
 
     httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/preview`);
     httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/import`);
+  });
+
+  it.each(['success', 'failure'])('keeps a volatile %s callback notice while removing only the callback query flag', (outcome) => {
+    const route = TestBed.inject(ActivatedRoute);
+    route.snapshot.queryParams = { steamLink: outcome, keep: 'yes' };
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    fixture.detectChanges();
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(defaultStatus());
+    fixture.detectChanges();
+    expect(text()).toContain(outcome === 'success' ? 'Steam linking completed' : 'Steam linking failed');
+    expect(navigate).toHaveBeenCalledWith([], {
+      queryParams: { steamLink: null }, queryParamsHandling: 'merge', replaceUrl: true,
+    });
+    // The query flag is presentation only, not evidence that the account is linked.
+    expect(text()).toContain('No Steam Account Linked');
+    fixture.detectChanges();
+    expect(fixture.componentInstance['callbackNotice']()).not.toBeNull();
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/link-requests`);
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/preview`);
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/import`);
+  });
+
+  it('ignores an unrecognized callback flag rather than rendering arbitrary query text', () => {
+    TestBed.inject(ActivatedRoute).snapshot.queryParams = { steamLink: 'untrusted-query-text' };
+    fixture.detectChanges();
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(defaultStatus());
+    fixture.detectChanges();
+    expect(fixture.componentInstance['callbackNotice']()).toBeNull();
+    expect(text()).not.toContain('untrusted-query-text');
   });
 
   it('renders disabled integration message', () => {
@@ -260,6 +289,58 @@ describe('SteamPage', () => {
     httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/import`);
   });
 
+  it('selects at most 100, preserves an explicit later choice, and never automatically imports another batch', () => {
+    const candidates = Array.from({ length: 106 }, (_, i) => ({
+      steamAppId: 1000 + i, name: `Game ${i}`, playtimeForeverMinutes: null, alreadyImported: i === 0,
+    }));
+    loadPreview(candidates);
+    checkboxesAll()[105].click();
+    fixture.detectChanges();
+    expect(button('.btn--secondary').textContent).toContain('Select up to 100');
+    clickButton('.btn--secondary');
+    fixture.detectChanges();
+    expect(fixture.componentInstance['selectedCount']()).toBe(100);
+    expect(checkboxesAll()[105].checked).toBe(true);
+    expect(checkboxesAll()[0].checked).toBe(false);
+    expect(text()).toContain('100 selected');
+    expect(text()).toContain('Select at most 100 games per import');
+    expect(button('.btn--secondary').textContent).toContain('Deselect all');
+    const unselected = checkboxesAll().findIndex((cb, i) => i > 0 && !cb.checked);
+    expect(checkboxesAll()[unselected].disabled).toBe(true);
+    fixture.componentInstance['onToggle'](candidates[unselected].steamAppId);
+    expect(fixture.componentInstance['selectedCount']()).toBe(100);
+    checkboxesAll()[1].click();
+    fixture.detectChanges();
+    expect(checkboxesAll()[unselected].disabled).toBe(false);
+    checkboxesAll()[unselected].click();
+    fixture.detectChanges();
+    importButton().click();
+    const request = httpMock.expectOne(`${environment.apiBaseUrl}/steam/library/import`);
+    expect(request.request.body.steamAppIds).toHaveLength(100);
+    expect(new Set(request.request.body.steamAppIds).size).toBe(100);
+    expect(request.request.body.steamAppIds).not.toContain(1000);
+    request.flush({ imported: [], alreadyImported: [], unavailable: [], invalid: [] });
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(linkedStatus());
+    fixture.detectChanges();
+    expect(fixture.componentInstance['selectedCount']()).toBe(0);
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/import`);
+  });
+
+  it('deselects a capped batch and guards an oversized selection even through the import handler', () => {
+    loadPreview(Array.from({ length: 101 }, (_, i) => ({
+      steamAppId: i + 1, name: `Game ${i}`, playtimeForeverMinutes: null, alreadyImported: false,
+    })));
+    clickButton('.btn--secondary'); fixture.detectChanges();
+    expect(fixture.componentInstance['selectedCount']()).toBe(100);
+    clickButton('.btn--secondary'); fixture.detectChanges();
+    expect(fixture.componentInstance['selectedCount']()).toBe(0);
+    fixture.componentInstance['selected'].set(new Set(Array.from({ length: 101 }, (_, i) => i + 1)));
+    fixture.detectChanges();
+    expect(importButton().disabled).toBe(true);
+    fixture.componentInstance['onImport']();
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/import`);
+  });
+
   it.each([
     { state: 'Success', candidates: [
       { steamAppId: 10, name: 'New candidate', playtimeForeverMinutes: null, alreadyImported: false },
@@ -333,6 +414,8 @@ describe('SteamPage', () => {
     fixture.detectChanges();
 
     expect(text()).toContain('Steam returned no visible games');
+    expect(text()).toContain('check Steam Privacy Settings');
+    expect(text()).toContain('No games were imported');
   });
 
   it('import selected calls POST with selected AppIDs only', () => {

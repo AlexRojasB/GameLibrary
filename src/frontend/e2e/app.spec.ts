@@ -14,7 +14,7 @@ test.beforeEach(async ({ page, request }) => {
     });
   });
 
-  const response = await request.post('http://localhost:5218/e2e/reset');
+  const response = await request.post('http://127.0.0.1:5218/e2e/reset');
   expect(response.ok(), `E2E reset failed with ${response.status()} ${response.statusText()}: ${await response.text()}`).toBeTruthy();
 
   await page.goto('/login');
@@ -206,6 +206,7 @@ test('links Steam account, previews library, and imports selected games', async 
 
   await page.waitForURL('**/manage/steam**', { timeout: 15000 });
   await expect(page.getByText('Linked Steam Account')).toBeVisible();
+  await expect(page.getByText('Steam linking completed. Check your linked account below.')).toBeVisible();
   await expect(page.getByText('SteamID64: 76561198000000000')).toBeVisible();
 
   await page.getByRole('button', { name: 'Preview Steam library' }).click();
@@ -228,6 +229,40 @@ test('links Steam account, previews library, and imports selected games', async 
   await expect(candidateCheckboxes.nth(0)).not.toBeChecked();
   await expect(candidateCheckboxes.nth(1)).not.toBeChecked();
   await expect(candidateCheckboxes.nth(2)).toBeChecked();
+
+  await page.goto('/library');
+  await expect(page.locator('.library-card').filter({ hasText: 'Dota 2' })).toBeVisible();
+  await expect(page.locator('.library-card').filter({ hasText: 'Counter-Strike 2' })).toBeVisible();
+  await expect(page.locator('.library-card').filter({ hasText: 'Zelda: Tears of the Kingdom' })).toBeVisible();
+  await page.goto('/play-log');
+  await expect(page.getByRole('heading', { name: 'No plays logged yet.' })).toBeVisible();
+});
+
+test('rejects a Steam linking URL transferred to a different browser', async ({ page, browser }) => {
+  let release!: () => void;
+  let capture!: (url: string) => void;
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  const started = new Promise<string>((resolve) => { capture = resolve; });
+  await page.route('http://127.0.0.1:5218/steam/link/start/**', async (route) => {
+    capture(route.request().url());
+    await held;
+    await route.continue();
+  });
+  await page.goto('/manage/steam');
+  await page.getByRole('button', { name: 'Link Steam account', exact: true }).click();
+  const other = await browser.newContext();
+  try {
+    const url = await started;
+    const response = await other.request.get(url, { maxRedirects: 0 });
+    expect(response.status()).toBe(302);
+    expect(response.headers()['location']).toBe('http://127.0.0.1:4200/manage/steam?steamLink=failure');
+    expect(await other.cookies('http://127.0.0.1:5218')).toEqual([]);
+  } finally {
+    await other.close();
+    release();
+  }
+  await expect(page.getByText('Linked Steam Account')).toBeVisible();
+  await expect(page.getByText('Steam linking completed. Check your linked account below.')).toBeVisible();
 });
 
 async function dateTimeLocalOneHourAgo(page: Page): Promise<string> {

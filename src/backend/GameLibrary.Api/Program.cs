@@ -87,7 +87,7 @@ else
     {
         var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<SteamOptions>>().CurrentValue;
         client.Timeout = TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 1, 30));
-    });
+    }).RemoveAllLoggers();
 }
 
 builder.Services.AddRateLimiter(options =>
@@ -126,6 +126,10 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod()
             .WithExposedHeaders("Retry-After", "Location");
     });
+    // Only the JWT-authorized link request sets a browser correlation cookie.
+    // Other JSON endpoints keep their existing bearer-only CORS policy.
+    options.AddPolicy("SteamLink", policy => policy.WithOrigins(allowedOrigins)
+        .WithMethods("POST").AllowAnyHeader().AllowCredentials());
 });
 
 builder.Services

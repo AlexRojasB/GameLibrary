@@ -181,7 +181,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         var callbackParams = BuildCallbackParams(rawState);
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = RedirectClient();
+        var client = RedirectClient(rawState);
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -207,7 +207,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         var callbackParams = BuildCallbackParams(rawState);
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = RedirectClient();
+        var client = RedirectClient(rawState);
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -228,7 +228,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         var callbackParams = BuildCallbackParams(rawState);
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = RedirectClient();
+        var client = RedirectClient(rawState);
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -259,7 +259,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         callbackParams["openid.identity"] = callbackParams["openid.claimed_id"];
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = RedirectClient();
+        var client = RedirectClient(rawState);
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -280,7 +280,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         callbackParams["openid.mode"] = "checkid_setup";
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = RedirectClient();
+        var client = RedirectClient(rawState);
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -298,7 +298,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         callbackParams["openid.op_endpoint"] = "https://evil.example/openid";
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = RedirectClient();
+        var client = RedirectClient(rawState);
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -316,7 +316,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         callbackParams["openid.return_to"] = _factory.PublicApiBaseUrl + "/steam/link/callback?state=wrong";
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = RedirectClient();
+        var client = RedirectClient(rawState);
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -334,7 +334,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         callbackParams["openid.realm"] = "https://evil.example.test/";
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = RedirectClient();
+        var client = RedirectClient(rawState);
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -352,7 +352,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         callbackParams["openid.identity"] = "https://steamcommunity.com/openid/id/76561198000000001";
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = RedirectClient();
+        var client = RedirectClient(rawState);
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -370,7 +370,7 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         var callbackParams = BuildCallbackParams(rawState);
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client = RedirectClient();
+        var client = RedirectClient(rawState);
         var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -389,12 +389,11 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         var callbackParams = BuildCallbackParams(rawState);
         var url = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
 
-        var client1 = RedirectClient();
-        var client2 = RedirectClient();
-        var response1 = await client1.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-        var response2 = await client2.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+        var client1 = RedirectClient(rawState);
+        var client2 = RedirectClient(rawState);
+        var responses = await Task.WhenAll(client1.GetAsync(url), client2.GetAsync(url));
 
-        var redirects = new[] { response1, response2 }
+        var redirects = responses
             .Select(r => r.Headers.Location?.ToString() ?? "")
             .ToList();
 
@@ -1296,19 +1295,254 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
 
     #endregion
 
+    #region Browser binding and link races
+
+    [Fact]
+    public async Task Authenticated_link_request_issues_secure_host_only_cookie_and_narrow_credentialed_cors()
+    {
+        var client = ClientFor(NewSub());
+        client.DefaultRequestHeaders.Add("Origin", _factory.FrontendBaseUrl);
+        var response = await client.PostAsync("/steam/link-requests", null);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var state = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("startUrl").GetString()!.Split("/steam/link/start/")[1];
+        var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"));
+        Assert.StartsWith("__Host-GameLibrary.SteamLink=" + SteamIntegrationRules.HashState(state), cookie);
+        Assert.Contains("httponly", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("secure", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("samesite=none", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("path=/", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("expires=", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("domain=", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(state, cookie);
+        Assert.Equal("no-store", response.Headers.CacheControl!.ToString());
+        Assert.Equal(_factory.FrontendBaseUrl, Assert.Single(response.Headers.GetValues("Access-Control-Allow-Origin")));
+        Assert.Equal("true", Assert.Single(response.Headers.GetValues("Access-Control-Allow-Credentials")));
+        var status = await client.GetAsync("/steam/status");
+        Assert.False(status.Headers.Contains("Access-Control-Allow-Credentials"));
+    }
+
+    [Fact]
+    public async Task Untrusted_origin_has_no_credentialed_preflight_and_anonymous_post_sets_no_cookie()
+    {
+        var client = RedirectClient();
+        using var preflight = new HttpRequestMessage(HttpMethod.Options, "/steam/link-requests");
+        preflight.Headers.Add("Origin", "https://untrusted.example.test");
+        preflight.Headers.Add("Access-Control-Request-Method", "POST");
+        preflight.Headers.Add("Access-Control-Request-Headers", "authorization,content-type");
+        var result = await client.SendAsync(preflight);
+        Assert.False(result.Headers.Contains("Access-Control-Allow-Origin"));
+        Assert.False(result.Headers.Contains("Access-Control-Allow-Credentials"));
+        var anonymous = await client.PostAsync("/steam/link-requests", null);
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
+        Assert.False(anonymous.Headers.Contains("Set-Cookie"));
+    }
+
+    [Fact]
+    public async Task Transferred_start_and_callback_urls_cannot_link_another_browser_even_when_authenticated()
+    {
+        var sender = ClientFor(NewSub());
+        var state = await NewBrowserState(sender);
+        var receiver = ClientFor(NewSub());
+        var start = await receiver.GetAsync("/steam/link/start/" + state);
+        Assert.Contains("steamLink=failure", start.Headers.Location!.ToString());
+        var callback = await receiver.GetAsync(CallbackUrl(state));
+        Assert.Contains("steamLink=failure", callback.Headers.Location!.ToString());
+        Assert.False(_factory.FakeSteam.LastVerifyResult);
+        Assert.False(callback.Headers.Contains("Set-Cookie"));
+        await using (var db = CreateDbContext())
+        {
+            Assert.False(await db.SteamAccounts.AnyAsync());
+            Assert.Null((await db.SteamLinkRequests.SingleAsync()).ConsumedAt);
+        }
+        var ownStart = await sender.GetAsync("/steam/link/start/" + state);
+        Assert.Equal("steamcommunity.com", ownStart.Headers.Location!.Host);
+        var ownCallback = await sender.GetAsync(CallbackUrl(state));
+        Assert.Contains("steamLink=success", ownCallback.Headers.Location!.ToString());
+    }
+
+    [Fact]
+    public async Task New_flow_supersedes_old_browser_cookie_without_old_callback_erasing_new_flow()
+    {
+        var browser = ClientFor(NewSub());
+        var first = await NewBrowserState(browser);
+        var second = await NewBrowserState(browser);
+        var old = await browser.GetAsync(CallbackUrl(first));
+        Assert.Contains("steamLink=failure", old.Headers.Location!.ToString());
+        Assert.False(old.Headers.Contains("Set-Cookie"));
+        var current = await browser.GetAsync(CallbackUrl(second));
+        Assert.Contains("steamLink=success", current.Headers.Location!.ToString());
+        Assert.False(current.Headers.Contains("Set-Cookie"));
+        var replay = await browser.GetAsync(CallbackUrl(second));
+        Assert.Contains("steamLink=failure", replay.Headers.Location!.ToString());
+        await using var db = CreateDbContext();
+        Assert.Single(await db.SteamAccounts.ToListAsync());
+        Assert.Null((await db.SteamLinkRequests.SingleAsync(r => r.StateHash == SteamIntegrationRules.HashState(first))).ConsumedAt);
+    }
+
+    [Fact]
+    public async Task Tampered_callback_fails_without_consuming_state_or_overwriting_browser_proof()
+    {
+        var browser = ClientFor(NewSub());
+        var state = await NewBrowserState(browser);
+        var bad = BuildCallbackParams(state);
+        bad["openid.return_to"] = "https://untrusted.example.test/";
+        var response = await browser.GetAsync("/steam/link/callback?" + string.Join("&", bad.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}")));
+        Assert.Contains("steamLink=failure", response.Headers.Location!.ToString());
+        Assert.False(response.Headers.Contains("Set-Cookie"));
+        Assert.Equal("no-store", response.Headers.CacheControl!.ToString());
+        Assert.Equal("no-referrer", Assert.Single(response.Headers.GetValues("Referrer-Policy")));
+        await using var db = CreateDbContext();
+        Assert.Null((await db.SteamLinkRequests.SingleAsync()).ConsumedAt);
+        Assert.False(await db.SteamAccounts.AnyAsync());
+        var valid = await browser.GetAsync(CallbackUrl(state));
+        Assert.Contains("steamLink=success", valid.Headers.Location!.ToString());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Different_states_racing_for_one_library_or_one_steam_id_have_one_controlled_winner(bool sameLibrary)
+    {
+        var user = NewSub();
+        var first = ClientFor(user);
+        var second = ClientFor(sameLibrary ? user : NewSub());
+        var state1 = await NewBrowserState(first);
+        var state2 = await NewBrowserState(second);
+        var callbacks = await Task.WhenAll(first.GetAsync(CallbackUrl(state1)), second.GetAsync(CallbackUrl(state2)));
+        Assert.All(callbacks, r => Assert.Equal(HttpStatusCode.Redirect, r.StatusCode));
+        Assert.Single(callbacks.Where(r => r.Headers.Location!.ToString().Contains("steamLink=success")));
+        Assert.Single(callbacks.Where(r => r.Headers.Location!.ToString().Contains("steamLink=failure")));
+        await using var db = CreateDbContext();
+        Assert.Single(await db.SteamAccounts.ToListAsync());
+        Assert.Single(await db.SteamLinkRequests.Where(r => r.ConsumedAt != null).ToListAsync());
+    }
+
+    [Fact]
+    public async Task Delayed_old_callback_response_does_not_erase_a_newly_issued_browser_cookie()
+    {
+        var browser = ClientFor(NewSub());
+        var first = await NewBrowserState(browser);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _factory.FakeSteam.BeforeVerify = ct =>
+        {
+            entered.TrySetResult();
+            return release.Task.WaitAsync(ct);
+        };
+        var pending = browser.GetAsync(CallbackUrl(first));
+        string next;
+        try
+        {
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            next = await NewBrowserState(browser);
+        }
+        finally { release.TrySetResult(); }
+        var oldResponse = await pending;
+        Assert.False(oldResponse.Headers.Contains("Set-Cookie"));
+        // This tests the browser jar, not an injected Cookie header. The in-flight
+        // winner may link, but its delayed response cannot delete the new proof.
+        var start = await browser.GetAsync("/steam/link/start/" + next);
+        Assert.Equal("steamcommunity.com", start.Headers.Location!.Host);
+    }
+
+    [Fact]
+    public async Task Callback_expiry_is_rechecked_after_waiting_for_library_lock()
+    {
+        var sub = NewSub();
+        var state = await CreateRawState(sub);
+        await using var db = CreateDbContext();
+        var request = await db.SteamLinkRequests.SingleAsync(r => r.StateHash == SteamIntegrationRules.HashState(state));
+        request.ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(5);
+        await db.SaveChangesAsync();
+        await using var blocker = await db.Database.BeginTransactionAsync();
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT id FROM libraries WHERE id = {request.LibraryId} FOR UPDATE");
+        var verified = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _factory.FakeSteam.BeforeVerify = _ => { verified.TrySetResult(); return Task.CompletedTask; };
+        var browser = RedirectClient(state);
+        var pending = browser.GetAsync(CallbackUrl(state));
+        try
+        {
+            await verified.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            var delay = request.ExpiresAt - DateTimeOffset.UtcNow + TimeSpan.FromMilliseconds(100);
+            if (delay > TimeSpan.Zero) await Task.Delay(delay);
+        }
+        finally { await blocker.RollbackAsync(); }
+        var response = await pending;
+        Assert.Contains("steamLink=failure", response.Headers.Location!.ToString());
+        await using var check = CreateDbContext();
+        Assert.Null((await check.SteamLinkRequests.SingleAsync(r => r.Id == request.Id)).ConsumedAt);
+        Assert.False(await check.SteamAccounts.AnyAsync());
+    }
+
+    [Fact]
+    public async Task Production_http_link_configuration_is_unavailable_and_never_issues_browser_proof()
+    {
+        await using var factory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.UseEnvironment("Production");
+            builder.ConfigureTestServices(services => services.PostConfigure<SteamOptions>(o =>
+                o.PublicApiBaseUrl = "http://api.example.test"));
+        });
+        var browser = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        browser.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.CreateToken(NewSub()));
+        var status = await browser.GetFromJsonAsync<JsonElement>("/steam/status");
+        Assert.False(status.GetProperty("linkAvailable").GetBoolean());
+        Assert.False(status.GetProperty("importAvailable").GetBoolean());
+        var result = await browser.PostAsync("/steam/link-requests", null);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, result.StatusCode);
+        Assert.False(result.Headers.Contains("Set-Cookie"));
+    }
+
+    [Fact]
+    public async Task Independently_linked_users_import_same_app_id_without_cross_library_matching_or_manual_merging()
+    {
+        var userA = NewSub(); var userB = NewSub();
+        await LinkSteamAccount(userA);
+        await LinkSteamAccount(userB, AnotherSteamId64);
+        _factory.FakeSteam.SetOwnedGames([new SteamOwnedGame(570, "Same name", 25, null, null)]);
+        var a = ClientFor(userA); var b = ClientFor(userB);
+        var manual = await a.PostAsJsonAsync("/video-games", new
+        {
+            name = "Same name", acquisitionStatus = "Wishlist", platformIds = Array.Empty<Guid>(), rating = 5, notes = "manual notes",
+        });
+        Assert.Equal(HttpStatusCode.Created, manual.StatusCode);
+        var ra = await a.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new[] { 570 } });
+        var rb = await b.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new[] { 570 } });
+        Assert.Equal(HttpStatusCode.OK, ra.StatusCode); Assert.Equal(HttpStatusCode.OK, rb.StatusCode);
+        await using var db = CreateDbContext();
+        var imported = await db.LibraryEntries.Where(e => e.SteamAppId == 570 && (e.Library.UserId == userA || e.Library.UserId == userB)).ToListAsync();
+        Assert.Equal(2, imported.Count);
+        Assert.NotEqual(imported[0].GameId, imported[1].GameId);
+        var preserved = await db.LibraryEntries.SingleAsync(e => e.Library.UserId == userA && e.SteamAppId == null);
+        Assert.Equal(5, preserved.Rating); Assert.Equal("manual notes", preserved.Notes);
+        var repeated = await a.PostAsJsonAsync("/steam/library/import", new { steamAppIds = new[] { 570 } });
+        Assert.Empty((await repeated.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("imported").EnumerateArray());
+    }
+
+    #endregion
+
     #region Helpers
 
     private static string NewSub() => Guid.NewGuid().ToString();
 
     private HttpClient ClientFor(string sub)
     {
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+            { AllowAutoRedirect = false, BaseAddress = new Uri(_factory.PublicApiBaseUrl) });
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.CreateToken(sub));
         return client;
     }
 
-    private HttpClient RedirectClient() =>
-        _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+    private HttpClient RedirectClient(string? seededState = null)
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+            { AllowAutoRedirect = false, BaseAddress = new Uri(_factory.PublicApiBaseUrl) });
+        // Low-level assertion fixtures seed DB state directly. Browser-flow tests
+        // below use only the real Set-Cookie from the authenticated POST instead.
+        if (seededState is not null)
+            client.DefaultRequestHeaders.Add("Cookie", "__Host-GameLibrary.SteamLink=" + SteamIntegrationRules.HashState(seededState));
+        return client;
+    }
 
     private GameLibraryDbContext CreateDbContext()
     {
@@ -1318,7 +1552,17 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         return new GameLibraryDbContext(options);
     }
 
-    private async Task LinkSteamAccount(string sub)
+    private async Task<string> NewBrowserState(HttpClient browser)
+    {
+        var response = await browser.PostAsync("/steam/link-requests", null);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("startUrl").GetString()!.Split("/steam/link/start/")[1];
+    }
+
+    private string CallbackUrl(string state) => "/steam/link/callback?" + string.Join("&",
+        BuildCallbackParams(state).Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
+
+    private async Task LinkSteamAccount(string sub, string steamId64 = SteamId64)
     {
         var client = ClientFor(sub);
         var response = await client.PostAsync("/steam/link-requests", null);
@@ -1329,10 +1573,9 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         // startUrl format: https://api.example.test/steam/link/start/{rawState}
         var rawState = startUrl.Split("/steam/link/start/")[1];
 
-        var callbackParams = BuildCallbackParams(rawState);
+        var callbackParams = BuildCallbackParams(rawState, steamId64);
         var callbackUrl = "/steam/link/callback?" + string.Join("&", callbackParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value!)}"));
-        var callbackClient = RedirectClient();
-        var callbackResponse = await callbackClient.GetAsync(callbackUrl, HttpCompletionOption.ResponseHeadersRead);
+        var callbackResponse = await client.GetAsync(callbackUrl, HttpCompletionOption.ResponseHeadersRead);
         Assert.Equal(HttpStatusCode.Redirect, callbackResponse.StatusCode);
     }
 
@@ -1414,9 +1657,9 @@ public sealed class SteamEndpointTests : IClassFixture<SteamTestFactory>, IAsync
         await db.SaveChangesAsync();
     }
 
-    private Dictionary<string, string?> BuildCallbackParams(string rawState)
+    private Dictionary<string, string?> BuildCallbackParams(string rawState, string steamId64 = SteamId64)
     {
-        var claimedId = SteamIntegrationRules.ClaimedIdPrefix + SteamId64;
+        var claimedId = SteamIntegrationRules.ClaimedIdPrefix + steamId64;
         return new Dictionary<string, string?>
         {
             ["state"] = rawState,

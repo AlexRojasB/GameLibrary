@@ -48,9 +48,9 @@ public sealed class SteamClient : ISteamClient
         {
             throw new SteamProviderTimeoutException();
         }
-        catch (HttpRequestException ex)
+        catch (HttpRequestException)
         {
-            _logger.LogWarning(ex, "Steam OpenID verification request failed.");
+            _logger.LogWarning("Steam OpenID verification request failed.");
             return false;
         }
     }
@@ -76,14 +76,36 @@ public sealed class SteamClient : ISteamClient
                 throw new SteamProviderException();
             }
 
-            var body = await response.Content.ReadFromJsonAsync<SteamOwnedGamesResponse>(cancellationToken: ct);
-            if (body?.Response?.Games is null)
+            var envelope = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+            if (envelope.ValueKind != JsonValueKind.Object
+                || envelope.TryGetProperty("error", out _)
+                || !envelope.TryGetProperty("response", out var body)
+                || body.ValueKind != JsonValueKind.Object
+                || body.TryGetProperty("error", out _))
             {
-                _logger.LogWarning("Steam owned-games response was malformed.");
                 throw new SteamProviderException();
             }
 
-            return body.Response.Games
+            if (!body.TryGetProperty("games", out var gamesElement))
+            {
+                // Steam may omit games entirely for an empty/non-visible library.
+                // Do not turn unknown/error payloads or a positive count into success.
+                if (!body.EnumerateObject().Any()
+                    || (body.EnumerateObject().All(p => p.Name == "game_count")
+                        && body.TryGetProperty("game_count", out var count)
+                        && count.ValueKind == JsonValueKind.Number
+                        && count.TryGetInt32(out var value) && value == 0))
+                    return [];
+
+                throw new SteamProviderException();
+            }
+
+            if (gamesElement.ValueKind != JsonValueKind.Array)
+                throw new SteamProviderException();
+
+            var games = gamesElement.Deserialize<IReadOnlyList<SteamOwnedGameDto>>()!;
+            if (games.Any(g => g is null)) throw new SteamProviderException();
+            return games
                 .Where(g => g.AppId is not null)
                 .Select(g => new SteamOwnedGame(
                     g.AppId!.Value,
@@ -97,14 +119,14 @@ public sealed class SteamClient : ISteamClient
         {
             throw new SteamProviderTimeoutException();
         }
-        catch (HttpRequestException ex)
+        catch (HttpRequestException)
         {
-            _logger.LogWarning(ex, "Steam owned-games request failed.");
+            _logger.LogWarning("Steam owned-games request failed.");
             throw new SteamProviderException();
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
-            _logger.LogWarning(ex, "Steam owned-games response JSON could not be parsed.");
+            _logger.LogWarning("Steam owned-games response JSON could not be parsed.");
             throw new SteamProviderException();
         }
     }
@@ -134,10 +156,6 @@ public sealed class SteamClient : ISteamClient
         return builder.Uri;
     }
 }
-
-internal sealed record SteamOwnedGamesResponse([property: JsonPropertyName("response")] SteamOwnedGamesBody? Response);
-
-internal sealed record SteamOwnedGamesBody([property: JsonPropertyName("games")] IReadOnlyList<SteamOwnedGameDto>? Games);
 
 internal sealed record SteamOwnedGameDto(
     [property: JsonPropertyName("appid")] uint? AppId,

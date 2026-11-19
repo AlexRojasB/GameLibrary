@@ -26,6 +26,7 @@ describe('SteamService', () => {
     service.getStatus().subscribe();
     const req = httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`);
     expect(req.request.method).toBe('GET');
+    expect(req.request.withCredentials).toBe(false);
     req.flush({ enabled: true, linkAvailable: true, importAvailable: true, linked: false, steamId64: null, linkedAt: null, message: null });
   });
 
@@ -33,6 +34,7 @@ describe('SteamService', () => {
     service.createLinkRequest().subscribe();
     const req = httpMock.expectOne(`${environment.apiBaseUrl}/steam/link-requests`);
     expect(req.request.method).toBe('POST');
+    expect(req.request.withCredentials).toBe(true);
     req.flush({ startUrl: 'https://api.example.test/steam/link/start/abc', expiresAt: '2026-01-01T00:00:00Z' });
   });
 
@@ -40,6 +42,7 @@ describe('SteamService', () => {
     service.unlink().subscribe();
     const req = httpMock.expectOne(`${environment.apiBaseUrl}/steam/link`);
     expect(req.request.method).toBe('DELETE');
+    expect(req.request.withCredentials).toBe(false);
     req.flush(null);
   });
 

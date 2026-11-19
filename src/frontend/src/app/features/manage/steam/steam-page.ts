@@ -14,6 +14,7 @@ import {
   styleUrl: './steam-page.scss',
 })
 export class SteamPage implements OnInit {
+  protected readonly maxImportGames = 100;
   private readonly steam = inject(SteamService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -30,18 +31,25 @@ export class SteamPage implements OnInit {
   protected readonly previewMessage = signal<string | null>(null);
   protected readonly importResult = signal<SteamImportResponse | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly callbackNotice = signal<string | null>(null);
+  protected readonly callbackFailed = signal(false);
+  protected readonly selectedCount = computed(() => this.getSelectableSelected().length);
+  protected readonly selectableCount = computed(() => this.candidates().filter((c) => !c.alreadyImported).length);
 
-  protected readonly hasSelectedSelectable = computed(() => this.getSelectableSelected().length > 0);
+  protected readonly hasSelectedSelectable = computed(() => this.selectedCount() > 0 && this.selectedCount() <= this.maxImportGames);
   protected readonly allSelectableSelected = computed(() => {
-    const selectable = this.candidates().filter((c) => !c.alreadyImported);
-    return selectable.length > 0 && selectable.every((c) => this.selected().has(c.steamAppId));
+    const target = Math.min(this.selectableCount(), this.maxImportGames);
+    return target > 0 && this.selectedCount() === target;
   });
 
   ngOnInit(): void {
     const queryParams = this.route.snapshot.queryParams;
     if (queryParams['steamLink'] === 'success') {
+      this.callbackNotice.set('Steam linking completed. Check your linked account below.');
       this.router.navigate([], { queryParams: { steamLink: null }, queryParamsHandling: 'merge', replaceUrl: true });
     } else if (queryParams['steamLink'] === 'failure') {
+      this.callbackFailed.set(true);
+      this.callbackNotice.set('Steam linking failed. Start again in this browser, allow the linking cookie, and complete the request before it expires.');
       this.router.navigate([], { queryParams: { steamLink: null }, queryParamsHandling: 'merge', replaceUrl: true });
     }
 
@@ -63,6 +71,7 @@ export class SteamPage implements OnInit {
   }
 
   protected onLink(): void {
+    if (this.linking()) return;
     this.linking.set(true);
     this.errorMessage.set(null);
     this.steam.createLinkRequest().subscribe({
@@ -132,6 +141,7 @@ export class SteamPage implements OnInit {
   protected onToggle(steamAppId: number): void {
     if (this.previewing() || this.importing() || this.unlinking()
       || !this.candidates().some((c) => c.steamAppId === steamAppId && !c.alreadyImported)) return;
+    if (!this.selected().has(steamAppId) && this.selectedCount() >= this.maxImportGames) return;
 
     this.selected.update((set) => {
       const next = new Set(set);
@@ -152,7 +162,12 @@ export class SteamPage implements OnInit {
     if (this.allSelectableSelected()) {
       this.selected.set(new Set());
     } else {
-      this.selected.set(new Set(selectable.map((c) => c.steamAppId)));
+      const next = new Set(this.getSelectableSelected());
+      for (const candidate of selectable) {
+        if (next.size >= this.maxImportGames) break;
+        next.add(candidate.steamAppId);
+      }
+      this.selected.set(next);
     }
   }
 
@@ -160,7 +175,7 @@ export class SteamPage implements OnInit {
     if (this.importing() || this.previewing() || this.unlinking()) return;
 
     const appIds = this.getSelectableSelected();
-    if (appIds.length === 0) return;
+    if (appIds.length === 0 || appIds.length > this.maxImportGames) return;
 
     this.importing.set(true);
     this.errorMessage.set(null);

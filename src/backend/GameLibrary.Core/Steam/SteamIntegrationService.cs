@@ -36,6 +36,8 @@ public class SteamIntegrationService
     public async Task<SteamLinkRequestView> CreateLinkRequestAsync(string userId, TimeSpan lifetime, CancellationToken ct)
     {
         var library = await _libraries.EnsureAsync(userId, ct);
+        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+        await LockLibraryAsync(library.Id, ct);
         if (await _db.SteamAccounts.AnyAsync(a => a.LibraryId == library.Id, ct))
         {
             throw new SteamAccountAlreadyLinkedException();
@@ -54,6 +56,7 @@ public class SteamIntegrationService
 
         _db.SteamLinkRequests.Add(request);
         await _db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
         return new SteamLinkRequestView(rawState, request.ExpiresAt);
     }
 
@@ -94,12 +97,17 @@ public class SteamIntegrationService
 
         await using var transaction = await _db.Database.BeginTransactionAsync(ct);
         var stateHash = SteamIntegrationRules.HashState(rawState);
-        var now = DateTimeOffset.UtcNow;
         var linkRequest = await _db.SteamLinkRequests
             .FromSqlInterpolated($"SELECT * FROM steam_link_requests WHERE state_hash = {stateHash} FOR UPDATE")
             .SingleOrDefaultAsync(ct);
 
-        if (linkRequest is null || linkRequest.ConsumedAt is not null || linkRequest.ExpiresAt <= now)
+        if (linkRequest is null)
+            throw new InvalidSteamOpenIdAssertionException();
+
+        // Different states for one Library serialize with linking, unlink and import.
+        await LockLibraryAsync(linkRequest.LibraryId, ct);
+        var now = DateTimeOffset.UtcNow; // expiry must be checked after lock waits
+        if (linkRequest.ConsumedAt is not null || linkRequest.ExpiresAt <= now)
         {
             throw new InvalidSteamOpenIdAssertionException();
         }
@@ -118,20 +126,38 @@ public class SteamIntegrationService
             LinkedAt = now,
         });
 
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: "ix_steam_accounts_library_id" or "ix_steam_accounts_steam_id64"
+        })
+        {
+            // Two different Libraries can race for one SteamID64. Rollback on
+            // disposal preserves the losing state; do not overwrite the winner.
+            throw new InvalidSteamOpenIdAssertionException();
+        }
         await transaction.CommitAsync(ct);
     }
 
     public async Task UnlinkAsync(string userId, CancellationToken ct)
     {
-        var account = await _db.SteamAccounts.SingleOrDefaultAsync(a => a.Library.UserId == userId, ct);
-        if (account is null)
-        {
-            return;
-        }
+        var libraryId = await _db.Libraries.Where(l => l.UserId == userId)
+            .Select(l => (Guid?)l.Id).SingleOrDefaultAsync(ct);
+        if (libraryId is null) return;
 
-        _db.SteamAccounts.Remove(account);
-        await _db.SaveChangesAsync(ct);
+        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+        await LockLibraryAsync(libraryId.Value, ct);
+        var account = await _db.SteamAccounts.SingleOrDefaultAsync(a => a.LibraryId == libraryId.Value, ct);
+        if (account is not null)
+        {
+            _db.SteamAccounts.Remove(account);
+            await _db.SaveChangesAsync(ct);
+        }
+        await transaction.CommitAsync(ct);
     }
 
     public async Task<SteamLibraryPreview> PreviewAsync(string userId, CancellationToken ct)
@@ -139,7 +165,7 @@ public class SteamIntegrationService
         var account = await LoadAccountAsync(userId, ct);
         var rawGames = await _steam.GetOwnedGamesAsync(new SteamOwnedGamesQuery(account.SteamId64, null), ct);
         await using var transaction = await _db.Database.BeginTransactionAsync(ct);
-        await _db.Database.ExecuteSqlInterpolatedAsync($"SELECT id FROM libraries WHERE id = {account.LibraryId} FOR UPDATE", ct);
+        await LockLibraryAsync(account.LibraryId, ct);
         var appIds = rawGames.Select(g => g.SteamAppId).Distinct().ToList();
         var alreadyImported = await RefreshExistingSteamEntriesAsync(account.LibraryId, appIds, rawGames, ct);
         await _db.SaveChangesAsync(ct);
@@ -167,7 +193,7 @@ public class SteamIntegrationService
             .ToList();
 
         await using var transaction = await _db.Database.BeginTransactionAsync(ct);
-        await _db.Database.ExecuteSqlInterpolatedAsync($"SELECT id FROM libraries WHERE id = {account.LibraryId} FOR UPDATE", ct);
+        await LockLibraryAsync(account.LibraryId, ct);
 
         var alreadyImported = await RefreshExistingSteamEntriesAsync(account.LibraryId, selected, rawGames, ct);
         invalid.RemoveAll(alreadyImported.Contains);
@@ -239,6 +265,9 @@ public class SteamIntegrationService
 
         return new SteamImportResult(imported, alreadyImported.Order().ToList(), unavailable, invalid);
     }
+
+    private Task LockLibraryAsync(Guid libraryId, CancellationToken ct) =>
+        _db.Database.ExecuteSqlInterpolatedAsync($"SELECT id FROM libraries WHERE id = {libraryId} FOR UPDATE", ct);
 
     private async Task<SteamAccount> LoadAccountAsync(string userId, CancellationToken ct)
     {

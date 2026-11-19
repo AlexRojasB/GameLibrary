@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 
 import { coverFixture } from './cover-fixture';
 
-const api = 'http://localhost:5218';
+const api = 'http://127.0.0.1:5218';
 
 test.beforeEach(async ({ page, request }) => {
   const reset = await request.post(`${api}/e2e/reset`);

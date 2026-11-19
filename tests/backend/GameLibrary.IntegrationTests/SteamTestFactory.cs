@@ -15,6 +15,7 @@ public sealed class SteamTestFactory : WebApplicationFactory<Program>
     public SteamTestFactory()
     {
         FakeSteam = new FakeSteamClient();
+        ClientOptions.BaseAddress = new Uri(PublicApiBaseUrl);
     }
 
     public FakeSteamClient FakeSteam { get; }
@@ -30,6 +31,8 @@ public sealed class SteamTestFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseEnvironment("Test");
+        builder.UseSetting("AllowedOrigins:0", FrontendBaseUrl);
         builder.UseSetting("ConnectionStrings:Default", ConnectionString);
         builder.UseSetting("E2E:Enabled", "false");
         builder.UseSetting("SteamIntegration:Enabled", "true");
@@ -64,6 +67,7 @@ public sealed class SteamTestFactory : WebApplicationFactory<Program>
             services.AddSingleton<ISteamClient>(FakeSteam);
         });
     }
+
 }
 
 public sealed class FakeSteamClient : ISteamClient
@@ -75,6 +79,8 @@ public sealed class FakeSteamClient : ISteamClient
 
     public IReadOnlyDictionary<string, string?> LastVerifyParameters { get; private set; } = new Dictionary<string, string?>();
 
+    public Func<CancellationToken, Task>? BeforeVerify { get; set; }
+
     public void SetVerifyResult(bool result) => _verifyResult = result;
 
     public void SetOwnedGames(IReadOnlyList<SteamOwnedGame> games) => _ownedGames = games;
@@ -85,13 +91,15 @@ public sealed class FakeSteamClient : ISteamClient
         _ownedGames = [];
         LastVerifyResult = false;
         LastVerifyParameters = new Dictionary<string, string?>();
+        BeforeVerify = null;
     }
 
-    public Task<bool> VerifyOpenIdAsync(IReadOnlyDictionary<string, string?> parameters, CancellationToken ct)
+    public async Task<bool> VerifyOpenIdAsync(IReadOnlyDictionary<string, string?> parameters, CancellationToken ct)
     {
+        if (BeforeVerify is not null) await BeforeVerify(ct);
         LastVerifyParameters = new Dictionary<string, string?>(parameters);
         LastVerifyResult = _verifyResult;
-        return Task.FromResult(_verifyResult);
+        return _verifyResult;
     }
 
     public Task<IReadOnlyList<SteamOwnedGame>> GetOwnedGamesAsync(SteamOwnedGamesQuery query, CancellationToken ct)

@@ -4,6 +4,11 @@
 
 `Approved`
 
+The owner-authorized local Steam linking stabilization of 2026-11-18/19 is defined
+in [linking-stabilization.md](linking-stabilization.md). Its browser-correlation,
+empty-response and capped-selection clarifications supersede the corresponding
+historical implementation details below; other Feature 011 invariants are unchanged.
+
 This approved specification defines the MVP behavior for Steam account linking and
 explicit Steam-owned game import. It includes the 2026-08-28 approved product
 decision to persist Steam playtime as external reference data and to use supported

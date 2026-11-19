@@ -3,6 +3,7 @@ using GameLibrary.Api.E2E;
 using GameLibrary.Api.Steam;
 using GameLibrary.Core.Steam;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
@@ -41,8 +42,8 @@ public sealed class SteamController : ControllerBase
         }
 
         var options = _options.CurrentValue;
-        var linkAvailable = options.LinkAvailable();
-        var importAvailable = options.ImportAvailable();
+        var linkAvailable = LinkAvailable(options);
+        var importAvailable = linkAvailable && options.ImportAvailable();
         var account = linkAvailable ? await _steam.GetAccountAsync(userId, ct) : new SteamAccountView(false, null, null);
         var message = linkAvailable
             ? importAvailable ? null : "Steam library import is unavailable because Steam Web API access is not configured."
@@ -60,6 +61,7 @@ public sealed class SteamController : ControllerBase
 
     [HttpPost("link-requests")]
     [Authorize]
+    [EnableCors("SteamLink")]
     [EnableRateLimiting("Steam")]
     public async Task<IActionResult> CreateLinkRequest(CancellationToken ct)
     {
@@ -70,7 +72,8 @@ public sealed class SteamController : ControllerBase
         }
 
         var options = _options.CurrentValue;
-        if (!options.LinkAvailable())
+        Response.Headers.CacheControl = "no-store";
+        if (!LinkAvailable(options))
         {
             return Unavailable("Steam integration is not configured.");
         }
@@ -78,6 +81,8 @@ public sealed class SteamController : ControllerBase
         try
         {
             var request = await _steam.CreateLinkRequestAsync(userId, options.LinkStateLifetime(), ct);
+            SteamLinkBrowserBinding.Issue(Response, options, request);
+            Response.Headers.CacheControl = "no-store";
             return Ok(new SteamLinkRequestResponse(options.StartUrl(request.RawState), request.ExpiresAt));
         }
         catch (SteamAccountAlreadyLinkedException ex)
@@ -91,7 +96,10 @@ public sealed class SteamController : ControllerBase
     public async Task<IActionResult> StartLink(string rawState, CancellationToken ct)
     {
         var options = _options.CurrentValue;
-        if (!options.LinkAvailable() || !await _steam.HasPendingLinkRequestAsync(rawState, ct))
+        Response.Headers.CacheControl = "no-store";
+        Response.Headers["Referrer-Policy"] = "no-referrer";
+        if (!LinkAvailable(options) || !SteamLinkBrowserBinding.Matches(Request, options, rawState)
+            || !await _steam.HasPendingLinkRequestAsync(rawState, ct))
         {
             return RedirectFailure(options);
         }
@@ -109,8 +117,10 @@ public sealed class SteamController : ControllerBase
     public async Task<IActionResult> LinkCallback(CancellationToken ct)
     {
         var options = _options.CurrentValue;
+        Response.Headers.CacheControl = "no-store";
+        Response.Headers["Referrer-Policy"] = "no-referrer";
         var rawState = Request.Query["state"].ToString();
-        if (!options.LinkAvailable() || !SteamIntegrationRules.IsValidRawState(rawState))
+        if (!LinkAvailable(options) || !SteamLinkBrowserBinding.Matches(Request, options, rawState))
         {
             return RedirectFailure(options);
         }
@@ -131,6 +141,9 @@ public sealed class SteamController : ControllerBase
         {
             return RedirectFailure(options);
         }
+        // Do not write/delete correlation cookies from callback responses: a
+        // delayed old response could erase a newer flow set in another tab.
+        // The bounded cookie expires; replay protection is authoritative in SQL.
     }
 
     [HttpDelete("link")]
@@ -233,7 +246,7 @@ public sealed class SteamController : ControllerBase
     private IActionResult? ImportUnavailableResult()
     {
         var options = _options.CurrentValue;
-        if (!options.LinkAvailable())
+        if (!LinkAvailable(options))
         {
             return Unavailable("Steam integration is not configured.");
         }
@@ -250,7 +263,12 @@ public sealed class SteamController : ControllerBase
         Problem(title: "Steam integration unavailable", detail: detail, statusCode: StatusCodes.Status503ServiceUnavailable);
 
     private IActionResult RedirectFailure(SteamOptions options) =>
-        Redirect(options.LinkAvailable() ? options.FrontendFailureUrl() : "/");
+        Redirect(LinkAvailable(options) ? options.FrontendFailureUrl() : "/");
+
+    private bool LinkAvailable(SteamOptions options) => options.LinkAvailable()
+        && (!_environment.IsProduction()
+            || (new Uri(options.PublicApiBaseUrl!).Scheme == "https"
+                && new Uri(options.FrontendBaseUrl!).Scheme == "https"));
 
     private static string BuildSteamOpenIdUrl(SteamOptions options, string rawState)
     {
