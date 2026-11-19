@@ -60,6 +60,9 @@ public class FamilyFriendlyEndpointTests : IClassFixture<LibraryTestFactory>, IA
         var body = await GameBody(client, type, expected ? "false" : "true");
         var created = await Create(client, type, body);
         var id = created.GetProperty("id").GetGuid();
+        await using var beforeDb = CreateDbContext();
+        var originalCreatedAt = await beforeDb.Games.AsNoTracking().Where(g => g.Id == id)
+            .Select(g => g.CreatedAt).SingleAsync();
         SetClassification(body, value);
 
         var response = await client.PutAsJsonAsync($"{Route(type)}/{id}", body);
@@ -67,7 +70,10 @@ public class FamilyFriendlyEndpointTests : IClassFixture<LibraryTestFactory>, IA
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var updated = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(expected, updated.GetProperty("isFamilyFriendly").GetBoolean());
-        Assert.Equal(created.GetProperty("createdAt").GetDateTimeOffset(), updated.GetProperty("createdAt").GetDateTimeOffset());
+        Assert.Equal(originalCreatedAt, updated.GetProperty("createdAt").GetDateTimeOffset());
+        await using var afterDb = CreateDbContext();
+        Assert.Equal(originalCreatedAt, await afterDb.Games.AsNoTracking().Where(g => g.Id == id)
+            .Select(g => g.CreatedAt).SingleAsync());
         Assert.Equal(4, updated.GetProperty("rating").GetInt32());
         Assert.Equal("Keep notes", updated.GetProperty("notes").GetString());
         await AssertPersistedAndRead(client, sub, type, id, expected);

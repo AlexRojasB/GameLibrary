@@ -2,6 +2,12 @@
 
 ## Status and approval boundary
 
+CI implementation is prepared separately in
+[CI validation](ci-validation.md), based on post-merge `origin/dev` `6698729`.
+The owner authorized publication and the first PR validation cycle, not merge or
+deployment. Hosted results remain pending. The audit and approval sequence below
+remain historical evidence; branch protections are still unconfigured.
+
 2026-11-19: this is a locally prepared workflow, not an installed CI policy or an
 authorization to publish, merge or deploy. The repository currently has **no GitHub
 Actions workflows, required checks, branch protections, rulesets or protected

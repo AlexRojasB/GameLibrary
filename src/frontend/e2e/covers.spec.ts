@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type APIResponse, type Locator, type Page, type Request, type Route } from '@playwright/test';
 
 import { coverFixture } from './cover-fixture';
 
@@ -45,15 +45,15 @@ test('uploads, crops, replaces and removes a private VideoGame cover without cha
   await useImage(dialog);
   expect(uploads).toBe(0);
   await expect(dialog.getByLabel('Cover image URL', { exact: true })).toHaveValue('');
-  const creation = page.waitForResponse((response) => response.url() === `${api}/video-games` && response.request().method() === 'POST');
+  const creation = await captureJsonWrite(page, `${api}/video-games`, 'POST');
   await saveUpload(page, dialog, 'Create');
-  const createdResponse = await creation;
-  expect(createdResponse.status()).toBe(201);
-  const created = await createdResponse.json();
+  const createdWrite = await creation.result;
+  expect(createdWrite.response.status()).toBe(201);
+  const created = createdWrite.json;
   expect(created.coverImageUrl).toBeNull();
   expect(created.coverUploadId).toMatch(/^[\da-f-]{36}$/i);
-  expect(createdResponse.request().postDataJSON()).not.toHaveProperty('coverImageUrl');
-  expect(createdResponse.request().postDataJSON().coverUpdate).not.toHaveProperty('expectedCover');
+  expect(createdWrite.request.postDataJSON()).not.toHaveProperty('coverImageUrl');
+  expect(createdWrite.request.postDataJSON().coverUpdate).not.toHaveProperty('expectedCover');
   await expect(dialog).toBeHidden();
   let card = page.locator('.video-games__item').filter({ hasText: 'Private Portrait' });
   await expect(card.locator('app-cover-image img')).toHaveAttribute('src', /^blob:/);
@@ -62,14 +62,14 @@ test('uploads, crops, replaces and removes a private VideoGame cover without cha
   await editLocal(page, dialog, true);
   await dialog.getByRole('button', { name: 'Fit whole image', exact: true }).click();
   await useImage(dialog);
-  const replacement = page.waitForResponse((response) => response.url() === `${api}/games/${created.id}/cover` && response.request().method() === 'PUT');
+  const replacement = await captureJsonWrite(page, `${api}/games/${created.id}/cover`, 'PUT');
   await saveUpload(page, dialog, 'Save');
-  const replaced = await replacement;
-  expect(replaced.status()).toBe(200);
-  const replacementBody = await replaced.json();
+  const replaced = await replacement.result;
+  expect(replaced.response.status()).toBe(200);
+  const replacementBody = replaced.json;
   expect(replacementBody.coverUploadId).not.toBe(created.coverUploadId);
-  expect(replaced.request().postDataJSON().coverUpdate.expectedCover).toEqual({ coverImageUrl: null, coverUploadId: created.coverUploadId });
-  expect(Object.keys(replaced.request().postDataJSON())).toEqual(['coverUpdate']);
+  expect(replaced.request.postDataJSON().coverUpdate.expectedCover).toEqual({ coverImageUrl: null, coverUploadId: created.coverUploadId });
+  expect(Object.keys(replaced.request.postDataJSON())).toEqual(['coverUpdate']);
   await expect(dialog).toBeHidden();
   await card.getByRole('button', { name: 'Edit', exact: true }).click();
   dialog = page.getByRole('dialog', { name: 'Edit video game' });
@@ -117,12 +117,12 @@ test('BoardGame camera fallback fits whole artwork, retains Ready after failed s
   const ready = failed.request().postDataJSON().coverUpdate.uploadId;
   await expect(dialog.getByRole('alert')).toContainText('Deterministic game validation failure.');
   await expect(dialog.getByLabel('Notes', { exact: true })).toHaveValue('Keep these notes');
-  const retry = page.waitForResponse((response) => response.url() === `${api}/board-games` && response.request().method() === 'POST');
+  const retry = await captureJsonWrite(page, `${api}/board-games`, 'POST');
   await dialog.getByRole('button', { name: 'Create', exact: true }).click();
-  const retried = await retry;
-  expect(retried.status()).toBe(201);
-  expect(retried.request().postDataJSON().coverUpdate.uploadId).toBe(ready);
-  const created = await retried.json();
+  const retried = await retry.result;
+  expect(retried.response.status()).toBe(201);
+  expect(retried.request.postDataJSON().coverUpdate.uploadId).toBe(ready);
+  const created = retried.json;
   await expect(dialog).toBeHidden();
   const card = page.locator('.board-games__item').filter({ hasText: 'Whole Square Artwork' });
   await card.scrollIntoViewIfNeeded();
@@ -221,6 +221,29 @@ test('a committed Create with a lost response is recovered through its receipt w
   await expect(page.locator('.video-games__item').filter({ hasText: 'Recovered Private Cover' })).toHaveCount(1);
   expect(creates).toBe(1);
 });
+
+async function captureJsonWrite(page: Page, url: string, method: string) {
+  let captured!: (write: { response: APIResponse; request: Request; json: Record<string, unknown> }) => void;
+  let failed!: (error: unknown) => void;
+  const result = new Promise<{ response: APIResponse; request: Request; json: Record<string, unknown> }>((resolve, reject) => {
+    captured = resolve;
+    failed = reject;
+  });
+  const handler = async (route: Route) => {
+    if (route.request().method() !== method) { await route.fallback(); return; }
+    try {
+      // Read the REAL server body before releasing it to the browser. A later
+      // navigation cannot invalidate this Node-side response/body snapshot.
+      const response = await route.fetch();
+      const json = await response.json() as Record<string, unknown>;
+      captured({ response, request: route.request(), json });
+      await route.fulfill({ response });
+      await page.unroute(url, handler);
+    } catch (error) { failed(error); throw error; }
+  };
+  await page.route(url, handler);
+  return { result };
+}
 
 async function editLocal(page: Page, dialog: Locator, square = false, camera = false) {
   const action = dialog.getByRole('button', { name: camera ? 'Take photo' : 'Upload image', exact: true });
