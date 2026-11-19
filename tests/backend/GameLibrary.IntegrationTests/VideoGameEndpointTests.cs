@@ -974,14 +974,15 @@ public class VideoGameEndpointTests : IClassFixture<VideoGameTestFactory>, IAsyn
         var platform = await PostPlatform(client, "Steam");
         var game = await PostVideoGame(client, CreateBody("Game", acquisitionStatus: acquisitionStatus, platformIds: [platform.Id]));
 
-        // PostgreSQL reports ON DELETE RESTRICT as 23001, not necessarily 23503.
+        // PostgreSQL 17's FK RESTRICT trigger reports foreign_key_violation (23503).
         // Exercise the actual relational backstop before checking its HTTP mapping.
         await using (var db = CreateDbContext())
         {
             db.Platforms.Remove(await db.Platforms.SingleAsync(p => p.Id == platform.Id));
             var error = await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
-            Assert.Equal(Npgsql.PostgresErrorCodes.RestrictViolation,
-                Assert.IsType<Npgsql.PostgresException>(error.InnerException).SqlState);
+            var postgres = Assert.IsType<Npgsql.PostgresException>(error.InnerException);
+            Assert.Equal(Npgsql.PostgresErrorCodes.ForeignKeyViolation, postgres.SqlState);
+            Assert.Equal("FK_game_platforms_platforms_platform_id", postgres.ConstraintName);
         }
 
         var otherUser = ClientFor(NewSub());

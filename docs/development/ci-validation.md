@@ -6,7 +6,9 @@
 `6698729945b854652ab3825bbcfaa7bb93d1a694` (`origin/dev`, PR #6 merged).
 The owner separately authorized committing/publishing this branch, a PR to `dev`,
 and the first CI validation cycle, including CI/test-configuration fixes only.
-Hosted results are pending and must not be inferred from the local results below.
+The first hosted run has completed; its results and narrowly scoped test corrections
+are recorded in the [PostgreSQL/CI investigation](ci-postgres-investigation.md).
+Correction validation remains pending and must not be inferred from the local results below.
 No merge, branch-protection change, cloud configuration change or deployment is
 authorized. Existing worktrees and real user data are untouched. There is no
 application/domain/schema change.
@@ -22,7 +24,7 @@ Workflow: `.github/workflows/ci.yml` (**CI validation**). Stable job/check names
 | Check | Commands/coverage | Timeout |
 | --- | --- | --- |
 | `backend` | Locked solution restore, Release build, all Core tests, API publish and byte comparison of Production logging policy | 20 min |
-| `postgres` | All `GameLibrary.IntegrationTests`, including logging, JWT, isolation, relational/transaction/migration and native processor cases | 35 min |
+| `postgres` | Focused timestamp/affected endpoint regressions, then all `GameLibrary.IntegrationTests`, including logging, JWT, isolation, relational/transaction/migration and native processor cases | 35 min |
 | `frontend` | `npm ci`, `npm run test:qa-config`, `npm test -- --watch=false`, lint, Production build/budgets | 20 min |
 | `e2e` | Existing Playwright `chromium-desktop` and `mobile-chrome` projects, API/Angular local servers, fake Auth/Steam/search/Storage | 35 min |
 | `native-runtime` | Existing G01 inspection/smoke/resource/missing/tampered gates and bounded whole-API G06 harness | 45 min |
@@ -37,8 +39,10 @@ The `postgres` job uses one test process, respecting the existing database colle
 `game_library_test`; lifecycle fixtures also create/drop isolated databases and roles.
 Consequently the synthetic database owner has local admin rights **only in its fresh
 container**. It is not a hosted runtime credential or permission recommendation.
-The E2E job gets a different container/database, `game_library_e2e`, because its reset
-endpoint mutates seeded test data. No shared QA/development database is eligible.
+Each E2E project gets a fresh API process and a different container/database,
+`game_library_e2e`, because its reset endpoint mutates seeded test data but does not
+reset in-memory rate-limit state. Desktop and mobile therefore do not inherit each
+other's real limiter buckets. No shared QA/development database is eligible.
 
 ## Pins and supply chain
 

@@ -464,7 +464,9 @@ public sealed class CoverHttpEndpointTests(CoverHttpDatabaseFixture database)
             gameId = id, playedAt = DateTimeOffset.UtcNow.AddHours(-1), durationMinutes = 30,
         });
         Assert.Equal(HttpStatusCode.Created, logged.StatusCode);
-        var originalLog = await Json(logged);
+        var originalLog = Assert.Single((await client.GetFromJsonAsync<JsonElement[]>("/play-log"))!);
+        Assert.Equal(Id(await Json(logged)), Id(originalLog));
+        var before = await ReadMetadata(client, route, id);
         var upload = await Upload(client);
         using var attach = await client.PutAsJsonAsync($"/games/{id}/cover", new
         {
@@ -472,7 +474,7 @@ public sealed class CoverHttpEndpointTests(CoverHttpDatabaseFixture database)
         });
         Assert.Equal(HttpStatusCode.OK, attach.StatusCode);
         Cover(await Json(attach), Id(upload), gameId: id);
-        await UnchangedMetadata(client, route, game, Id(upload));
+        await UnchangedMetadata(client, route, before, Id(upload));
         foreach (var body in new object[] { new { }, new { coverUpdate = new { intent = "keep" } },
             new { coverUpdate = new { intent = "upload", uploadId = Id(upload), expectedCover = Snapshot(uploadId: Id(upload)) } } })
         {
@@ -486,14 +488,14 @@ public sealed class CoverHttpEndpointTests(CoverHttpDatabaseFixture database)
         });
         Assert.Equal(HttpStatusCode.OK, external.StatusCode);
         Cover(await Json(external), null, "https://example.test/new.jpg", id);
-        await UnchangedMetadata(client, route, game, null, "https://example.test/new.jpg");
+        await UnchangedMetadata(client, route, before, null, "https://example.test/new.jpg");
         using var removed = await client.PutAsJsonAsync($"/games/{id}/cover", new
         {
             coverUpdate = new { intent = "remove", expectedCover = Snapshot("https://example.test/new.jpg") },
         });
         Assert.Equal(HttpStatusCode.OK, removed.StatusCode);
         Cover(await Json(removed), null, gameId: id);
-        await UnchangedMetadata(client, route, game, null);
+        await UnchangedMetadata(client, route, before, null);
         AssertStatus(await client.GetFromJsonAsync<JsonElement>($"/cover-uploads/{Id(upload)}"), "DeletePending", id, true);
         using var retired = await client.GetAsync($"/cover-uploads/{Id(upload)}/content");
         Assert.Equal(HttpStatusCode.NotFound, retired.StatusCode);
@@ -524,6 +526,7 @@ public sealed class CoverHttpEndpointTests(CoverHttpDatabaseFixture database)
             coverUpdate = new { intent = "upload", uploadId = Id(next), expectedCover = Snapshot(uploadId: Id(old)) },
         });
         Assert.Equal(HttpStatusCode.OK, replacement.StatusCode);
+        var before = await ReadMetadata(client, route, Id(game));
         var stale = GameBody(route, new
         {
             intent = "upload", uploadId = Id(candidate), expectedCover = Snapshot(uploadId: Id(old)),
@@ -531,7 +534,7 @@ public sealed class CoverHttpEndpointTests(CoverHttpDatabaseFixture database)
         using var conflict = await client.PutAsJsonAsync($"/{route}/{Id(game)}", stale);
         Assert.Equal(HttpStatusCode.Conflict, conflict.StatusCode);
         Private(conflict);
-        await UnchangedMetadata(client, route, game, Id(next));
+        await UnchangedMetadata(client, route, before, Id(next));
         AssertStatus(await client.GetFromJsonAsync<JsonElement>($"/cover-uploads/{Id(candidate)}"), "Ready", null, null);
         AssertStatus(await client.GetFromJsonAsync<JsonElement>($"/cover-uploads/{Id(next)}"), "Attached", Id(game), true);
         var metadataOnly = GameBody(route, name: "Renamed without cover intent");
@@ -549,13 +552,14 @@ public sealed class CoverHttpEndpointTests(CoverHttpDatabaseFixture database)
     {
         using var client = Client();
         var game = await CreateGame(client, route, new { intent = "external", url = "https://example.test/current.jpg" });
+        var before = await ReadMetadata(client, route, Id(game));
         using var response = await client.PutAsJsonAsync($"/games/{Id(game)}/cover", new
         {
             coverUpdate = new { intent = "external", url = "https://example.test/stale.jpg", expectedCover = Snapshot("https://example.test/stale.jpg") },
         });
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         Private(response);
-        await UnchangedMetadata(client, route, game, null, "https://example.test/current.jpg");
+        await UnchangedMetadata(client, route, before, null, "https://example.test/current.jpg");
     }
 
     [Theory]
@@ -587,6 +591,7 @@ public sealed class CoverHttpEndpointTests(CoverHttpDatabaseFixture database)
         var old = await Upload(client);
         var replacement = await Upload(client);
         var game = await CreateGame(client, route, UploadIntent(Id(old)));
+        var before = await ReadMetadata(client, route, Id(game));
         var body = GameBody(route, new
         {
             intent = "upload", uploadId = Id(replacement), expectedCover = Snapshot(uploadId: Id(old)),
@@ -596,7 +601,7 @@ public sealed class CoverHttpEndpointTests(CoverHttpDatabaseFixture database)
         using var response = await client.PutAsJsonAsync($"/{route}/{Id(game)}", body);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Private(response);
-        await UnchangedMetadata(client, route, game, Id(old));
+        await UnchangedMetadata(client, route, before, Id(old));
         AssertStatus(await client.GetFromJsonAsync<JsonElement>($"/cover-uploads/{Id(old)}"), "Attached", Id(game), true);
         AssertStatus(await client.GetFromJsonAsync<JsonElement>($"/cover-uploads/{Id(replacement)}"), "Ready", null, null);
         Assert.Equal(0, _storage.Deletes);
@@ -622,11 +627,12 @@ public sealed class CoverHttpEndpointTests(CoverHttpDatabaseFixture database)
     {
         using var client = Client();
         var game = await CreateGame(client, "board-games");
+        var before = await ReadMetadata(client, "board-games", Id(game));
         using var body = new StringContent("{\"coverUpdate\":" + command + "}", Encoding.UTF8, "application/json");
         using var response = await client.PutAsync($"/games/{Id(game)}/cover", body);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Private(response);
-        await UnchangedMetadata(client, "board-games", game, null);
+        await UnchangedMetadata(client, "board-games", before, null);
         Assert.Equal(0, _storage.Calls);
     }
 
@@ -640,11 +646,12 @@ public sealed class CoverHttpEndpointTests(CoverHttpDatabaseFixture database)
     {
         using var client = Client();
         var game = await CreateGame(client, "board-games");
+        var before = await ReadMetadata(client, "board-games", Id(game));
         using var body = new StringContent(json, Encoding.UTF8, "application/json");
         using var response = await client.PutAsync($"/games/{Id(game)}/cover", body);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Private(response);
-        await UnchangedMetadata(client, "board-games", game, null);
+        await UnchangedMetadata(client, "board-games", before, null);
     }
 
     public static IEnumerable<object[]> LegacyWrites()
@@ -769,6 +776,7 @@ public sealed class CoverHttpEndpointTests(CoverHttpDatabaseFixture database)
         using var client = Client();
         var upload = await Upload(client);
         var game = await CreateGame(client, "board-games", UploadIntent(Id(upload)));
+        var before = await ReadMetadata(client, "board-games", Id(game));
         var canonical = Assert.Single(_storage.Objects).Value;
         switch (failure)
         {
@@ -788,7 +796,7 @@ public sealed class CoverHttpEndpointTests(CoverHttpDatabaseFixture database)
         Assert.DoesNotContain("different.invalid", problem);
         var calls = _storage.Calls;
         AssertStatus(await client.GetFromJsonAsync<JsonElement>($"/cover-uploads/{Id(upload)}"), "Attached", Id(game), true);
-        await UnchangedMetadata(client, "board-games", game, Id(upload));
+        await UnchangedMetadata(client, "board-games", before, Id(upload));
         Assert.Equal(calls, _storage.Calls);
     }
 
@@ -1088,6 +1096,7 @@ public sealed class CoverHttpEndpointTests(CoverHttpDatabaseFixture database)
         var original = await Upload(initial);
         var replacement = await Upload(initial);
         var game = await CreateGame(initial, "board-games", UploadIntent(Id(original)));
+        var before = await ReadMetadata(initial, "board-games", Id(game));
         await _factory.DisposeAsync();
         var failure = new CoverLifecycleSaveFailure();
         _factory = new(database.ConnectionString, _storage, _clock, true, failure);
@@ -1105,7 +1114,7 @@ public sealed class CoverHttpEndpointTests(CoverHttpDatabaseFixture database)
         failure.Enabled = false;
         AssertStatus(await client.GetFromJsonAsync<JsonElement>($"/cover-uploads/{Id(original)}"), "Attached", Id(game), true);
         AssertStatus(await client.GetFromJsonAsync<JsonElement>($"/cover-uploads/{Id(replacement)}"), "Ready", null, null);
-        await UnchangedMetadata(client, "board-games", game, Id(original));
+        await UnchangedMetadata(client, "board-games", before, Id(original));
         Assert.Equal(0, _storage.Deletes);
     }
 
@@ -1398,9 +1407,18 @@ public sealed class CoverHttpEndpointTests(CoverHttpDatabaseFixture database)
         }
     }
 
-    private static async Task UnchangedMetadata(HttpClient client, string route, JsonElement before, Guid? uploadId, string? url = null)
+    private static async Task<JsonElement> ReadMetadata(HttpClient client, string route, Guid id)
     {
         var current = Assert.Single((await client.GetFromJsonAsync<JsonElement[]>("/" + route))!);
+        Assert.Equal(id, Id(current));
+        return current;
+    }
+
+    private static async Task UnchangedMetadata(HttpClient client, string route, JsonElement before, Guid? uploadId, string? url = null)
+    {
+        // Both snapshots come from persistence, before/after the operation. Never
+        // truncate the observed result or tolerate an audit-field mutation.
+        var current = await ReadMetadata(client, route, Id(before));
         foreach (var field in before.EnumerateObject().Where(p => p.Name is not "coverImageUrl" and not "coverUploadId"))
             Assert.Equal(field.Value.GetRawText(), current.GetProperty(field.Name).GetRawText());
         Cover(current, uploadId, url);

@@ -223,7 +223,9 @@ public class PlayLogEndpointTests : IClassFixture<PlayLogTestFactory>, IAsyncLif
         var sub = NewSub();
         var game = await AddBoardGame(sub, "Catan");
         var created = await PostPlay(ClientFor(sub), game.GameId);
-        var originalCreatedAt = created.CreatedAt;
+        await using var beforeDb = CreateDbContext();
+        var originalCreatedAt = await beforeDb.PlayLogEntries.AsNoTracking().Where(e => e.Id == created.Id)
+            .Select(e => e.CreatedAt).SingleAsync();
         var historical = new DateTimeOffset(2024, 1, 2, 3, 4, 0, TimeSpan.FromHours(-7));
 
         var update = await ClientFor(sub).PutAsJsonAsync(

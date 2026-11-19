@@ -70,6 +70,8 @@ jobs:
           dotnet restore src/backend/GameLibrary.sln --locked-mode
           bash tools/ci/run-isolated.sh none dotnet build src/backend/GameLibrary.sln -c Release --no-restore
           docker pull "$(cat tools/ci/postgres-image.txt)"
+      - name: Run timestamp and affected endpoint regressions on disposable PostgreSQL 17
+        run: bash tools/ci/run-isolated.sh postgres dotnet test tests/backend/GameLibrary.IntegrationTests -c Release --no-build --no-restore --filter 'FullyQualifiedName~TimestampPersistenceTests|FullyQualifiedName~CoverHttpEndpointTests|FullyQualifiedName~FamilyFriendlyEndpointTests|FullyQualifiedName~PlayLogEndpointTests|FullyQualifiedName~VideoGameEndpointTests' --logger 'console;verbosity=minimal'
       - name: Run all integration tests on disposable PostgreSQL 17
         # Includes production-logging, JWT, relational, two-user and migration tests.
         run: bash tools/ci/run-isolated.sh postgres dotnet test tests/backend/GameLibrary.IntegrationTests -c Release --no-build --no-restore --logger 'console;verbosity=minimal'
@@ -129,10 +131,14 @@ jobs:
           npm install --global npm@11.12.1
           npm ci
           npx --no-install playwright install --with-deps chromium
-      - name: Run existing desktop and mobile projects with local fake providers
+      - name: Run desktop project with local fake providers
         working-directory: src/frontend
         # playwright.config.ts starts API + Angular; no servers or credentials are inherited.
-        run: bash ../../tools/ci/run-isolated.sh e2e npm run e2e -- --project=chromium-desktop --project=mobile-chrome
+        run: bash ../../tools/ci/run-isolated.sh e2e npm run e2e -- --project=chromium-desktop
+      - name: Run mobile project with fresh local services and fake providers
+        working-directory: src/frontend
+        # A new API/process/database gives this project its own REAL limiter state.
+        run: bash ../../tools/ci/run-isolated.sh e2e npm run e2e -- --project=mobile-chrome
 
   native-runtime:
     name: native-runtime
