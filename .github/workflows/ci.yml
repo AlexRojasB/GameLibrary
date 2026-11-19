@@ -1,0 +1,148 @@
+name: CI validation
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+
+# No deployments, environment bindings, secrets, OIDC or write-scoped token.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
+  DOTNET_CLI_USE_MSBUILD_SERVER: 'false'
+  DOTNET_CLI_DO_NOT_USE_MSBUILD_SERVER: '1'
+  MSBUILDDISABLENODEREUSE: '1'
+  MSBUILDUSESERVER: '0'
+  UseSharedCompilation: 'false'
+  NG_CLI_ANALYTICS: 'false'
+  NPM_CONFIG_AUDIT: 'false'
+  NPM_CONFIG_FUND: 'false'
+
+jobs:
+  backend:
+    name: backend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '10.0.201'
+      - name: Test isolation guard decisions (no external IO)
+        run: python3 -B -m unittest discover -s tools/ci -p 'test_*.py' -v
+      - name: Prepare pinned native asset and restore
+        run: |
+          bash tools/cover-native/prepare.sh linux-x64
+          dotnet restore src/backend/GameLibrary.sln --locked-mode
+      - name: Build and run Core tests without external network
+        run: |
+          bash tools/ci/run-isolated.sh none dotnet build src/backend/GameLibrary.sln -c Release --no-restore
+          bash tools/ci/run-isolated.sh none dotnet test tests/backend/GameLibrary.Core.Tests -c Release --no-build --no-restore
+      - name: Verify Production policy is packaged
+        run: |
+          bash tools/ci/run-isolated.sh none dotnet publish src/backend/GameLibrary.Api -c Release --no-build --no-restore -o "$RUNNER_TEMP/api-publish" -p:PublishTrimmed=false -p:PublishSingleFile=false
+          cmp src/backend/GameLibrary.Api/appsettings.Production.json "$RUNNER_TEMP/api-publish/appsettings.Production.json"
+
+  postgres:
+    name: postgres
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '10.0.201'
+      - name: Prepare assets, restore and build
+        run: |
+          bash tools/cover-native/prepare.sh linux-x64
+          dotnet restore src/backend/GameLibrary.sln --locked-mode
+          bash tools/ci/run-isolated.sh none dotnet build src/backend/GameLibrary.sln -c Release --no-restore
+          docker pull "$(cat tools/ci/postgres-image.txt)"
+      - name: Run all integration tests on disposable PostgreSQL 17
+        # Includes production-logging, JWT, relational, two-user and migration tests.
+        run: bash tools/ci/run-isolated.sh postgres dotnet test tests/backend/GameLibrary.IntegrationTests -c Release --no-build --no-restore --logger 'console;verbosity=minimal'
+
+  frontend:
+    name: frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.15.0'
+      - name: Install pinned npm and locked dependencies
+        working-directory: src/frontend
+        run: |
+          npm install --global npm@11.12.1
+          npm ci
+      - name: QA build configuration tests
+        working-directory: src/frontend
+        run: bash ../../tools/ci/run-isolated.sh none npm run test:qa-config
+      - name: Angular unit tests
+        working-directory: src/frontend
+        run: bash ../../tools/ci/run-isolated.sh none npm test -- --watch=false
+      - name: Lint
+        working-directory: src/frontend
+        run: bash ../../tools/ci/run-isolated.sh none npm run lint
+      - name: Production build and bundle budgets (not a deployment)
+        working-directory: src/frontend
+        run: bash ../../tools/ci/run-isolated.sh none npm run build -- --configuration production
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '10.0.201'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.15.0'
+      - name: Prepare backend without accessing application data
+        run: |
+          bash tools/cover-native/prepare.sh linux-x64
+          dotnet restore src/backend/GameLibrary.sln --locked-mode
+          bash tools/ci/run-isolated.sh none dotnet build src/backend/GameLibrary.sln -c Release --no-restore
+          docker pull "$(cat tools/ci/postgres-image.txt)"
+      - name: Install frontend and locked Playwright browser
+        working-directory: src/frontend
+        run: |
+          npm install --global npm@11.12.1
+          npm ci
+          npx --no-install playwright install --with-deps chromium
+      - name: Run existing desktop and mobile projects with local fake providers
+        working-directory: src/frontend
+        # playwright.config.ts starts API + Angular; no servers or credentials are inherited.
+        run: bash ../../tools/ci/run-isolated.sh e2e npm run e2e -- --project=chromium-desktop --project=mobile-chrome
+
+  native-runtime:
+    name: native-runtime
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate existing G01 and bounded whole-API Linux gates
+        run: |
+          docker pull "$(cat tools/ci/postgres-image.txt)"
+          bash tools/ci/native-runtime.sh
