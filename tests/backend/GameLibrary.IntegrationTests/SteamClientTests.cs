@@ -130,6 +130,28 @@ public sealed class SteamClientTests
     }
 
     [Fact]
+    public async Task OpenId_transport_errors_do_not_log_state_signature_or_exception_payloads()
+    {
+        const string state = "synthetic-private-openid-state";
+        const string signature = "synthetic-private-openid-signature";
+        var logger = new CaptureLogger();
+        var client = Client(_ => throw new HttpRequestException(
+            "https://api.example.test/steam/link/callback?state=" + state,
+            new InvalidOperationException(signature)), logger: logger);
+        Assert.False(await client.VerifyOpenIdAsync(new Dictionary<string, string?>
+        {
+            ["openid.return_to"] = "https://api.example.test/steam/link/callback?state=" + state,
+            ["openid.sig"] = signature,
+        }, default));
+        Assert.Single(logger.Messages);
+        Assert.All(logger.Messages, message =>
+        {
+            Assert.False(message.Contains(state, StringComparison.Ordinal), "State leaked; payload withheld.");
+            Assert.False(message.Contains(signature, StringComparison.Ordinal), "Assertion leaked; payload withheld.");
+        });
+    }
+
+    [Fact]
     public async Task Missing_key_blocks_import_before_transport_but_not_linking()
     {
         var options = Options(); options.WebApiKey = null;

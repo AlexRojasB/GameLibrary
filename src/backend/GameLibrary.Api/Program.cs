@@ -186,9 +186,12 @@ app.Use(async (context, next) =>
     await next();
 });
 
+app.Use(SteamLogPrivacy.LogCompletionAsync);
+
 app.UseExceptionHandler(new ExceptionHandlerOptions
 {
     AllowStatusCode404Response = true,
+    SuppressDiagnosticsCallback = SteamLogPrivacy.SuppressExceptionDiagnostics,
     ExceptionHandler = async context =>
     {
         var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;

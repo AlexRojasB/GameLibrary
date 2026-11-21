@@ -93,6 +93,10 @@ access-log paths. Production release/promotion is blocked until an owner-approve
 mitigation is implemented and verified. This logging-volume fix does not resolve
 that finding. Never include raw state or token values in review evidence.
 
+Local follow-up: [Steam OpenID log privacy](steam-openid-log-privacy.md) documents
+application-scope hardening and a separate edge mitigation/verification plan. It
+does not change the start/callback contract or close this provider-side blocker.
+
 Observed EF parameter values were redacted and sensitive-data logging is not enabled
 by source. Do not turn it on to investigate real users. This observation is not an
 exhaustive secret scan of every possible failure or inaccessible provider log.
