@@ -33,115 +33,21 @@ public class SteamIntegrationService
             : new SteamAccountView(true, account.SteamId64, account.LinkedAt);
     }
 
-    public async Task<SteamLinkRequestView> CreateLinkRequestAsync(string userId, TimeSpan lifetime, CancellationToken ct)
-    {
-        var library = await _libraries.EnsureAsync(userId, ct);
-        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
-        await LockLibraryAsync(library.Id, ct);
-        if (await _db.SteamAccounts.AnyAsync(a => a.LibraryId == library.Id, ct))
-        {
-            throw new SteamAccountAlreadyLinkedException();
-        }
+    // Unconditional in this binary, including direct use-case callers. Do not add
+    // a configuration/test-mode bypass or inspect legacy state before rejecting.
+    // This cannot revoke code already executing in another, older binary.
+    public Task<SteamLinkRequestView> CreateLinkRequestAsync(string userId, TimeSpan lifetime, CancellationToken ct) =>
+        Task.FromException<SteamLinkRequestView>(new SteamLinkingRetiredException());
 
-        var rawState = SteamIntegrationRules.GenerateRawState();
-        var now = DateTimeOffset.UtcNow;
-        var request = new SteamLinkRequest
-        {
-            Id = Guid.NewGuid(),
-            LibraryId = library.Id,
-            StateHash = SteamIntegrationRules.HashState(rawState),
-            CreatedAt = now,
-            ExpiresAt = now.Add(lifetime),
-        };
+    public Task<bool> HasPendingLinkRequestAsync(string rawState, CancellationToken ct) => Task.FromResult(false);
 
-        _db.SteamLinkRequests.Add(request);
-        await _db.SaveChangesAsync(ct);
-        await transaction.CommitAsync(ct);
-        return new SteamLinkRequestView(rawState, request.ExpiresAt);
-    }
-
-    public async Task<bool> HasPendingLinkRequestAsync(string rawState, CancellationToken ct)
-    {
-        if (!SteamIntegrationRules.IsValidRawState(rawState))
-        {
-            return false;
-        }
-
-        var stateHash = SteamIntegrationRules.HashState(rawState);
-        var now = DateTimeOffset.UtcNow;
-        return await _db.SteamLinkRequests.AnyAsync(
-            r => r.StateHash == stateHash && r.ConsumedAt == null && r.ExpiresAt > now,
-            ct);
-    }
-
-    public async Task CompleteLinkAsync(
+    public Task CompleteLinkAsync(
         string rawState,
         IReadOnlyDictionary<string, string?> openIdParameters,
         string expectedProviderUrl,
         string expectedReturnTo,
         string expectedRealm,
-        CancellationToken ct)
-    {
-        if (!await HasPendingLinkRequestAsync(rawState, ct))
-        {
-            throw new InvalidSteamOpenIdAssertionException();
-        }
-
-        var steamVerified = await _steam.VerifyOpenIdAsync(openIdParameters, ct);
-        var steamId64 = SteamIntegrationRules.ValidateOpenIdAssertion(
-            openIdParameters,
-            expectedProviderUrl,
-            expectedReturnTo,
-            expectedRealm,
-            steamVerified);
-
-        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
-        var stateHash = SteamIntegrationRules.HashState(rawState);
-        var linkRequest = await _db.SteamLinkRequests
-            .FromSqlInterpolated($"SELECT * FROM steam_link_requests WHERE state_hash = {stateHash} FOR UPDATE")
-            .SingleOrDefaultAsync(ct);
-
-        if (linkRequest is null)
-            throw new InvalidSteamOpenIdAssertionException();
-
-        // Different states for one Library serialize with linking, unlink and import.
-        await LockLibraryAsync(linkRequest.LibraryId, ct);
-        var now = DateTimeOffset.UtcNow; // expiry must be checked after lock waits
-        if (linkRequest.ConsumedAt is not null || linkRequest.ExpiresAt <= now)
-        {
-            throw new InvalidSteamOpenIdAssertionException();
-        }
-
-        if (await _db.SteamAccounts.AnyAsync(a => a.LibraryId == linkRequest.LibraryId || a.SteamId64 == steamId64, ct))
-        {
-            throw new InvalidSteamOpenIdAssertionException();
-        }
-
-        linkRequest.ConsumedAt = now;
-        _db.SteamAccounts.Add(new SteamAccount
-        {
-            Id = Guid.NewGuid(),
-            LibraryId = linkRequest.LibraryId,
-            SteamId64 = steamId64,
-            LinkedAt = now,
-        });
-
-        try
-        {
-            await _db.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException
-        {
-            SqlState: PostgresErrorCodes.UniqueViolation,
-            ConstraintName: "ix_steam_accounts_library_id" or "ix_steam_accounts_steam_id64"
-        })
-        {
-            // Two different Libraries can race for one SteamID64. Rollback on
-            // disposal preserves the losing state; do not overwrite the winner.
-            throw new InvalidSteamOpenIdAssertionException();
-        }
-        await transaction.CommitAsync(ct);
-    }
+        CancellationToken ct) => Task.FromException(new SteamLinkingRetiredException());
 
     public async Task UnlinkAsync(string userId, CancellationToken ct)
     {

@@ -2,7 +2,7 @@
   <div class="page-hero">
     <p class="eyebrow">Steam</p>
     <h1>Steam Library</h1>
-    <p>Link your Steam account to preview and import your owned games.</p>
+    <p>Preview and import owned games from an existing linked Steam account.</p>
   </div>
 
   @if (callbackNotice()) {
@@ -19,13 +19,14 @@
   } @else if (!status()) {
     <p class="steam-loading">Unable to load Steam status.</p>
   } @else {
-    @if (!status()!.enabled || !status()!.linkAvailable) {
-      <div class="steam-notice steam-notice--warning">
-        Steam integration is not configured. Linking is unavailable.
-      </div>
-    }
+    <div class="steam-notice steam-notice--warning" role="status">
+      Steam linking is temporarily unavailable. Existing linked accounts are unchanged.
+      Unlinking an account will not allow you to link it again while linking is unavailable.
+    </div>
 
-    @if (status()!.enabled && status()!.linkAvailable && !status()!.importAvailable) {
+    @if (!status()!.enabled) {
+      <div class="steam-notice steam-notice--info">Steam integration is not configured.</div>
+    } @else if (!status()!.importAvailable) {
       <div class="steam-notice steam-notice--info">
         Steam library import is unavailable because Steam Web API access is not configured.
       </div>
@@ -38,7 +39,7 @@
           <span class="steam-card__steamid">SteamID64: {{ status()!.steamId64 }}</span>
         </div>
         <div class="steam-card__actions">
-          <button class="btn btn--primary" (click)="onPreview()" [disabled]="previewing() || importing() || unlinking()">
+          <button class="btn btn--primary" (click)="onPreview()" [disabled]="!status()!.importAvailable || previewing() || importing() || unlinking()">
             {{ previewing() ? 'Loading…' : 'Preview Steam library' }}
           </button>
           <button class="btn btn--danger" (click)="onUnlink()" [disabled]="unlinking() || importing() || previewing()">
@@ -46,13 +47,10 @@
           </button>
         </div>
       </div>
-    } @else if (status()!.linkAvailable) {
+    } @else {
       <div class="steam-card">
         <h2>No Steam Account Linked</h2>
-        <p>Link your Steam account to preview and import your owned games.</p>
-        <button class="btn btn--primary" (click)="onLink()" [disabled]="linking()">
-          {{ linking() ? 'Starting…' : 'Link Steam account' }}
-        </button>
+        <p>New Steam links are unavailable. You can continue managing your games manually.</p>
       </div>
     }
 

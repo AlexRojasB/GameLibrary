@@ -92,6 +92,14 @@ public sealed class E2eController : ControllerBase
 
             var now = DateTimeOffset.UtcNow;
             _db.Libraries.Add(new GameLibrary.Core.Libraries.Library { Id = LibraryId, UserId = E2eTestMode.UserId(_configuration) });
+            // Existing-account fixture only, behind the existing local E2E reset guard.
+            // Do not call the retired linking protocol or expose a new seeding endpoint.
+            if (_configuration.GetValue<bool>("E2E:SteamIntegration:Enabled"))
+                _db.SteamAccounts.Add(new GameLibrary.Core.Steam.SteamAccount
+                {
+                    Id = Guid.NewGuid(), LibraryId = LibraryId,
+                    SteamId64 = GameLibrary.Api.Steam.E2eSteamClient.SteamId64, LinkedAt = now,
+                });
             _db.Platforms.Add(new Platform { Id = PlatformId, LibraryId = LibraryId, Name = "Switch" });
 
             _db.Games.AddRange(

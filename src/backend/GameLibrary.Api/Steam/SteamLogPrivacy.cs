@@ -27,6 +27,13 @@ internal static class SteamLogPrivacy
     {
         var endpoint = Endpoint(context);
         if (endpoint is null) { await next(context); return; }
+        context.Response.OnStarting(() =>
+        {
+            context.Response.Headers.CacheControl = "private, no-store";
+            context.Response.Headers["Referrer-Policy"] = "no-referrer";
+            context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+            return Task.CompletedTask;
+        });
         var started = Stopwatch.GetTimestamp();
         await next(context);
         context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(Category)

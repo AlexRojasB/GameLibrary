@@ -3,6 +3,15 @@ Domain Specification v0.9 --- Game Library
 Status: Approved
 Version: 0.9
 
+Feature 011 security milestone, 2026-11-21 -- Authorized local implementation:
+
+The new binary must not create or replace SteamAccount through legacy linking,
+including direct application-service completion calls and existing pending states.
+Existing SteamAccount/Library ownership, uniqueness, imports and unlink invariants
+remain unchanged. No state rows are consumed/deleted merely to claim retirement;
+no schema change, new identity model or v2 behavior is approved by this milestone.
+See specs/011-steam-integration/linking-retirement.md for the binary/global boundary.
+
 Feature 013 amendment, 2026-10-28 -- Approved design:
 
 A Game may have either its existing external CoverImageUrl or one private managed

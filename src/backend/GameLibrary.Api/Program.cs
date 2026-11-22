@@ -126,10 +126,7 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod()
             .WithExposedHeaders("Retry-After", "Location");
     });
-    // Only the JWT-authorized link request sets a browser correlation cookie.
-    // Other JSON endpoints keep their existing bearer-only CORS policy.
-    options.AddPolicy("SteamLink", policy => policy.WithOrigins(allowedOrigins)
-        .WithMethods("POST").AllowAnyHeader().AllowCredentials());
+    // Legacy linking is retired: no credentialed Steam-link CORS/cookie flow.
 });
 
 builder.Services

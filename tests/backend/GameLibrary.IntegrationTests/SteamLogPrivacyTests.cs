@@ -28,9 +28,11 @@ public sealed class SteamLogPrivacyTests
         foreach (var route in Routes())
         {
             using var response = await client.GetAsync(route);
-            Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-            Assert.EndsWith("steamLink=failure", response.Headers.Location!.ToString());
-            Assert.Equal("no-store", response.Headers.CacheControl!.ToString());
+            Assert.Equal(HttpStatusCode.Gone, response.StatusCode);
+            Assert.Null(response.Headers.Location);
+            Assert.True(response.Headers.CacheControl!.NoStore);
+            Assert.True(response.Headers.CacheControl.Private);
+            Assert.False(response.Headers.Contains("Set-Cookie"));
         }
         Assert.Equal(2, factory.Capture.Entries.Count(e => e.Category == Category && e.EventId == 1100));
         Assert.Contains(factory.Capture.Entries, e => e.Category == Category && e.Message.Contains("/steam/link/start/{state}"));
@@ -111,7 +113,7 @@ public sealed class SteamLogPrivacyTests
         using var factory = new PrivacyFactory("Production", unsafeHostingScopeControl: true);
         using var client = factory.CreateClient(new() { AllowAutoRedirect = false });
         using var response = await client.GetAsync(Routes()[0]);
-        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Gone, response.StatusCode);
         Assert.True(factory.Capture.Entries.Any(e => e.Scopes.Contains(State, StringComparison.Ordinal)),
             "Expected baseline scope exposure was not observed; payload withheld.");
         Assert.Equal(0, factory.DatabaseCalls);
@@ -123,7 +125,9 @@ public sealed class SteamLogPrivacyTests
         using var factory = new PrivacyFactory("Production");
         using var client = factory.CreateClient(new() { AllowAutoRedirect = false });
         using var auth = await client.PostAsync("/steam/link-requests?access_token=" + State, null);
-        Assert.Equal(HttpStatusCode.Unauthorized, auth.StatusCode);
+        Assert.Equal(HttpStatusCode.Gone, auth.StatusCode);
+        using var me = await client.GetAsync("/auth/me?access_token=" + State);
+        Assert.Equal(HttpStatusCode.Unauthorized, me.StatusCode);
         using var unknown = await client.GetAsync("/steam/unknown/" + State + "?state=" + Signature);
         Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
         Assert.Contains(factory.Capture.Entries, e => e.EventId == 1100 && e.Message.Contains("/steam/{endpoint}"));

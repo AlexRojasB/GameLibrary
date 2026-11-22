@@ -197,16 +197,12 @@ test('classifies games, filters the Library, and preserves family picker history
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test('links Steam account, previews library, and imports selected games', async ({ page }) => {
+test('preserves an existing Steam link, previews library, and imports selected games', async ({ page }) => {
   await page.goto('/manage/steam');
   await expect(page.getByRole('heading', { name: 'Steam Library' })).toBeVisible();
-  await expect(page.getByText('No Steam Account Linked')).toBeVisible();
-
-  await page.getByRole('button', { name: 'Link Steam account' }).click();
-
-  await page.waitForURL('**/manage/steam**', { timeout: 15000 });
   await expect(page.getByText('Linked Steam Account')).toBeVisible();
-  await expect(page.getByText('Steam linking completed. Check your linked account below.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Link Steam account', exact: true })).toHaveCount(0);
+  await expect(page.getByText('Steam linking is temporarily unavailable.', { exact: false })).toBeVisible();
   await expect(page.getByText('SteamID64: 76561198000000000')).toBeVisible();
 
   await page.getByRole('button', { name: 'Preview Steam library' }).click();
@@ -238,31 +234,24 @@ test('links Steam account, previews library, and imports selected games', async 
   await expect(page.getByRole('heading', { name: 'No plays logged yet.' })).toBeVisible();
 });
 
-test('rejects a Steam linking URL transferred to a different browser', async ({ page, browser }) => {
-  let release!: () => void;
-  let capture!: (url: string) => void;
-  const held = new Promise<void>((resolve) => { release = resolve; });
-  const started = new Promise<string>((resolve) => { capture = resolve; });
-  await page.route('http://127.0.0.1:5218/steam/link/start/**', async (route) => {
-    capture(route.request().url());
-    await held;
-    await route.continue();
-  });
+test('rejects transferred legacy URLs and cannot relink after an explicit unlink', async ({ page, browser }) => {
   await page.goto('/manage/steam');
-  await page.getByRole('button', { name: 'Link Steam account', exact: true }).click();
   const other = await browser.newContext();
   try {
-    const url = await started;
-    const response = await other.request.get(url, { maxRedirects: 0 });
-    expect(response.status()).toBe(302);
-    expect(response.headers()['location']).toBe('http://127.0.0.1:4200/manage/steam?steamLink=failure');
+    for (const path of ['/steam/link/start/synthetic-transferred-state', '/steam/link/callback?state=synthetic-transferred-state']) {
+      const response = await other.request.get('http://127.0.0.1:5218' + path, { maxRedirects: 0 });
+      expect(response.status()).toBe(410);
+      expect(response.headers()['location']).toBeUndefined();
+      expect(response.headers()['set-cookie']).toBeUndefined();
+    }
     expect(await other.cookies('http://127.0.0.1:5218')).toEqual([]);
   } finally {
     await other.close();
-    release();
   }
   await expect(page.getByText('Linked Steam Account')).toBeVisible();
-  await expect(page.getByText('Steam linking completed. Check your linked account below.')).toBeVisible();
+  await page.getByRole('button', { name: 'Unlink', exact: true }).click();
+  await expect(page.getByText('No Steam Account Linked')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Link Steam account', exact: true })).toHaveCount(0);
 });
 
 async function dateTimeLocalOneHourAgo(page: Page): Promise<string> {

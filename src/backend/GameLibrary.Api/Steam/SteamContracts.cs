@@ -9,8 +9,6 @@ public sealed record SteamStatusResponse(
     DateTimeOffset? LinkedAt,
     string? Message);
 
-public sealed record SteamLinkRequestResponse(string StartUrl, DateTimeOffset ExpiresAt);
-
 public sealed record SteamLibraryPreviewResponse(
     string State,
     IReadOnlyList<SteamPreviewCandidateResponse> Candidates,

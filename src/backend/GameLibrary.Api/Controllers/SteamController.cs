@@ -1,9 +1,7 @@
 using GameLibrary.Api.Auth;
-using GameLibrary.Api.E2E;
 using GameLibrary.Api.Steam;
 using GameLibrary.Core.Steam;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
@@ -16,18 +14,15 @@ public sealed class SteamController : ControllerBase
 {
     private readonly SteamIntegrationService _steam;
     private readonly IOptionsMonitor<SteamOptions> _options;
-    private readonly IConfiguration _configuration;
     private readonly IHostEnvironment _environment;
 
     public SteamController(
         SteamIntegrationService steam,
         IOptionsMonitor<SteamOptions> options,
-        IConfiguration configuration,
         IHostEnvironment environment)
     {
         _steam = steam;
         _options = options;
-        _configuration = configuration;
         _environment = environment;
     }
 
@@ -42,109 +37,40 @@ public sealed class SteamController : ControllerBase
         }
 
         var options = _options.CurrentValue;
-        var linkAvailable = LinkAvailable(options);
-        var importAvailable = linkAvailable && options.ImportAvailable();
-        var account = linkAvailable ? await _steam.GetAccountAsync(userId, ct) : new SteamAccountView(false, null, null);
-        var message = linkAvailable
-            ? importAvailable ? null : "Steam library import is unavailable because Steam Web API access is not configured."
-            : "Steam integration is not configured.";
+        // Linking retirement must not hide an existing link or disable configured imports.
+        var importAvailable = ProviderAvailable(options) && options.ImportAvailable();
+        var account = await _steam.GetAccountAsync(userId, ct);
 
         return Ok(new SteamStatusResponse(
             options.Enabled,
-            linkAvailable,
+            false,
             importAvailable,
             account.Linked,
             account.SteamId64,
             account.LinkedAt,
-            message));
+            SteamLinkingRetiredException.UnavailableMessage));
     }
 
     [HttpPost("link-requests")]
-    [Authorize]
-    [EnableCors("SteamLink")]
-    [EnableRateLimiting("Steam")]
-    public async Task<IActionResult> CreateLinkRequest(CancellationToken ct)
-    {
-        var userId = User.GetSupabaseUserId();
-        if (userId is null)
-        {
-            return Unauthorized();
-        }
-
-        var options = _options.CurrentValue;
-        Response.Headers.CacheControl = "no-store";
-        if (!LinkAvailable(options))
-        {
-            return Unavailable("Steam integration is not configured.");
-        }
-
-        try
-        {
-            var request = await _steam.CreateLinkRequestAsync(userId, options.LinkStateLifetime(), ct);
-            SteamLinkBrowserBinding.Issue(Response, options, request);
-            Response.Headers.CacheControl = "no-store";
-            return Ok(new SteamLinkRequestResponse(options.StartUrl(request.RawState), request.ExpiresAt));
-        }
-        catch (SteamAccountAlreadyLinkedException ex)
-        {
-            return Problem(title: "Steam account already linked", detail: ex.Message, statusCode: StatusCodes.Status409Conflict);
-        }
-    }
+    [AllowAnonymous] // A constant public tombstone, not an authentication operation.
+    public IActionResult CreateLinkRequest() => LinkingRetired();
 
     [HttpGet("link/start/{rawState}")]
     [AllowAnonymous]
-    public async Task<IActionResult> StartLink(string rawState, CancellationToken ct)
-    {
-        var options = _options.CurrentValue;
-        Response.Headers.CacheControl = "no-store";
-        Response.Headers["Referrer-Policy"] = "no-referrer";
-        if (!LinkAvailable(options) || !SteamLinkBrowserBinding.Matches(Request, options, rawState)
-            || !await _steam.HasPendingLinkRequestAsync(rawState, ct))
-        {
-            return RedirectFailure(options);
-        }
-
-        if (E2eSteamEnabled())
-        {
-            return Redirect(BuildE2eCallbackUrl(options, rawState));
-        }
-
-        return Redirect(BuildSteamOpenIdUrl(options, rawState));
-    }
+    public IActionResult StartLink() => LinkingRetired();
 
     [HttpGet("link/callback")]
     [AllowAnonymous]
-    public async Task<IActionResult> LinkCallback(CancellationToken ct)
-    {
-        var options = _options.CurrentValue;
-        Response.Headers.CacheControl = "no-store";
-        Response.Headers["Referrer-Policy"] = "no-referrer";
-        var rawState = Request.Query["state"].ToString();
-        if (!LinkAvailable(options) || !SteamLinkBrowserBinding.Matches(Request, options, rawState))
-        {
-            return RedirectFailure(options);
-        }
+    public IActionResult LinkCallback() => LinkingRetired();
 
-        var parameters = Request.Query.ToDictionary(kvp => kvp.Key, kvp => (string?)kvp.Value.ToString());
-        try
-        {
-            await _steam.CompleteLinkAsync(
-                rawState,
-                parameters,
-                options.OpenIdProviderUrl,
-                options.CallbackUrl(rawState),
-                options.Realm(),
-                ct);
-            return Redirect(options.FrontendSuccessUrl());
-        }
-        catch (SteamIntegrationException)
-        {
-            return RedirectFailure(options);
-        }
-        // Do not write/delete correlation cookies from callback responses: a
-        // delayed old response could erase a newer flow set in another tab.
-        // The bounded cookie expires; replay protection is authoritative in SQL.
-    }
+    private ObjectResult LinkingRetired() => new(new ProblemDetails
+    {
+        Type = "about:blank",
+        Title = "Steam linking temporarily unavailable",
+        Status = StatusCodes.Status410Gone,
+        Detail = SteamLinkingRetiredException.UnavailableMessage,
+        Extensions = { ["code"] = "STEAM_LINKING_RETIRED" },
+    }) { StatusCode = StatusCodes.Status410Gone };
 
     [HttpDelete("link")]
     [Authorize]
@@ -246,7 +172,7 @@ public sealed class SteamController : ControllerBase
     private IActionResult? ImportUnavailableResult()
     {
         var options = _options.CurrentValue;
-        if (!LinkAvailable(options))
+        if (!ProviderAvailable(options))
         {
             return Unavailable("Steam integration is not configured.");
         }
@@ -262,48 +188,8 @@ public sealed class SteamController : ControllerBase
     private IActionResult Unavailable(string detail) =>
         Problem(title: "Steam integration unavailable", detail: detail, statusCode: StatusCodes.Status503ServiceUnavailable);
 
-    private IActionResult RedirectFailure(SteamOptions options) =>
-        Redirect(LinkAvailable(options) ? options.FrontendFailureUrl() : "/");
-
-    private bool LinkAvailable(SteamOptions options) => options.LinkAvailable()
+    private bool ProviderAvailable(SteamOptions options) => options.LinkAvailable()
         && (!_environment.IsProduction()
             || (new Uri(options.PublicApiBaseUrl!).Scheme == "https"
                 && new Uri(options.FrontendBaseUrl!).Scheme == "https"));
-
-    private static string BuildSteamOpenIdUrl(SteamOptions options, string rawState)
-    {
-        var parameters = new Dictionary<string, string>
-        {
-            ["openid.ns"] = SteamIntegrationRules.OpenIdNamespace,
-            ["openid.mode"] = "checkid_setup",
-            ["openid.return_to"] = options.CallbackUrl(rawState),
-            ["openid.realm"] = options.Realm(),
-            ["openid.identity"] = "http://specs.openid.net/auth/2.0/identifier_select",
-            ["openid.claimed_id"] = "http://specs.openid.net/auth/2.0/identifier_select",
-        };
-        var builder = new UriBuilder(options.OpenIdProviderUrl);
-        builder.Query = string.Join("&", parameters.Select(p => $"{Uri.EscapeDataString(p.Key)}={Uri.EscapeDataString(p.Value)}"));
-        return builder.Uri.ToString();
-    }
-
-    private static string BuildE2eCallbackUrl(SteamOptions options, string rawState)
-    {
-        var claimedId = SteamIntegrationRules.ClaimedIdPrefix + E2eSteamClient.SteamId64;
-        var parameters = new Dictionary<string, string>
-        {
-            ["state"] = rawState,
-            ["openid.ns"] = SteamIntegrationRules.OpenIdNamespace,
-            ["openid.mode"] = "id_res",
-            ["openid.op_endpoint"] = options.OpenIdProviderUrl,
-            ["openid.claimed_id"] = claimedId,
-            ["openid.identity"] = claimedId,
-            ["openid.return_to"] = options.CallbackUrl(rawState),
-            ["openid.realm"] = options.Realm(),
-        };
-        return options.PublicApiBase() + "/steam/link/callback?" + string.Join("&", parameters.Select(p => $"{Uri.EscapeDataString(p.Key)}={Uri.EscapeDataString(p.Value)}"));
-    }
-
-    private bool E2eSteamEnabled() =>
-        E2eTestMode.IsEnabled(_configuration, _environment)
-        && _configuration.GetValue<bool>("E2E:SteamIntegration:Enabled");
 }

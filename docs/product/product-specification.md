@@ -3,6 +3,16 @@ Product Specification v0.7 --- Game Library
 Status: Approved
 Version: 0.7
 
+Feature 011 security milestone, 2026-11-21 -- Authorized local implementation:
+
+Temporarily reject legacy Steam account linking unconditionally in the new binary.
+Show linking unavailable and remove initiation actions; preserve existing links,
+configured explicit preview/import, unlink, manual catalog and Supabase authentication.
+This narrow exception supersedes historical linking-availability requirements below.
+It does not approve v2 activation or claim old replicas/in-flight requests are revoked.
+See specs/011-steam-integration/linking-retirement.md. Deployment requires separate
+coordinated-retirement approval; production remains blocked.
+
 Feature 013 amendment, 2026-10-28 -- Approved design:
 
 One optional private uploaded cover per VideoGame or BoardGame is approved, with
