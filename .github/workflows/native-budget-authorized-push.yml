@@ -1,0 +1,60 @@
+name: Authorized native budget matrix 9a321e6
+
+# One newly created diagnostic ref only. No protected-branch update or manual discovery.
+on:
+  push:
+    branches: [diagnostics/native-budget-9a321e6-2026-11-23-once]
+    paths: [.github/workflows/native-budget-authorized-push.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-budget-authorized-9a321e6-once
+  cancel-in-progress: false
+
+jobs:
+  diagnostic-block:
+    if: github.event.created == true && github.event.deleted == false
+    name: authorized-native-budget-block-${{ matrix.block }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        block: [1, 2, 3]
+    env:
+      EXPECTED_REVISION: 9a321e6265b39976d4e37d6dacec88a7910e70c9
+      LAUNCH_SHA: ${{ github.sha }}
+      BLOCK: ${{ matrix.block }}
+      BUILDX_GIT_INFO: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 9a321e6265b39976d4e37d6dacec88a7910e70c9
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify single authorized launch and exact frozen implementation
+        run: |
+          [[ "$GITHUB_RUN_ATTEMPT" == 1 ]]
+          [[ "$GITHUB_EVENT_NAME" == push ]]
+          [[ "$GITHUB_REF" == refs/heads/diagnostics/native-budget-9a321e6-2026-11-23-once ]]
+          [[ "$LAUNCH_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$(git rev-parse HEAD)" == "$EXPECTED_REVISION" ]]
+          [[ "$(git rev-parse "$LAUNCH_SHA^")" == "$EXPECTED_REVISION" ]]
+          [[ "$(git diff --name-only "$EXPECTED_REVISION" "$LAUNCH_SHA")" == .github/workflows/native-budget-authorized-push.yml ]]
+          [[ -z "$(git status --porcelain)" ]]
+          printf 'NATIVE_BUDGET_AUTH implementation=%s launcher=%s block=%s\n' "$EXPECTED_REVISION" "$LAUNCH_SHA" "$BLOCK"
+      - name: Frozen portable protocol and isolation decisions
+        run: python3 -B -W error::ResourceWarning -m unittest discover -s tools/ci -p 'test_*.py' -v
+      - name: Execute exactly six frozen attempts without retries or replacement
+        run: python3 -B tools/ci/native-budget-ab.py --block "$BLOCK" --output "$RUNNER_TEMP/native-budget-evidence" --expected-revision "$EXPECTED_REVISION" --approval EXECUTE_FROZEN_18_WORKLOAD_MATRIX
+      - name: Preserve sanitized complete and failed attempts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: authorized-native-budget-9a321e6-block-${{ matrix.block }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/native-budget-evidence/
+          if-no-files-found: error
+          retention-days: 14
