@@ -200,7 +200,7 @@ test('classifies games, filters the Library, and preserves family picker history
 test('preserves an existing Steam link, previews library, and imports selected games', async ({ page }) => {
   await page.goto('/manage/steam');
   await expect(page.getByRole('heading', { name: 'Steam Library' })).toBeVisible();
-  await expect(page.getByText('Linked Steam Account')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Linked Steam Account', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Link Steam account', exact: true })).toHaveCount(0);
   await expect(page.getByText('Steam linking is temporarily unavailable.', { exact: false })).toBeVisible();
   await expect(page.getByText('SteamID64: 76561198000000000')).toBeVisible();
@@ -248,7 +248,7 @@ test('rejects transferred legacy URLs and cannot relink after an explicit unlink
   } finally {
     await other.close();
   }
-  await expect(page.getByText('Linked Steam Account')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Linked Steam Account', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Unlink', exact: true }).click();
   await expect(page.getByText('No Steam Account Linked')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Link Steam account', exact: true })).toHaveCount(0);

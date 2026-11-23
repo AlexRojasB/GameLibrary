@@ -42,9 +42,16 @@ test_gid=$(getent group nogroup | cut -d: -f3)
 [[ "$test_gid" =~ ^[1-9][0-9]*$ ]] || exit 1
 
 container=''
+native_container=''
 cleanup() {
   status=$?
   trap - EXIT
+  if [[ -n "$native_container" ]]; then
+    # Inspect only our disposable harness, never configuration/env or credentials.
+    # Retain the original result and resource/security limits, including on SIGKILL.
+    docker inspect --format 'Native harness: exit={{.State.ExitCode}} oomKilled={{.State.OOMKilled}} memory={{.HostConfig.Memory}} memorySwap={{.HostConfig.MemorySwap}} nanoCpus={{.HostConfig.NanoCpus}} pidsLimit={{.HostConfig.PidsLimit}}' "$native_container" || true
+    docker rm --force "$native_container" >/dev/null 2>&1 || true
+  fi
   if [[ -n "$container" ]]; then docker stop "$container" >/dev/null 2>&1 || true; fi
   exit "$status"
 }
@@ -75,11 +82,15 @@ else
   [[ $(docker inspect --format '{{.HostConfig.NetworkMode}}' "$container") == none ]] || exit 1
   if [[ "$mode" == native-api ]]; then
     # Existing G06 harness, unchanged, using only the isolated PostgreSQL loopback.
-    docker run --rm --platform linux/amd64 --network "container:$container" \
+    # Keep the stopped container until cleanup can report an OOM/exit diagnosis.
+    native_container=$(docker create --platform linux/amd64 --network "container:$container" \
       --memory 512m --memory-swap 512m --cpus 2 --pids-limit 256 --read-only \
       --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,size=32m \
       --env 'ConnectionStrings__Test=Host=127.0.0.1;Port=5432;Database=game_library_test;Username=postgres;Password=ci-only-disposable;GSS Encryption Mode=Disable' \
-      ci-cover-api:local --local-bounded-verification
+      ci-cover-api:local --local-bounded-verification)
+    docker start --attach "$native_container"
+    native_status=$(docker wait "$native_container")
+    exit "$native_status"
   else
     pid=$(docker inspect --format '{{.State.Pid}}' "$container")
     [[ "$pid" =~ ^[1-9][0-9]*$ ]] || exit 1
