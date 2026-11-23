@@ -247,6 +247,17 @@ the selected processor fails its gates; stop for design review.
 
 ### Production Runtime And Native Strategy
 
+Approved test-infrastructure exception, 2026-11-23: the combined whole-API verifier
+may use 768 MiB memory and memory+swap (no additional swap), independently enforced
+against a 640 MiB cgroup peak threshold through verifier teardown. API-only initial
+and production memory verification remains 512 MiB as specified below. G01 and both
+native negative controls remain at 512 MiB. Diagnostic 512/768/1024 profiles cannot
+replace required CI acceptance. Missing/invalid metrics, wrong effective limits,
+memory/swap limit or OOM events, nonzero exit and incomplete workload fail closed.
+All 94 image cases, 60 operations, two negative controls and 18 API cases remain.
+This is approval to implement locally, not evidence of sufficiency or a passed G06.
+See [the resource decision](native-runtime-resource-decision.md).
+
 | Setting | Selected target |
 | --- | --- |
 | Runtime image family | `mcr.microsoft.com/dotnet/aspnet:10.0-noble`, conventional/non-chiseled Ubuntu 24.04 |

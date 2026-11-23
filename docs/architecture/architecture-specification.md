@@ -3,6 +3,20 @@ Architecture Specification v0.4 --- Game Library
 Status: Approved
 Version: 0.4
 
+Native verification amendment, 2026-11-23 -- Authorized isolated implementation:
+
+The test-only combined verifier (API + HTTP driver + image fixtures + simulated
+Storage in one process/cgroup) may use a 768 MiB memory and memory+swap cap, with
+no additional swap and a mandatory 640 MiB cgroup peak regression threshold.
+Effective cgroup limits, complete coverage, teardown measurements and exit/OOM
+state must be verified fail-closed. G01 and both asset-failure controls retain
+512 MiB. Diagnostic 512/768/1024 profiles are comparisons, not alternate acceptance
+profiles; no escalation or profile override is allowed in the required CI path.
+The API-only initial/production verification budget remains 512 MiB. This exception
+does not certify API-only compliance, establish sufficiency of 768 MiB, close G06,
+change production configuration or authorize hosted execution/deployment.
+See specs/013-camera-cover-upload/native-runtime-resource-decision.md.
+
 Feature 013 amendment, 2026-10-28 -- Approved design:
 
 Sections 21/30/31 approve the narrow private-cover upload/normalization exception:
