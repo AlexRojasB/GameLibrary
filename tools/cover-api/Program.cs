@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -43,6 +44,7 @@ internal static class Gate
         var elapsed = Stopwatch.StartNew();
         var cpu = Process.GetCurrentProcess().TotalProcessorTime;
         var cases = 0;
+        Metrics("p00.setup.begin");
         await using var database = new DatabaseLifetime();
         await database.Fixture.InitializeAsync();
         await using var provider = new StorageFixture();
@@ -57,6 +59,7 @@ internal static class Gate
         using (var options = await client.GetAsync("/cover-uploads/options", token))
             Assert.True((await options.Content.ReadFromJsonAsync<JsonElement>(token)).GetProperty("enabled").GetBoolean());
 
+        Metrics("fixtures.seed.begin");
         var seed = await Upload(client, CoverImageProcessorTests.ResourceFixture());
         var attached = await Create(client, seed);
         // A valid JPEG with COM segments reaches the exact allowed read length. This is
@@ -67,13 +70,16 @@ internal static class Gate
             provider.Objects[row.ObjectKey] = MaximumJpeg(provider.Objects[row.ObjectKey]);
             await db.CoverUploads.Where(u => u.Id == seed).ExecuteUpdateAsync(s => s.SetProperty(u => u.ByteSize, 2097152), token);
         }
+        Metrics("fixtures.generate.begin");
         var baseline = CoverJpegFixtures.Create(width: 1632, height: 2448);
         var progressive = CoverJpegFixtures.Create(progressive: true, width: 1632, height: 2448);
         var png = CoverImageProcessorTests.ResourceFixture();
         Console.WriteLine($"FIXTURES baseline={baseline.Length} progressive={progressive.Length} png={png.Length} JPEGpixels={1632 * 2448} proxyBytes=2097152 uploadBytes=5242880");
+        Metrics("fixtures.generate.end");
 
         foreach (var fixture in new[] { baseline, progressive, png })
         {
+            Metrics($"p{cases + 1:00}.overlap.begin");
             provider.ReadsBlocked = StorageFixture.Block();
             var reads = Enumerable.Range(0, 8).Select(_ => client.GetAsync($"/cover-uploads/{seed}/content", token)).ToArray();
             await Wait(() => Task.FromResult(provider.ActiveReads == 8));
@@ -111,6 +117,7 @@ internal static class Gate
             Check("whole API overlap, two admitted 5MiB uploads plus eight maximum reads; excess rejected");
         }
 
+        Metrics("p05.cancel-read.begin");
         provider.ReadsBlocked = StorageFixture.Block();
         using (var abort = new CancellationTokenSource())
         {
@@ -123,6 +130,7 @@ internal static class Gate
         provider.ReadsBlocked = null;
         Check("client disconnect cancels outbound read and releases proxy admission");
 
+        Metrics("p06.cancel-write.begin");
         provider.WritesBlocked = StorageFixture.Block();
         using (var uploading = Client(factory))
         using (var abort = new CancellationTokenSource())
@@ -144,6 +152,8 @@ internal static class Gate
 
         foreach (var write in new[] { false, true })
         {
+            // Outside the existing timing window; never extend a deadline to compensate.
+            Metrics(write ? "p08.write-timeout.begin" : "p07.read-timeout.begin");
             using var timingClient = write ? Client(factory) : Client(factory, client.DefaultRequestHeaders.Authorization);
             var watch = Stopwatch.StartNew();
             HttpResponseMessage response;
@@ -164,22 +174,30 @@ internal static class Gate
             Assert.InRange(watch.Elapsed.TotalSeconds, 13, 25);
             await Wait(() => Task.FromResult(provider.ActiveReads == 0 && provider.ActiveWrites == 0));
             Console.WriteLine($"TIMEOUT operation={(write ? "write" : "read")} elapsedMs={watch.ElapsedMilliseconds}");
+            Metrics(write ? "p08.pass.before" : "p07.pass.before");
             Check("production adapter real-socket 15-second provider timeout and safe 503");
         }
 
+        Metrics("p09.failed-read.begin");
         provider.FailReads = true;
         using (var unavailable = await client.GetAsync($"/cover-uploads/{seed}/content", token))
         { Assert.Equal(HttpStatusCode.ServiceUnavailable, unavailable.StatusCode); Privacy(unavailable); }
+        Metrics("p09.failed-read.end");
+        Metrics("p09.recovered-read.begin");
         provider.FailReads = false;
         using (var recovered = await client.GetAsync($"/cover-uploads/{seed}/content", token))
             Assert.Equal(HttpStatusCode.OK, recovered.StatusCode);
+        Metrics("p09.recovered-read.end");
+        Metrics("p09.public-bucket.begin");
         provider.Public = true;
         using (var publicBucket = await client.GetAsync($"/cover-uploads/{seed}/content", token))
             Assert.Equal(HttpStatusCode.ServiceUnavailable, publicBucket.StatusCode);
+        Metrics("p09.public-bucket.end");
         provider.Public = false;
         Assert.Equal(0, provider.RejectedCredentials);
         Check("Storage outage/misconfigured public bucket fails closed; recovery preserves active cover");
 
+        Metrics("p10.rate-windows.begin");
         // Fixed work: four batches of five tiny uploads/cancels. Wait for the
         // real minute policy; never alter its clock/configuration to pass a gate.
         byte[] tiny;
@@ -219,13 +237,16 @@ internal static class Gate
         }
         Check("real five-per-minute AND twenty-per-hour upload windows reject excess before provider dispatch");
 
+        Metrics("p11.slow-body.begin");
         await SlowBody(pulses: false);
         Check("real-time Kestrel minimum body data rate rejects stalled chunked receive");
+        Metrics("p12.receive-deadline.begin");
         await SlowBody(pulses: true);
         Check("real-time 60-second receive deadline rejects a slow body above minimum rate");
 
         // Make only one test-owned retired row due for startup retry/purge. All earlier
         // writes/retirements came through HTTP; this is clock/fixture setup, never live DDL.
+        Metrics("p13.restart.begin");
         Guid due;
         string dueKey;
         await using (var db = database.Fixture.CreateDb())
@@ -251,6 +272,7 @@ internal static class Gate
             Assert.Equal(HttpStatusCode.OK, active.StatusCode);
         }
         Check("API restart resumes due cleanup; failed deletion remains durably scheduled");
+        Metrics("p14.disabled-restart.begin");
         provider.FailDeletes = false;
         await using (var db = database.Fixture.CreateDb())
             await db.CoverUploads.Where(u => u.Id == due).ExecuteUpdateAsync(s => s.SetProperty(u => u.CleanupAfter, DateTimeOffset.UtcNow.AddMinutes(-1)), token);
@@ -270,6 +292,7 @@ internal static class Gate
         }
         Check("disabled-mode restart still retries/purges retired work and reads saved covers");
 
+        Metrics("p15.shutdown.begin");
         provider.ReadsBlocked = StorageFixture.Block();
         using (var shutdownClient = Client(factory, client.DefaultRequestHeaders.Authorization))
         {
@@ -289,6 +312,7 @@ internal static class Gate
         provider.ReadsBlocked = null;
         Check("bounded safe shutdown with a pending provider request preserves attachment");
 
+        Metrics("p16.invalid-configuration.begin");
         await using (var misconfigured = Api(validConfiguration: false))
         using (var unavailable = Client(misconfigured, client.DefaultRequestHeaders.Authorization))
         {
@@ -302,6 +326,7 @@ internal static class Gate
         }
         Check("invalid trusted Storage configuration fails closed without blocking application startup/metadata");
 
+        Metrics("p17.production-guard.begin");
         await using (var unsafeFake = new CoverHttpTestFactory(database.Fixture.ConnectionString, null, TimeProvider.System)
             .WithWebHostBuilder(builder => builder.UseEnvironment("Production").UseSetting("E2E:CoverUploads:Enabled", "true")))
         {
@@ -312,6 +337,7 @@ internal static class Gate
 
         // Reuse the existing real-host timer test: only time is accelerated, never the
         // PeriodicTimer/BackgroundService/Core/DB implementation. Isolated own database.
+        Metrics("p18.cleanup-timer.begin");
         await using (var timerDb = new DatabaseLifetime())
         {
             await timerDb.Fixture.InitializeAsync();
@@ -427,7 +453,12 @@ internal static class Gate
             }
         }
 
-        void Check(string name) { cases++; Console.WriteLine($"PASS {cases}: {name}"); }
+        void Check(string name)
+        {
+            cases++;
+            Console.WriteLine($"PASS {cases}: {name}");
+            Metrics($"p{cases:00}.pass.after");
+        }
 
         static MultipartFormDataContent Body(byte[] bytes)
         {
@@ -473,9 +504,7 @@ internal static class Gate
 
         static void Metrics(string phase)
         {
-            Console.WriteLine($"METRICS phase={phase} workingBytes={Process.GetCurrentProcess().WorkingSet64} processPeakBytes={Process.GetCurrentProcess().PeakWorkingSet64}");
-            foreach (var name in new[] { "memory.peak", "memory.current", "memory.max", "memory.events", "cpu.max", "cpu.stat" })
-                Console.WriteLine($"CGROUP {phase} {name}={File.ReadAllText("/sys/fs/cgroup/" + name).Trim().Replace('\n', ';')}");
+            NativeMemoryDiagnostics.Write(phase);
         }
     }
 }
@@ -484,4 +513,76 @@ internal sealed class DatabaseLifetime : IAsyncDisposable
 {
     internal readonly CoverHttpDatabaseFixture Fixture = new();
     public async ValueTask DisposeAsync() => await Fixture.DisposeAsync();
+}
+
+// Diagnostic values only: no request/configuration objects, payloads or exception messages.
+// Synchronous, phase-boundary snapshots do not retain fixtures, force GC or run timers.
+internal static class NativeMemoryDiagnostics
+{
+    private static long samples, elapsedTicks, allocatedBytes;
+
+    internal static void Write(string phase)
+    {
+        var started = Stopwatch.GetTimestamp();
+        var allocated = GC.GetAllocatedBytesForCurrentThread();
+        var id = ++samples;
+        var gc = GC.GetGCMemoryInfo();
+        using var process = Process.GetCurrentProcess();
+        // All production callers supply fixed test labels, never input-derived text.
+        if (phase.Length > 64 || phase.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not '.' and not '-'))
+            phase = "invalid-phase";
+        var line = new StringBuilder(1024);
+        line.Append(CultureInfo.InvariantCulture, $"NATIVE_MEMORY utc={DateTimeOffset.UtcNow:O} sample={id} phase={phase} ");
+        line.Append(CultureInfo.InvariantCulture, $"managedBytes={GC.GetTotalMemory(false)} allocatedBytes={GC.GetTotalAllocatedBytes()} ");
+        line.Append(CultureInfo.InvariantCulture, $"gcHeapBytes={gc.HeapSizeBytes} gcCommittedBytes={gc.TotalCommittedBytes} gcFragmentedBytes={gc.FragmentedBytes} ");
+        line.Append(CultureInfo.InvariantCulture, $"gcAvailableBytes={gc.TotalAvailableMemoryBytes} gcMemoryLoadBytes={gc.MemoryLoadBytes} serverGC={System.Runtime.GCSettings.IsServerGC} ");
+        line.Append(CultureInfo.InvariantCulture, $"gen0={GC.CollectionCount(0)} gen1={GC.CollectionCount(1)} gen2={GC.CollectionCount(2)} ");
+        line.Append(CultureInfo.InvariantCulture, $"workingBytes={ReadProcess(() => process.WorkingSet64)} privateBytes={ReadProcess(() => process.PrivateMemorySize64)} ");
+        line.Append(CultureInfo.InvariantCulture, $"processPeakBytes={ReadProcess(() => process.PeakWorkingSet64)} ");
+        line.Append(CultureInfo.InvariantCulture, $"diagnosticPriorThreadAllocatedBytes={allocatedBytes} diagnosticPriorElapsedTicks={elapsedTicks} stopwatchFrequency={Stopwatch.Frequency} ");
+        line.Append(CultureInfo.InvariantCulture, $"cgroupCurrent={ReadScalar("memory.current")} cgroupPeak={ReadScalar("memory.peak")} cgroupMax={ReadScalar("memory.max")} ");
+        line.Append(CultureInfo.InvariantCulture, $"cgroupEvents={ReadCounters("memory.events", ["low", "high", "max", "oom", "oom_kill", "oom_group_kill"])}");
+        Console.WriteLine(line.ToString());
+        elapsedTicks += Stopwatch.GetTimestamp() - started;
+        allocatedBytes += GC.GetAllocatedBytesForCurrentThread() - allocated;
+        if (phase == "final")
+            Console.WriteLine(FormattableString.Invariant(
+                $"NATIVE_DIAGNOSTIC_COST samples={samples} threadAllocatedBytes={allocatedBytes} elapsedTicks={elapsedTicks} stopwatchFrequency={Stopwatch.Frequency}"));
+    }
+
+    private static string ReadProcess(Func<long> read)
+    {
+        try
+        {
+            var value = read();
+            return value > 0 ? value.ToString(CultureInfo.InvariantCulture) : "unavailable";
+        }
+        catch (Exception ex) when (Unavailable(ex)) { return "unavailable"; }
+    }
+
+    private static string ReadScalar(string name)
+    {
+        try
+        {
+            var text = File.ReadAllText("/sys/fs/cgroup/" + name).Trim();
+            return ulong.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var value)
+                ? value.ToString(CultureInfo.InvariantCulture) : "unavailable";
+        }
+        catch (Exception ex) when (Unavailable(ex)) { return "unavailable"; }
+    }
+
+    private static string ReadCounters(string name, string[] allowed)
+    {
+        try
+        {
+            return string.Join(',', File.ReadLines("/sys/fs/cgroup/" + name).Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                .Where(parts => parts.Length == 2 && allowed.Contains(parts[0])
+                    && ulong.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out _))
+                .Select(parts => parts[0] + ":" + parts[1]));
+        }
+        catch (Exception ex) when (Unavailable(ex)) { return "unavailable"; }
+    }
+
+    private static bool Unavailable(Exception ex) => ex is IOException or UnauthorizedAccessException
+        or NotSupportedException or InvalidOperationException or System.ComponentModel.Win32Exception;
 }

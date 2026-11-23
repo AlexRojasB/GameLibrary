@@ -43,14 +43,24 @@ test_gid=$(getent group nogroup | cut -d: -f3)
 
 container=''
 native_container=''
+native_sampler=''
+native_diagnostics=''
 cleanup() {
   status=$?
   trap - EXIT
+  if [[ -n "$native_sampler" ]]; then
+    touch "$native_diagnostics/stop"
+    wait "$native_sampler" || true
+  fi
   if [[ -n "$native_container" ]]; then
     # Inspect only our disposable harness, never configuration/env or credentials.
     # Retain the original result and resource/security limits, including on SIGKILL.
-    docker inspect --format 'Native harness: exit={{.State.ExitCode}} oomKilled={{.State.OOMKilled}} memory={{.HostConfig.Memory}} memorySwap={{.HostConfig.MemorySwap}} nanoCpus={{.HostConfig.NanoCpus}} pidsLimit={{.HostConfig.PidsLimit}}' "$native_container" || true
+    docker inspect --format 'Native harness: startedAt={{.State.StartedAt}} finishedAt={{.State.FinishedAt}} image={{.Image}} exit={{.State.ExitCode}} oomKilled={{.State.OOMKilled}} memory={{.HostConfig.Memory}} memorySwap={{.HostConfig.MemorySwap}} nanoCpus={{.HostConfig.NanoCpus}} pidsLimit={{.HostConfig.PidsLimit}}' "$native_container" || true
     docker rm --force "$native_container" >/dev/null 2>&1 || true
+  fi
+  if [[ -n "$native_diagnostics" ]]; then
+    rm -f -- "$native_diagnostics/stop"
+    rmdir -- "$native_diagnostics" || true
   fi
   if [[ -n "$container" ]]; then docker stop "$container" >/dev/null 2>&1 || true; fi
   exit "$status"
@@ -88,7 +98,21 @@ else
       --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,size=32m \
       --env 'ConnectionStrings__Test=Host=127.0.0.1;Port=5432;Database=game_library_test;Username=postgres;Password=ci-only-disposable;GSS Encryption Mode=Disable' \
       ci-cover-api:local --local-bounded-verification)
-    docker start --attach "$native_container"
+    printf 'NATIVE_TRIAL utc=%s checkout=%s kernel=%s arch=%s\n' \
+      "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(git -C "$(dirname "$script")/../.." rev-parse HEAD)" "$(uname -r)" "$(uname -m)"
+    native_diagnostics=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/native-memory.XXXXXX")
+    docker start "$native_container" >/dev/null
+    pid=$(docker inspect --format '{{.State.Pid}}' "$native_container")
+    if [[ "$pid" =~ ^[1-9][0-9]*$ ]]; then
+      # Host-side observer: no exec/profiler/extra process charged to the 512 MiB gate.
+      # It continues through target OOM, samples numeric allowlists only, then exits.
+      sudo -n python3 -u "$(dirname "$script")/native-memory-sampler.py" \
+        --pid "$pid" --stop-file "$native_diagnostics/stop" &
+      native_sampler=$!
+    else
+      printf '%s\n' 'NATIVE_EXTERNAL {"state":"unavailable","reason":"target-exited-before-sampling"}'
+    fi
+    docker logs --follow "$native_container"
     native_status=$(docker wait "$native_container")
     exit "$native_status"
   else
