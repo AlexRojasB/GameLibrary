@@ -103,7 +103,9 @@ else
     native_diagnostics=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/native-memory.XXXXXX")
     docker start "$native_container" >/dev/null
     pid=$(docker inspect --format '{{.State.Pid}}' "$native_container")
-    if [[ "$pid" =~ ^[1-9][0-9]*$ ]]; then
+    if [[ "${NATIVE_AB_SAMPLE:-1}" == 0 ]]; then
+      printf '%s\n' 'NATIVE_EXTERNAL {"state":"unavailable","reason":"observer-disabled-control"}'
+    elif [[ "$pid" =~ ^[1-9][0-9]*$ ]]; then
       # Host-side observer: no exec/profiler/extra process charged to the 512 MiB gate.
       # It continues through target OOM, samples numeric allowlists only, then exits.
       sudo -n python3 -u "$(dirname "$script")/native-memory-sampler.py" \
