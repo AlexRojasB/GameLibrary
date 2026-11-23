@@ -86,7 +86,7 @@ else
     attach_status=0
     docker start --attach "$native_container" || attach_status=$?
     native_status=$(docker wait "$native_container")
-    [[ "$native_status" =~ ^[0-9]+$ ]] || exit 1
+    [[ "$native_status" =~ ^(0|[1-9][0-9]{0,2})$ ]] && (( native_status <= 255 )) || exit 1
     # Inspect only allowlisted fields, never container Env/configuration/secrets.
     python3 "$(dirname "$script")/native-runtime-evidence.py" --inspect-container "$native_container" || {
       if (( native_status != 0 )); then exit "$native_status"; fi

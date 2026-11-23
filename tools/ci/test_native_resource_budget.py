@@ -137,7 +137,7 @@ class EvidenceTests(unittest.TestCase):
 class RunnerTests(unittest.TestCase):
     def test_native_resources_exit_inspection_and_scoped_cleanup(self):
         script = Path(__file__).with_name("run-isolated.sh").resolve()
-        for status in (0, 137):
+        for status in (0, 137, 256):
             with self.subTest(status=status), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 for name, text in {
@@ -161,7 +161,7 @@ elif a == "inspect":
                 env = {**os.environ, "PATH": str(root) + os.pathsep + os.environ["PATH"],
                        "NATIVE_TEST_CALLS": str(root / "calls"), "NATIVE_TEST_EXIT": str(status)}
                 result = subprocess.run(["bash", str(script), "native-api"], env=env, text=True, capture_output=True, timeout=15)
-                self.assertEqual(status, result.returncode, result.stderr)
+                self.assertEqual(1 if status == 256 else status, result.returncode, result.stderr)
                 calls = [json.loads(s) for s in (root / "calls").read_text().splitlines()]
                 create = next(c for c in calls if c[0] == "create")
                 for flag, value in (("--memory", "768m"), ("--memory-swap", "768m"), ("--cpus", "2"),
