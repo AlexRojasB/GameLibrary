@@ -120,6 +120,7 @@ foreach (var test in cases)
     Console.WriteLine("BODY_PASS " + test.Name);
 }
 Console.WriteLine($"BODY_TESTS passed={cases.Length} failed=0");
+await ResourceBudgetTests.Run();
 
 static async Task WrongLength(int actual)
 {

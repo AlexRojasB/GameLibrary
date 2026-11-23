@@ -42,9 +42,11 @@ test_gid=$(getent group nogroup | cut -d: -f3)
 [[ "$test_gid" =~ ^[1-9][0-9]*$ ]] || exit 1
 
 container=''
+native_container=''
 cleanup() {
   status=$?
   trap - EXIT
+  if [[ -n "$native_container" ]]; then docker rm --force "$native_container" >/dev/null 2>&1 || true; fi
   if [[ -n "$container" ]]; then docker stop "$container" >/dev/null 2>&1 || true; fi
   exit "$status"
 }
@@ -74,12 +76,24 @@ else
   [[ "$ready" == true ]] || { echo 'Disposable PostgreSQL did not become ready.' >&2; exit 1; }
   [[ $(docker inspect --format '{{.HostConfig.NetworkMode}}' "$container") == none ]] || exit 1
   if [[ "$mode" == native-api ]]; then
-    # Existing G06 harness, unchanged, using only the isolated PostgreSQL loopback.
-    docker run --rm --platform linux/amd64 --network "container:$container" \
-      --memory 512m --memory-swap 512m --cpus 2 --pids-limit 256 --read-only \
+    # Fixed combined-verifier profile; no resource arguments or inherited overrides.
+    # Keep our container until final metrics and Docker exit/OOM checks are collected.
+    native_container=$(docker create --platform linux/amd64 --network "container:$container" \
+      --memory 768m --memory-swap 768m --cpus 2 --pids-limit 256 --read-only \
       --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,size=32m \
       --env 'ConnectionStrings__Test=Host=127.0.0.1;Port=5432;Database=game_library_test;Username=postgres;Password=ci-only-disposable;GSS Encryption Mode=Disable' \
-      ci-cover-api:local --local-bounded-verification
+      ci-cover-api:local --local-bounded-verification)
+    attach_status=0
+    docker start --attach "$native_container" || attach_status=$?
+    native_status=$(docker wait "$native_container")
+    [[ "$native_status" =~ ^[0-9]+$ ]] || exit 1
+    # Inspect only allowlisted fields, never container Env/configuration/secrets.
+    python3 "$(dirname "$script")/native-runtime-evidence.py" --inspect-container "$native_container" || {
+      if (( native_status != 0 )); then exit "$native_status"; fi
+      exit 1
+    }
+    if (( attach_status != 0 && native_status == 0 )); then exit 1; fi
+    exit "$native_status"
   else
     pid=$(docker inspect --format '{{.State.Pid}}' "$container")
     [[ "$pid" =~ ^[1-9][0-9]*$ ]] || exit 1

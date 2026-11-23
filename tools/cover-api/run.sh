@@ -15,7 +15,27 @@ export ConnectionStrings__Test="Host=$ip;Port=5432;Database=game_library_test;Us
 unset password
 BUILDX_GIT_INFO=false docker buildx build --platform linux/amd64 \
   --file "$root/tools/cover-api/Dockerfile" --tag game-library-cover-api:local --load "$root"
-docker run --rm --platform linux/amd64 --memory 512m --memory-swap 512m --cpus 2 \
+native_container=''
+cleanup() {
+  status=$?
+  trap - EXIT
+  if [[ -n "$native_container" ]]; then docker rm --force "$native_container" >/dev/null 2>&1 || true; fi
+  exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+native_container=$(docker create --platform linux/amd64 --memory 768m --memory-swap 768m --cpus 2 \
   --pids-limit 256 --read-only --cap-drop ALL --security-opt no-new-privileges \
   --tmpfs /tmp:rw,noexec,nosuid,size=32m --network bridge \
-  -e ConnectionStrings__Test game-library-cover-api:local --local-bounded-verification
+  -e ConnectionStrings__Test game-library-cover-api:local --local-bounded-verification)
+attach_status=0
+docker start --attach "$native_container" || attach_status=$?
+native_status=$(docker wait "$native_container")
+[[ "$native_status" =~ ^[0-9]+$ ]] || exit 1
+python3 "$root/tools/ci/native-runtime-evidence.py" --inspect-container "$native_container" || {
+  if (( native_status != 0 )); then exit "$native_status"; fi
+  exit 1
+}
+if (( attach_status != 0 && native_status == 0 )); then exit 1; fi
+exit "$native_status"
