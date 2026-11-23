@@ -36,6 +36,12 @@ internal static class ResourceBudgetTests
         };
         NativeResourceBudget.Snapshot Read() => NativeResourceBudget.Read(p => files[Path.GetFileName(p)]);
         Test("parse-complete", () => Assert.Equal(good, Read()));
+        files["memory.events"] += "sock_throttled 1\n";
+        Test("unexpected-memory-event", () => Assert.Throws<InvalidDataException>(() => Read()));
+        files["memory.events"] = files["memory.events"].Replace("sock_throttled 1\n", "");
+        files["memory.swap.events"] += "future_limit 1\n";
+        Test("unexpected-swap-event", () => Assert.Throws<InvalidDataException>(() => Read()));
+        files["memory.swap.events"] = files["memory.swap.events"].Replace("future_limit 1\n", "");
         foreach (var key in files.Keys.ToArray())
         {
             var original = files[key];

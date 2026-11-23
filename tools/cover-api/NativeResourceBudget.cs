@@ -41,6 +41,8 @@ internal static class NativeResourceBudget
         }
         var events = Counters(Text("memory.events"));
         var swap = Counters(Text("memory.swap.events"));
+        if (events.Any(p => p.Value != 0 && p.Key is not ("max" or "high" or "oom" or "oom_kill" or "oom_group_kill"))
+            || swap.Any(p => p.Value != 0 && p.Key is not ("high" or "max" or "fail"))) throw Invalid();
         if (Text("cpu.max") != "200000 100000" || Text("pids.max") != "256") throw Invalid();
         return new(Number(Text("memory.max")), Number(Text("memory.swap.max")),
             Number(Text("memory.swap.current")), Number(Text("memory.peak")),

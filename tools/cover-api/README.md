@@ -32,6 +32,7 @@ and pids.max are checked, not inferred from Docker flags. The mandatory charged
 memory.peak threshold is **640 MiB**, inclusive; exceeding it fails even without OOM.
 Memory high/max/OOM and swap limit/failure events must be zero; absent, malformed
 or incomplete metrics fail closed. There is no CLI/environment budget override.
+Nonzero unrecognized memory/swap event counters also fail pending review.
 
 The process requires explicit `--local-bounded-verification` and asserts cgroup
 limits. Work is finite: three overlapping large-image batches, fixed fault/cancel/

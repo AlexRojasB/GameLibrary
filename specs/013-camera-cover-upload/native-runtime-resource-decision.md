@@ -48,9 +48,11 @@ Required acceptance has a fixed 768/640 profile, no environment/CLI resource ove
 Check startup and final effective cgroup-v2 memory/swap/CPU/PID limits; require a
 positive numeric peak <=640 MiB. Require max/high/oom/oom_kill/oom_group_kill and
 swap high/max/fail events zero. Missing, duplicate, malformed or incomplete required
-metrics fail. An outer verification boundary reads the kernel high-water mark only
-after awaited workload disposal; that includes short peaks during teardown, not
-just one-second samples. Any assertion/cleanup failure prevents successful final
+metrics fail. Nonzero unknown memory/swap event counters also fail rather than
+silently ignoring a new kernel limit event. An outer verification boundary reads
+the kernel high-water mark only after awaited workload disposal, including short
+spikes during teardown rather than just one-second samples. Any assertion/cleanup
+failure prevents successful final
 completion. Docker wait/inspect must also report exit 0/OOM false. Runtime exit
 after the last in-process reading is not claimed as a certified full-lifetime peak;
 the hard cap and Docker OOM check still apply to that tail.

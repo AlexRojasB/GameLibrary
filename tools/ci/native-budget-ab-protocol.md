@@ -104,3 +104,9 @@ estimated ~40 minutes including cached builds; diagnostic timeout is 90 minutes,
 with three blocks and fail-fast disabled. No subsequent trial set is automatic.
 Workflow reruns (run_attempt >1) are rejected; any new dispatch needs a new explicit
 authorization, and must retain the earlier run rather than replace its failures.
+
+GitHub discovers a new workflow_dispatch definition from the repository's default
+branch. This definition is local/unpublished: a branch push alone does not guarantee
+manual dispatch availability. Before hosted validation, explicitly approve the
+workflow-publication/bootstrap route (or another approved native Linux runner).
+This preparation does not authorize merging the definition or adding a push trigger.
