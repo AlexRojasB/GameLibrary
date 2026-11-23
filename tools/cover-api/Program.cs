@@ -104,7 +104,7 @@ internal static class Gate
                 using (response)
                 {
                     Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-                    Assert.Equal(2097152, (await response.Content.ReadAsByteArrayAsync(token)).Length);
+                    await BufferedResponseBody.AssertLengthAsync(response.Content, 2097152, token);
                     Privacy(response);
                 }
             provider.WritesBlocked = provider.ReadsBlocked = null;
@@ -477,6 +477,21 @@ internal static class Gate
             foreach (var name in new[] { "memory.peak", "memory.current", "memory.max", "memory.events", "cpu.max", "cpu.stat" })
                 Console.WriteLine($"CGROUP {phase} {name}={File.ReadAllText("/sys/fs/cgroup/" + name).Trim().Replace('\n', ';')}");
         }
+    }
+}
+
+// GetAsync has already buffered the body. Count through EOF without making another full copy.
+internal static class BufferedResponseBody
+{
+    internal static async Task AssertLengthAsync(HttpContent content, long expected, CancellationToken ct)
+    {
+        await using var stream = await content.ReadAsStreamAsync(ct);
+        var buffer = new byte[16 * 1024];
+        long length = 0;
+        int read;
+        while ((read = await stream.ReadAsync(buffer, ct)) != 0)
+            length += read;
+        Assert.Equal(expected, length);
     }
 }
 

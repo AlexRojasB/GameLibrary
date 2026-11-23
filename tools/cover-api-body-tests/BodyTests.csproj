@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>CoverApiVerification.BodyTests</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Reuse the exact compiled helper and existing xunit dependency; no app host or DB runs. -->
+    <ProjectReference Include="../cover-api/Verify.csproj" />
+  </ItemGroup>
+</Project>
