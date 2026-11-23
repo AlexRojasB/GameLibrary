@@ -1,0 +1,59 @@
+name: Native budget diagnostic matrix
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Exact owner-approved remediation SHA (40 characters)
+        required: true
+        type: string
+      approval:
+        description: EXECUTE_FROZEN_18_WORKLOAD_MATRIX (requires separate authorization)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-budget-diagnostic-${{ inputs.revision }}
+  cancel-in-progress: false
+
+jobs:
+  diagnostic-block:
+    name: diagnostic-native-budget-block-${{ matrix.block }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        block: [1, 2, 3]
+    env:
+      EXPECTED_REVISION: ${{ inputs.revision }}
+      APPROVAL: ${{ inputs.approval }}
+      BLOCK: ${{ matrix.block }}
+      BUILDX_GIT_INFO: 'false'
+    steps:
+      - name: Validate explicit frozen execution inputs
+        run: |
+          [[ "$GITHUB_RUN_ATTEMPT" == 1 ]]
+          [[ "$EXPECTED_REVISION" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$APPROVAL" == EXECUTE_FROZEN_18_WORKLOAD_MATRIX ]]
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Portable protocol and isolation decisions
+        run: python3 -B -m unittest discover -s tools/ci -p 'test_*.py' -v
+      - name: Execute six frozen complete workload attempts, no retries
+        run: python3 -B tools/ci/native-budget-ab.py --block "$BLOCK" --output "$RUNNER_TEMP/native-budget-evidence" --expected-revision "$EXPECTED_REVISION" --approval "$APPROVAL"
+      - name: Preserve sanitized success and failure evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: diagnostic-native-budget-block-${{ matrix.block }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/native-budget-evidence/
+          if-no-files-found: error
+          retention-days: 14
