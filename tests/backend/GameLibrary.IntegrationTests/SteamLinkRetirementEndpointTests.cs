@@ -43,13 +43,20 @@ public sealed class SteamLinkRetirementEndpointTests
                     Assert.False(text.Contains(value, StringComparison.Ordinal), "Retirement response echoed input; payload withheld.");
             }
         }
-        foreach (var route in new[] { "/steam/link/v2/requests", "/steam/link/v2/review", "/steam/link/v2/confirm", "/steam/link/v2/cancel", "/steam/link/v2/callback", "/steam/link/complete" })
+        foreach (var route in new[] { "/steam/link/v2/requests", "/steam/link/v2/review", "/steam/link/v2/confirm", "/steam/link/v2/cancel" })
         {
             using var response = await client.PostAsJsonAsync(route, new { });
-            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.False(response.Headers.Contains("Set-Cookie"));
         }
+        using var wrongMethod = await client.PostAsJsonAsync("/steam/link/v2/callback", new { });
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, wrongMethod.StatusCode);
+        using var obsolete = await client.PostAsJsonAsync("/steam/link/complete", new { });
+        Assert.Equal(HttpStatusCode.NotFound, obsolete.StatusCode);
         using var callback = await client.GetAsync("/steam/link/v2/callback?state=synthetic-state");
-        Assert.Equal(HttpStatusCode.NotFound, callback.StatusCode);
+        Assert.Equal(HttpStatusCode.SeeOther, callback.StatusCode);
+        Assert.Equal("https://app.example.test/manage/steam?steamLink=failure", callback.Headers.Location!.ToString());
+        Assert.False(callback.Headers.Contains("Set-Cookie"));
         using var me = await client.GetAsync("/auth/me");
         Assert.Equal(HttpStatusCode.Unauthorized, me.StatusCode);
         Assert.Equal(0, factory.DatabaseCalls);

@@ -18,6 +18,11 @@ internal sealed record SteamLinkSecrets(string State, string Proof)
     public override string ToString() => nameof(SteamLinkSecrets);
 }
 
+internal sealed record SteamLinkCallbackContext(DateTimeOffset CreatedAt, DateTimeOffset ExpiresAt, DateTimeOffset DatabaseNow)
+{
+    public override string ToString() => nameof(SteamLinkCallbackContext);
+}
+
 internal sealed record SteamLinkSnapshot(string State, string? SteamId64, DateTimeOffset ExpiresAt,
     DateTimeOffset? LinkedAt = null)
 {

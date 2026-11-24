@@ -3,6 +3,16 @@ Architecture Specification v0.4 --- Game Library
 Status: Approved
 Version: 0.4
 
+Feature 011 PR 3 amendment, 2026-11-24 -- Authorized local API/protocol:
+Implement approved redesign section 14 PR 3 within existing Api/Core: fixed v2
+routes, strict JSON/query/Origin/cookie envelopes, pinned bounded OpenID backchannel,
+private errors/logging, exact credentialed CORS, admission/rate limits and unlink
+invalidation. Reuse PR 2 persistence; no migration/dependency/project/budget change.
+Readiness remains hard false in shipped hosts regardless of runtime flags. Only
+Development/Test integration hosts may substitute test-only readiness through DI;
+Production/Staging cannot use it. No Angular confirmation, deployment, remote
+migration, push or merge. See specs/011-steam-integration/linking-api-protocol.md.
+
 Feature 011 PR 2 amendment, 2026-11-24 -- Approved local persistence/Core:
 Implement Option A's approved private Core lifecycle and one additive EF migration
 in existing steam_link_requests, with versioned NULL-safe constraints, partial unique

@@ -49,22 +49,11 @@ public class SteamIntegrationService
         string expectedRealm,
         CancellationToken ct) => Task.FromException(new SteamLinkingRetiredException());
 
-    public async Task UnlinkAsync(string userId, CancellationToken ct)
-    {
-        var libraryId = await _db.Libraries.Where(l => l.UserId == userId)
-            .Select(l => (Guid?)l.Id).SingleOrDefaultAsync(ct);
-        if (libraryId is null) return;
+    public Task UnlinkAsync(string userId, CancellationToken ct) =>
+        UnlinkAsync(userId, DateTimeOffset.MaxValue, ct);
 
-        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
-        await LockLibraryAsync(libraryId.Value, ct);
-        var account = await _db.SteamAccounts.SingleOrDefaultAsync(a => a.LibraryId == libraryId.Value, ct);
-        if (account is not null)
-        {
-            _db.SteamAccounts.Remove(account);
-            await _db.SaveChangesAsync(ct);
-        }
-        await transaction.CommitAsync(ct);
-    }
+    public Task UnlinkAsync(string userId, DateTimeOffset signedJwtExpiry, CancellationToken ct) =>
+        new SteamSecureLinkService(_db).UnlinkAsync(new(userId, signedJwtExpiry), ct);
 
     public async Task<SteamLibraryPreview> PreviewAsync(string userId, CancellationToken ct)
     {

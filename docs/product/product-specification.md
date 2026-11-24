@@ -3,6 +3,13 @@ Product Specification v0.7 --- Game Library
 Status: Approved
 Version: 0.7
 
+Feature 011 PR 3 amendment, 2026-11-24 -- Authorized local API/protocol:
+Implement the approved Option A API/OpenID boundary in section 14 PR 3 of
+docs/security/steam-openid-linking-redesign.md. Callback stages only; explicit owner
+confirmation creates the link. Keep shipped readiness false, legacy retired and
+the existing Angular unavailable experience unchanged. No activation, hosted work,
+remote migration, push or merge is authorized. See linking-api-protocol.md.
+
 Feature 011 PR 2 amendment, 2026-11-24 -- Approved local persistence/Core:
 Approve the recommended v2 baseline in docs/security/steam-openid-linking-redesign.md:
 independent browser proof, callback staging without linking, explicit authenticated

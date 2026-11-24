@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GameLibrary.Core\GameLibrary.Core.csproj" />
+    <InternalsVisibleTo Include="GameLibrary.IntegrationTests" />
   </ItemGroup>
 
   <PropertyGroup>
