@@ -3,9 +3,67 @@
 2026-11-24 UTC. Branch `feat/steam-linking-v2-persistence-core`, based on validated
 `origin/dev` `c35ba3bcf6a5e646287c1ac3ef9907670221a0dc` (merged PR #9).
 
-**Local implementation only. Not pushed, deployed, activated or remotely migrated.
-Not ready to publish as fully verified: the browser regression suite has one
-unresolved failure. Global legacy retirement is NOT established.**
+**Local validation report; publication for PR review/CI is separately authorized below.
+No deployment, activation or remote migration is authorized.
+The initial browser failure was not reproduced in the bounded follow-up below;
+local publication checks are now green. Hosted PR checks remain pending.
+Global legacy retirement is NOT established.**
+
+## Authorized E2E follow-up on 7da537f — 2026-11-24
+
+- Inspected the original log and error-context DOM snapshot, selector/preparation/
+  editor/cropper code, fixture, Playwright configuration and baseline diff. There
+  was no original screenshot/video/trace: screenshots/video were not enabled and
+  trace was `on-first-retry` with zero retries. The snapshot showed preparation,
+  before upload/Create or the test's intentional lost-response simulation.
+- The entire frontend, API, E2E and native CI paths are unchanged between the
+  validated parent `c35ba3b` and `7da537f`. Image preparation is browser-local, before
+  any upload; the private Steam v2 service is unregistered and readiness stays false.
+  No causal evidence links the original timeout to PR 2.
+- Ran the exact Chromium desktop scenario once on unchanged `7da537f`, using the
+  same CI/Test flags, Release API, Angular E2E server, pinned loopback PostgreSQL,
+  per-test reset, real cropper/decoder and fake Storage, one worker and zero retries.
+  Only trace/output settings changed for evidence. **1 passed (32.4s including
+  startup)**. Trace shows editor visibility after about **1386 ms**, successful
+  local export, real 201 followed by the test's intended 503, receipt recovery and
+  exactly one Create. Inspected trace network/console/actions and screenshot frames;
+  no cropper exception was recorded. The expected simulated 503 is not a new defect.
+  An initial anchored grep selected zero tests; it was corrected before the single
+  actual scenario execution, not used as a retry.
+- No concrete application or test defect was established; no speculative fix,
+  assertion/timeout change, dependency, retry, isolation relaxation or instrumentation
+  in application/test source was justified. **Classification: intermittent E2E
+  preparation timeout, not reproduced; suspected timing/environment instability,
+  not a demonstrated PR 2 regression or proven pre-existing application defect.**
+  Original root cause remains unknown; passing runs do not prove flake elimination.
+- Ran the complete suite once with one worker, `--retries=0` and trace retained on
+  failure: **24 passed (2.6m)**, desktop and mobile, no skips/retries. All original
+  assertions and coverage remain unchanged. No additional diagnostic campaign ran.
+- Evidence in the approved session temporary directory:
+  `steam-pr2-cropper-targeted-run.log`, `steam-pr2-cropper-targeted/**/trace.zip`
+  (including screenshots), and `steam-pr2-cropper-full.log`. Original artifacts remain.
+
+**Readiness at the E2E follow-up:** the local E2E publication blocker is cleared by this explicitly
+authorized verification; PR 2 is ready for approval to publish for review/normal CI,
+not approved to merge/release. Prior Core/PostgreSQL/frontend/build results below
+still describe the same unchanged source commit, not newly rerun suites. No push,
+PR creation, merge, deploy, remote migration or v2 activation occurred. Only this
+report was updated, left uncommitted for approval; source remains `7da537f`.
+That historical stop is superseded only by the bounded publication authorization below.
+
+## Publication authorization — 2026-11-24
+
+The owner subsequently authorized committing this report, verifying the final diff
+against freshly fetched origin/dev, pushing `feat/steam-linking-v2-persistence-core`,
+opening its PR to `dev`, and running/monitoring the unchanged five normal required
+checks: backend, postgres, frontend, e2e and native-runtime. The source implementation
+remains `7da537f`; the publication commit adds only this validation report update.
+Hosted results will be reported on the PR and in the publication closeout, without
+pretending the earlier failed browser run passed or that its cause was established.
+
+No merge, deployment, remote migration, legacy reactivation, v2 activation, CI-budget
+modification or additional diagnostic campaign is authorized. Native 768/640 policy
+and API-only 512 MiB/G06 boundaries remain unchanged.
 
 ## Implemented boundary
 
@@ -86,7 +144,9 @@ hosted service, real auth, real Steam assertion or user data was accessed.
 | Final Release solution build | PASS, zero warnings/errors |
 | Angular production build | PASS; unchanged Random Picker SCSS warning (4.13 kB vs 4 kB) |
 | EF pending-model check / whitespace check | PASS |
-| Desktop/mobile Playwright, 1 worker, `--retries=0` | **23 passed, 1 failed**, no test rerun |
+| Initial desktop/mobile Playwright, 1 worker, `--retries=0` | **23 passed, 1 failed**; original failure preserved |
+| Authorized unchanged-source targeted scenario, `--retries=0` | **1 passed** |
+| Authorized unchanged-source complete E2E suite, `--retries=0` | **24 passed**, desktop/mobile; no skips/retries |
 
 The first focused PostgreSQL invocation timed out at 120s without test results;
 cause was not established. It is not counted as passing. Subsequent explicitly
@@ -105,7 +165,9 @@ out at line 254 waiting 5s for “Edit local cover”; the snapshot still showed
 “Preparing image...”. Root cause is **not established**. No claim of a confirmed
 flake or baseline defect; no Angular/E2E fix, timeout increase, retry, native-memory
 change or diagnostic experiment was made. This run preceded the final v2-only
-guard correction; E2E is not claimed green for the final tree.
+guard correction; it did not establish a green final-tree E2E result. The authorized
+follow-up above subsequently passed on unchanged `7da537f`, without explaining away
+the original failure or changing any assertion.
 
 Existing Vite native-config/Vitest poolOptions deprecation notices remain unsuppressed.
 Logs are retained in the session's approved temporary directory as
@@ -131,12 +193,14 @@ constitute acceptance of public v2.
 
 ## Review stop / unresolved gates
 
-Local implementation and commit are authorized; push, PR creation, merge, deploy,
+Publication/normal PR CI are now authorized as recorded above; merge, deploy,
 QA/production migration and activation are not. No native CI/workload/runtime files,
 768/640 policy or API-only 512 MiB/G06 gate were changed or re-experimented with.
 Previous native successes are not validation of this new SHA or proof against OOM.
 
-Publication readiness remains **blocked on the unresolved E2E failure/review**.
+The initial publication blocker was the E2E failure; its authorized follow-up and
+current local readiness are recorded above, without erasing that failed run.
 Five hosted CI checks, target Noble linux/amd64 native gates, PR 3/4 integration,
 hosted exposure/logging/replica checks and operational legacy-retirement/release
-approval remain pending. Stop after the local commit; do not infer further authority.
+approval remain pending until their own evidence/authorization. Stop after reporting
+the PR URL, final head and five normal CI outcomes; do not infer further authority.
