@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using System.Net;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using GameLibrary.Core.Steam;
@@ -8,6 +10,12 @@ namespace GameLibrary.Api.Steam;
 
 public sealed class SteamClient : ISteamClient
 {
+    public static HttpMessageHandler CreateHttpMessageHandler() => new SocketsHttpHandler
+    {
+        AllowAutoRedirect = false, UseCookies = false,
+        AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli,
+        ActivityHeadersPropagator = null,
+    };
     private readonly HttpClient _http;
     private readonly IOptionsMonitor<SteamOptions> _options;
     private readonly ILogger<SteamClient> _logger;
@@ -22,7 +30,8 @@ public sealed class SteamClient : ISteamClient
     public async Task<bool> VerifyOpenIdAsync(IReadOnlyDictionary<string, string?> parameters, CancellationToken ct)
     {
         var options = _options.CurrentValue;
-        if (!options.LinkAvailable())
+        if (!options.LinkAvailable() || options.OpenIdVerifyUrl != SteamLinkConfiguration.Provider
+            || options.OpenIdProviderUrl != SteamLinkConfiguration.Provider)
         {
             throw new SteamIntegrationNotConfiguredException();
         }
@@ -32,17 +41,30 @@ public sealed class SteamClient : ISteamClient
             .ToDictionary(p => p.Key, p => p.Value ?? string.Empty);
         form["openid.mode"] = "check_authentication";
 
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 1, 30)));
         try
         {
-            using var response = await _http.PostAsync(options.OpenIdVerifyUrl, new FormUrlEncodedContent(form), ct);
-            if (!response.IsSuccessStatusCode)
+            using var request = new HttpRequestMessage(HttpMethod.Post, SteamLinkConfiguration.Provider)
+            { Content = new FormUrlEncodedContent(form) };
+            using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
+            if (response.StatusCode != HttpStatusCode.OK)
             {
                 _logger.LogWarning("Steam OpenID verification returned non-success status {StatusCode}.", (int)response.StatusCode);
                 return false;
             }
 
-            var body = await response.Content.ReadAsStringAsync(ct);
-            return body.Split('\n').Any(line => string.Equals(line.Trim(), "is_valid:true", StringComparison.Ordinal));
+            if (response.Content.Headers.ContentLength > 8192) return false;
+            await using var stream = await response.Content.ReadAsStreamAsync(deadline.Token);
+            var bytes = new byte[8193]; var count = 0;
+            while (count < bytes.Length)
+            {
+                var read = await stream.ReadAsync(bytes.AsMemory(count), deadline.Token);
+                if (read == 0) break;
+                count += read;
+            }
+            if (count > 8192) return false;
+            return ValidDirectResponse(new UTF8Encoding(false, true).GetString(bytes, 0, count));
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
@@ -53,6 +75,28 @@ public sealed class SteamClient : ISteamClient
             _logger.LogWarning("Steam OpenID verification request failed.");
             return false;
         }
+        catch (Exception error) when (error is DecoderFallbackException or IOException)
+        {
+            _logger.LogWarning("Steam OpenID verification response could not be read.");
+            return false;
+        }
+    }
+
+    internal static bool ValidDirectResponse(string body)
+    {
+        if (!body.EndsWith('\n')) return false; // Do not accept a truncated final key/value line.
+        var lines = body.Split('\n');
+        var values = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var item in lines[..^1])
+        {
+            var line = item.EndsWith('\r') ? item[..^1] : item;
+            var colon = line.IndexOf(':');
+            if (colon < 1 || line.Any(char.IsControl)) return false;
+            var key = line[..colon]; var value = line[(colon + 1)..];
+            if (key is not ("ns" or "is_valid" or "invalidate_handle") || value.Length == 0 || !values.TryAdd(key, value)) return false;
+        }
+        return values.GetValueOrDefault("ns") == SteamIntegrationRules.OpenIdNamespace
+            && values.GetValueOrDefault("is_valid") == "true";
     }
 
     public async Task<IReadOnlyList<SteamOwnedGame>> GetOwnedGamesAsync(SteamOwnedGamesQuery query, CancellationToken ct)

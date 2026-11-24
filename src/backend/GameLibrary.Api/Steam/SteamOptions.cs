@@ -3,6 +3,8 @@ namespace GameLibrary.Api.Steam;
 public sealed class SteamOptions
 {
     public bool Enabled { get; set; }
+    public bool SecureLinkingEnabled { get; set; } // Default off; cannot override build readiness.
+    public bool AllowLocalLinkingHttp { get; set; } // Explicit test-host, literal-loopback exception only.
 
     public string? PublicApiBaseUrl { get; set; }
 

@@ -7,7 +7,9 @@ public sealed record SteamStatusResponse(
     bool Linked,
     string? SteamId64,
     DateTimeOffset? LinkedAt,
-    string? Message);
+    string? Message,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    int? LinkProtocolVersion = null);
 
 public sealed record SteamLibraryPreviewResponse(
     string State,
@@ -29,3 +31,16 @@ public sealed record SteamImportResponse(
     IReadOnlyList<long> Invalid);
 
 public sealed record SteamImportedGameResponse(long SteamAppId, Guid VideoGameId, string Name);
+
+internal sealed record SteamLinkCreationResponse(int ProtocolVersion, Guid TransactionId, string AuthorizationUrl, DateTimeOffset ExpiresAt)
+{
+    public override string ToString() => nameof(SteamLinkCreationResponse);
+}
+internal sealed record SteamLinkReviewResponse(string State, string? SteamId64, DateTimeOffset ExpiresAt)
+{
+    public override string ToString() => nameof(SteamLinkReviewResponse);
+}
+internal sealed record SteamLinkConfirmationResponse(string State, string SteamId64, DateTimeOffset LinkedAt)
+{
+    public override string ToString() => nameof(SteamLinkConfirmationResponse);
+}

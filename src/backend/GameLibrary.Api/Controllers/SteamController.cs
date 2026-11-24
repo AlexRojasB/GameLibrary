@@ -15,15 +15,18 @@ public sealed class SteamController : ControllerBase
     private readonly SteamIntegrationService _steam;
     private readonly IOptionsMonitor<SteamOptions> _options;
     private readonly IHostEnvironment _environment;
+    private readonly SteamLinkActivation _activation;
 
     public SteamController(
         SteamIntegrationService steam,
         IOptionsMonitor<SteamOptions> options,
-        IHostEnvironment environment)
+        IHostEnvironment environment,
+        SteamLinkActivation activation)
     {
         _steam = steam;
         _options = options;
         _environment = environment;
+        _activation = activation;
     }
 
     [HttpGet("status")]
@@ -41,14 +44,16 @@ public sealed class SteamController : ControllerBase
         var importAvailable = ProviderAvailable(options) && options.ImportAvailable();
         var account = await _steam.GetAccountAsync(userId, ct);
 
+        var linkAvailable = await _activation.AvailableAsync(ct);
         return Ok(new SteamStatusResponse(
             options.Enabled,
-            false,
+            linkAvailable,
             importAvailable,
             account.Linked,
             account.SteamId64,
             account.LinkedAt,
-            SteamLinkingRetiredException.UnavailableMessage));
+            linkAvailable ? null : SteamLinkingRetiredException.UnavailableMessage,
+            linkAvailable ? 2 : null));
     }
 
     [HttpPost("link-requests")]
@@ -82,8 +87,14 @@ public sealed class SteamController : ControllerBase
             return Unauthorized();
         }
 
-        await _steam.UnlinkAsync(userId, ct);
-        return NoContent();
+        var caller = SteamLinkHttp.Caller(User);
+        if (caller is null) return Unauthorized();
+        try
+        {
+            await _steam.UnlinkAsync(userId, caller.JwtExpiresAt, ct);
+            return NoContent();
+        }
+        catch (SteamSecureLinkException error) { return SteamLinkHttp.Failure(error); }
     }
 
     [HttpPost("library/preview")]

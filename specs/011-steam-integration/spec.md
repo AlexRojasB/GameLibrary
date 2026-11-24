@@ -4,6 +4,10 @@
 
 `Approved`
 
+2026-11-24: [linking-api-protocol.md](linking-api-protocol.md) is the authorized
+local PR 3 scope following merged persistence/Core PR #11. It adds the approved
+API/OpenID boundary behind hard-false shipped readiness, not public activation.
+
 2026-11-24: [linking-persistence-core.md](linking-persistence-core.md) is the active
 owner-authorized PR 2 scope and adopts the approved v2 redesign for private Core
 and additive persistence only. It supersedes historical callback-created account

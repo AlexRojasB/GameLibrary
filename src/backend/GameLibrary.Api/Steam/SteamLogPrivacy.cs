@@ -19,6 +19,11 @@ internal static class SteamLogPrivacy
             return "/steam/link/start/{state}";
         if (path.Equals(new PathString("/steam/link/callback"))) return "/steam/link/callback";
         if (path.Equals(new PathString("/steam/link-requests"))) return "/steam/link-requests";
+        if (SteamLinkHttp.IsV2(context))
+        {
+            if (SteamLinkHttp.JsonRoute(path)) return path.Value;
+            if (path.Equals(new PathString("/steam/link/v2/callback"))) return "/steam/link/v2/callback";
+        }
         // Never echo unknown/unmatched Steam paths: they can also contain secrets.
         return "/steam/{endpoint}";
     }
@@ -32,10 +37,20 @@ internal static class SteamLogPrivacy
             context.Response.Headers.CacheControl = "private, no-store";
             context.Response.Headers["Referrer-Policy"] = "no-referrer";
             context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+            if (SteamLinkHttp.IsV2(context))
+            {
+                var vary = context.Response.Headers.Vary.ToString().Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                context.Response.Headers.Vary = string.Join(", ", vary.Concat(["Origin", "Authorization"]).Distinct(StringComparer.OrdinalIgnoreCase));
+                context.Response.Headers.Remove("ETag");
+                context.Response.Headers.Remove("Last-Modified");
+            }
             return Task.CompletedTask;
         });
         var started = Stopwatch.GetTimestamp();
-        await next(context);
+        if (!await SteamLinkHttp.PreflightAsync(context)) await next(context);
+        if (SteamLinkHttp.IsV2(context) && context.Response.StatusCode >= 400 && !context.Response.HasStarted
+            && context.Response.ContentLength is null && context.Response.ContentType is null)
+            await SteamLinkHttp.WriteFailureAsync(context, context.Response.StatusCode, "LINK_REQUEST_REJECTED");
         context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(Category)
             .LogInformation(new EventId(1100, "SteamRequestCompleted"),
                 "Steam request completed at {Endpoint}: status {StatusCode}, elapsed {ElapsedMilliseconds} ms.",

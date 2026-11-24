@@ -92,7 +92,7 @@ public sealed class SteamClientTests
     }
 
     [Theory]
-    [InlineData("is_valid:true\n", true)]
+    [InlineData("is_valid:true\n", false)] // v2 requires the explicit direct-response namespace.
     [InlineData("ns:http://specs.openid.net/auth/2.0\nis_valid:true\n", true)]
     [InlineData("is_valid:false\n", false)]
     [InlineData("is_valid:true-suffix", false)]

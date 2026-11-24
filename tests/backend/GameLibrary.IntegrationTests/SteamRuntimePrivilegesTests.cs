@@ -53,6 +53,8 @@ public sealed class SteamRuntimePrivilegesTests
         await Sql(owner, $"GRANT INSERT ON public.steam_accounts TO {role}");
         await Sql(owner, $"GRANT SELECT, INSERT ON public.steam_link_requests TO {role}");
         await Sql(owner, $"GRANT UPDATE(consumed_at) ON public.steam_link_requests TO {role}");
+        // PR 3 requires this one additional mutation grant for atomic unlink invalidation.
+        await Sql(owner, $"GRANT UPDATE(cancelled_at) ON public.steam_link_requests TO {role}");
         // Even historical extra grants cannot reopen the retired Core entry points.
         var state = SteamIntegrationRules.GenerateRawState();
         var returnTo = "https://api.example.test/steam/link/callback?state=" + state;
@@ -75,6 +77,8 @@ public sealed class SteamRuntimePrivilegesTests
         var library = new Core.Libraries.Library { Id = Guid.NewGuid(), UserId = user };
         ownerDb.Libraries.Add(library);
         ownerDb.SteamAccounts.Add(new SteamAccount { Id = Guid.NewGuid(), LibraryId = library.Id, SteamId64 = steamId, LinkedAt = DateTimeOffset.UtcNow });
+        var live = SteamSecureLinkTests.Seed(library.Id, user, out _);
+        ownerDb.SteamLinkRequests.Add(live);
         await ownerDb.SaveChangesAsync();
         fake.SetOwnedGames([new SteamOwnedGame(570, "Runtime grants game", 12, null, null)]);
         await using (var import = Context())
@@ -101,6 +105,7 @@ public sealed class SteamRuntimePrivilegesTests
         Assert.False(await ownerDb.SteamLinkRequests.AnyAsync(r => r.StateHash == SteamIntegrationRules.HashState(state)));
         Assert.True(await ownerDb.LibraryEntries.AnyAsync(e => e.Library.UserId == user && e.SteamAppId == 570));
         Assert.False(await ownerDb.SteamAccounts.AnyAsync(a => a.Library.UserId == user));
+        Assert.NotNull((await ownerDb.SteamLinkRequests.AsNoTracking().SingleAsync(r => r.Id == live.Id)).CancelledAt);
         // The role and all test rows disappear with this task's disposable local
         // container; no shared role/schema cleanup or remote grant is performed.
     }

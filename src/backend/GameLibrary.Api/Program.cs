@@ -20,6 +20,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+// Permit the approved v2 query envelope; the protocol independently rejects >16 KiB.
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestLineSize = 16 * 1024 + 64);
 
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
@@ -31,6 +33,8 @@ builder.Services.AddScoped<RandomPickerService>();
 builder.Services.AddScoped<PlayLogService>();
 builder.Services.AddScoped<CoverImageSearchService>();
 builder.Services.AddScoped<SteamIntegrationService>();
+builder.Services.AddSingleton<ISteamLinkReadiness, ShippedSteamLinkReadiness>();
+builder.Services.AddScoped<SteamLinkActivation>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<CoverImageProcessor>();
 builder.Services.AddScoped<CoverUploadService>();
@@ -87,13 +91,14 @@ else
     {
         var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<SteamOptions>>().CurrentValue;
         client.Timeout = TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 1, 30));
-    }).RemoveAllLoggers();
+    }).ConfigurePrimaryHttpMessageHandler(SteamClient.CreateHttpMessageHandler).RemoveAllLoggers();
 }
 
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     CoverHttp.ConfigureLimits(options);
+    SteamLinkHttp.ConfigureLimits(options);
     options.AddPolicy("CoverImageSearch", context =>
         RateLimitPartition.GetFixedWindowLimiter(
             context.User.GetSupabaseUserId() ?? "anonymous",
@@ -126,8 +131,15 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod()
             .WithExposedHeaders("Retry-After", "Location");
     });
-    // Legacy linking is retired: no credentialed Steam-link CORS/cookie flow.
+    options.AddPolicy("SteamSecureLink", policy =>
+    {
+        policy.SetIsOriginAllowed(origin => SteamLinkConfiguration.From(appOptions(),
+                builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Test")) is { } config && origin == config.FrontendOrigin)
+            .WithMethods("POST").WithHeaders("Authorization", "Content-Type").AllowCredentials();
+    });
 });
+
+SteamOptions appOptions() => builder.Configuration.GetSection("SteamIntegration").Get<SteamOptions>() ?? new();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

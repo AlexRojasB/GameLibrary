@@ -3,6 +3,13 @@ Domain Specification v0.9 --- Game Library
 Status: Approved
 Version: 0.9
 
+Feature 011 PR 3 amendment, 2026-11-24 -- Authorized local API/protocol:
+Integrate the PR 2 private lifecycle with the approved strict Steam verification,
+independent cookie proof and JWT/Origin boundary. Unlink cancels live v2 rows under
+the same Library→row ordering and preserves consumed receipts/catalog data. No
+provider cancellation/error mutates a transaction. No new schema or Domain concept.
+Shipped v2 remains inaccessible. See specs/011-steam-integration/linking-api-protocol.md.
+
 Feature 011 PR 2 amendment, 2026-11-24 -- Approved local persistence/Core:
 The approved v2 transaction binds immutable T/U/Library/state hash/browser verifier;
 independent random browser proof is never persisted raw. A callback may stage one

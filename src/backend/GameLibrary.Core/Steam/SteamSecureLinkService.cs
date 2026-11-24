@@ -7,11 +7,80 @@ using Npgsql;
 
 namespace GameLibrary.Core.Steam;
 
-// PR 2 private use cases only: deliberately internal and NOT registered in API DI.
-// Stage receives a verified identity from the future trusted OpenID boundary, not
+// Internal use cases called only behind the API's hard-disabled admission boundary.
+// Stage receives a verified identity from the trusted OpenID boundary, not
 // a browserMatched/steamVerified boolean. It still independently enforces B and SQL eligibility.
 internal sealed class SteamSecureLinkService(GameLibraryDbContext source)
 {
+    internal static Task<bool> HasSchemaAsync(GameLibraryDbContext db, CancellationToken ct) =>
+        db.Database.SqlQuery<bool>($"""
+            SELECT ((SELECT count(*) FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'steam_link_requests' AND
+                ((column_name = 'protocol_version' AND data_type = 'smallint' AND is_nullable = 'NO') OR
+                 (column_name IN ('initiating_user_id', 'verified_steam_id64') AND data_type = 'text') OR
+                 (column_name = 'browser_binding_hash' AND data_type = 'bytea') OR
+                 (column_name IN ('assertion_accepted_at', 'cancelled_at') AND data_type = 'timestamp with time zone') OR
+                 (column_name = 'linked_account_id' AND data_type = 'uuid'))) = 7
+                AND (SELECT count(*) FROM pg_constraint WHERE conrelid = to_regclass('public.steam_link_requests')
+                    AND convalidated AND conname IN ('ck_steam_link_requests_version', 'ck_steam_link_requests_v2_binding',
+                    'ck_steam_link_requests_v2_identity', 'ck_steam_link_requests_v2_phase', 'ck_steam_link_requests_v2_dates')) = 5
+                AND EXISTS (SELECT 1 FROM pg_index WHERE indexrelid = to_regclass('public.ix_steam_link_requests_v2_live_library')
+                    AND indisunique AND indisvalid)) AS "Value"
+            """).SingleAsync(ct);
+
+    internal async Task UnlinkAsync(SteamLinkCaller caller, CancellationToken ct)
+    {
+        Subject(caller);
+        using var budget = Budget(ct);
+        ct = budget.Token;
+        await using var db = source.CreatePrimaryContext();
+        var library = await db.Libraries.AsNoTracking().Where(l => l.UserId == caller.UserId)
+            .Select(l => (Guid?)l.Id).SingleOrDefaultAsync(ct);
+        if (library is null) return;
+        await using var tx = await BeginAsync(db, ct);
+        await LockLibraryAsync(db, library.Value, caller.UserId, ct);
+        // A rejection-only rollback binary must still unlink against the previous schema.
+        var cancellationColumns = await db.Database.SqlQuery<bool>($"""
+            SELECT count(*) = 2 AS "Value" FROM pg_attribute
+            WHERE attrelid = to_regclass('public.steam_link_requests') AND NOT attisdropped
+              AND attname IN ('protocol_version', 'cancelled_at')
+            """).SingleAsync(ct);
+        if (cancellationColumns)
+        {
+            // Narrow SQL also invalidates rows when full v2 admission/schema checks fail.
+            // No EF projection of new fields is required by a pre-v2 rollback schema.
+            var ids = await db.Database.SqlQuery<Guid>($"""
+                SELECT id AS "Value" FROM steam_link_requests WHERE library_id = {library.Value} AND protocol_version = 2
+                    AND consumed_at IS NULL AND cancelled_at IS NULL ORDER BY id FOR UPDATE
+                """).ToListAsync(ct);
+            var now = await NowAsync(db, ct);
+            Jwt(caller, now);
+            if (ids.Count != 0)
+                await db.Database.ExecuteSqlInterpolatedAsync($"""
+                    UPDATE steam_link_requests SET cancelled_at = clock_timestamp()
+                    WHERE id = ANY({ids.ToArray()}) AND library_id = {library.Value}
+                        AND protocol_version = 2 AND consumed_at IS NULL AND cancelled_at IS NULL
+                    """, ct);
+        }
+        await db.SteamAccounts.Where(a => a.LibraryId == library.Value).ExecuteDeleteAsync(ct);
+        Jwt(caller, await NowAsync(db, ct));
+        try { await tx.CommitAsync(ct); }
+        catch (Exception)
+        {
+            try { await tx.DisposeAsync(); } catch (Exception) { }
+            using var recovery = Budget(CancellationToken.None);
+            try
+            {
+                await using var primary = source.CreatePrimaryContext();
+                await using var barrier = await BeginAsync(primary, recovery.Token);
+                await LockLibraryAsync(primary, library.Value, caller.UserId, recovery.Token);
+                _ = await primary.SteamAccounts.AnyAsync(a => a.LibraryId == library.Value, recovery.Token);
+            }
+            catch (Exception) { }
+            throw Fail(SteamLinkFailure.OutcomeUnknown);
+        }
+    }
+
     internal async Task<SteamLinkCreated> CreateAsync(SteamLinkCaller caller, TimeSpan lifetime, CancellationToken ct)
     {
         Subject(caller);
@@ -61,8 +130,8 @@ internal sealed class SteamSecureLinkService(GameLibraryDbContext source)
     }
 
     // Pre-provider check: returns only transaction context, holds no locks on return.
-    // PR 3 must perform strict verification outside SQL and call StageAsync afterward.
-    internal async Task<SteamLinkSnapshot> CheckCallbackAsync(string state, string proof, CancellationToken ct)
+    // The API performs strict verification outside SQL and calls StageAsync afterward.
+    internal async Task<SteamLinkCallbackContext> CheckCallbackAsync(string state, string proof, CancellationToken ct)
     {
         using var budget = Budget(ct);
         ct = budget.Token;
@@ -70,9 +139,10 @@ internal sealed class SteamSecureLinkService(GameLibraryDbContext source)
         var locator = await FindStateAsync(db, state, proof, ct);
         await using var tx = await BeginAsync(db, ct);
         var row = await LockRowAsync(db, locator, null, proof, ct);
-        Eligible(row, null, await NowAsync(db, ct));
+        var now = await NowAsync(db, ct);
+        Eligible(row, null, now);
         Pending(row);
-        return new("Pending", null, row.ExpiresAt);
+        return new(row.CreatedAt, row.ExpiresAt, now);
     }
 
     internal async Task StageAsync(string state, string proof, string verifiedSteamId64,

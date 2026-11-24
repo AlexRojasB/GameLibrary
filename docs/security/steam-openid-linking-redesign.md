@@ -2,10 +2,17 @@
 
 ## 1. Status, authority and scope
 
-**Owner-approved v2 baseline; PR 2 local persistence/Core implementation authorized.
+2026-11-24 PR 3 authorization: after merged PR #11 (persistence/Core), the owner
+authorized local API/protocol implementation, tests and commit only, on an
+independent branch from origin/dev 81ef59dd6b109d280150e8838e154a397c22399e.
+Section 14 PR 3 and the approved Option A baseline govern. Shipped readiness stays
+false; no Angular confirmation, legacy reactivation, CI-budget modification, push,
+merge, deployment or remote migration. See linking-api-protocol.md for active scope.
+
+**Owner-approved v2 baseline; PR 3 local API/protocol implementation authorized.
 Activation and production release NOT approved. Production blocker OPEN.**
 
-2026-11-24 authorization: following merged legacy retirement (PR #9), the owner
+Earlier PR 2 authorization, 2026-11-24: following merged legacy retirement (PR #9), the owner
 approved the recommended Option A / D01–D11 baseline and PR 2 only: additive EF
 state and private Core proof/lifecycle, with real disposable PostgreSQL tests.
 No new public handlers, Angular, runtime activation, deployment, remote migration,
