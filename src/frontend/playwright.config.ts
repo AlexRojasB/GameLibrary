@@ -17,15 +17,15 @@ export default defineConfig({
   webServer: [
     {
       command:
-        `ASPNETCORE_ENVIRONMENT=Test E2E__Auth__Enabled=true E2E__CoverImageSearch__Enabled=true E2E__CoverUploads__Enabled=true CoverUploads__Enabled=true E2E__SteamIntegration__Enabled=true AllowedOrigins__0=http://127.0.0.1:4200 SteamIntegration__Enabled=true SteamIntegration__WebApiKey=e2e-fake-key SteamIntegration__PublicApiBaseUrl=http://127.0.0.1:5218 SteamIntegration__FrontendBaseUrl=http://127.0.0.1:4200 ${backendRun} --project ../backend/GameLibrary.Api/GameLibrary.Api.csproj --urls http://127.0.0.1:5218`,
+        `ASPNETCORE_ENVIRONMENT=Test E2E__Auth__Enabled=true E2E__CoverImageSearch__Enabled=true E2E__CoverUploads__Enabled=true CoverUploads__Enabled=true E2E__SteamIntegration__Enabled=true E2E__SteamLinking__Enabled=true SteamIntegration__SecureLinkingEnabled=true SteamIntegration__AllowLocalLinkingHttp=true AllowedOrigins__0=http://127.0.0.1:4200 SteamIntegration__Enabled=true SteamIntegration__WebApiKey=e2e-fake-key SteamIntegration__PublicApiBaseUrl=http://127.0.0.1:5218 SteamIntegration__FrontendBaseUrl=http://127.0.0.1:4200 ${backendRun} --project ../backend/GameLibrary.Api/GameLibrary.Api.csproj --urls http://127.0.0.1:5218`,
       url: 'http://127.0.0.1:5218/health',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120_000,
     },
     {
       command: 'npm run start:e2e',
       url: 'http://127.0.0.1:4200',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120_000,
     },
   ],

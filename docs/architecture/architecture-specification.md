@@ -3,6 +3,15 @@ Architecture Specification v0.4 --- Game Library
 Status: Approved
 Version: 0.4
 
+Feature 011 PR 4 amendment, 2026-11-24 -- Authorized local Angular/browser:
+Implement approved redesign section 14 PR 4 within feature-local signals/services,
+minimal synchronous auth-generation notification, per-tab T/U/deadline metadata and
+HTTP framing headers on frontend routes/SPA fallback. Only isolated explicit E2E
+Development/Test + E2E auth/provider + loopback configuration may substitute test
+admission; ordinary hosts retain hard-false readiness, Production/Staging reject
+test enablement. No dependency/project/schema/CI budget change or deployment.
+See specs/011-steam-integration/linking-angular-browser.md.
+
 Feature 011 PR 3 amendment, 2026-11-24 -- Authorized local API/protocol:
 Implement approved redesign section 14 PR 3 within existing Api/Core: fixed v2
 routes, strict JSON/query/Origin/cookie envelopes, pinned bounded OpenID backchannel,

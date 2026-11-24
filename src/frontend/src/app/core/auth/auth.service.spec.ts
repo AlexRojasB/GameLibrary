@@ -138,4 +138,31 @@ describe('AuthService', () => {
     mock.emit('SIGNED_OUT', null);
     expect(auth.isAuthenticated()).toBe(false);
   });
+
+  it('increments generation synchronously for U→W→U/logout but not same-subject token refresh', async () => {
+    const mock = createMockSupabase(createTestSession());
+    TestBed.configureTestingModule({ providers: [{ provide: SUPABASE_CLIENT, useValue: mock.client }] });
+    const auth = TestBed.inject(AuthService); await auth.initialize();
+    const changed = vi.fn(); const subscription = auth.subjectChanges.subscribe(changed);
+    const initial = auth.generation();
+    mock.emit('TOKEN_REFRESHED', createTestSession({ access_token: 'new-token' }));
+    expect(auth.generation()).toBe(initial); expect(changed).not.toHaveBeenCalled();
+    mock.emit('SIGNED_IN', createTestSession({ user: { ...createTestSession().user, id: 'other' } }));
+    mock.emit('SIGNED_IN', createTestSession());
+    expect(auth.generation()).toBe(initial + 2); expect(changed).toHaveBeenCalledTimes(2);
+    auth.clearLocalSession(); expect(auth.generation()).toBe(initial + 3); expect(changed).toHaveBeenCalledTimes(3);
+    subscription.unsubscribe();
+  });
+
+  it('does not restore an older getSession snapshot after an auth event during initialization', async () => {
+    const mock = createMockSupabase();
+    let resolve!: (value: unknown) => void;
+    mock.auth.getSession.mockReturnValue(new Promise(result => { resolve = result; }));
+    TestBed.configureTestingModule({ providers: [{ provide: SUPABASE_CLIENT, useValue: mock.client }] });
+    const auth = TestBed.inject(AuthService);
+    mock.emit('SIGNED_OUT', null);
+    resolve({ data: { session: createTestSession() }, error: null });
+    await auth.initialize();
+    expect(auth.session()).toBeNull();
+  });
 });

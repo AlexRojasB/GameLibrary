@@ -1,5 +1,6 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { Session } from '@supabase/supabase-js';
+import { Subject } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 
@@ -19,17 +20,29 @@ export class AuthService {
 
   private readonly authSession = signal<Session | null>(null);
   private initPromise: Promise<void> | null = null;
+  private initialized = false;
+  private sessionRevision = 0;
+  private readonly identityVersion = signal(0);
+  private readonly identityChanged = new Subject<void>();
+  readonly generation = this.identityVersion.asReadonly();
+  readonly subjectChanges = this.identityChanged.asObservable();
 
   readonly session = this.authSession.asReadonly();
   readonly isAuthenticated = computed(() => this.authSession() !== null);
   readonly accessToken = computed(() => this.authSession()?.access_token ?? null);
 
   constructor() {
+    if (environment.e2e.enabled) {
+      // Mirror Supabase's real cross-tab session notifications in the local fake.
+      const listener = (event: StorageEvent) => { if (event.key === e2eStorageKey) this.setSession(readE2eSession()); };
+      window.addEventListener('storage', listener);
+      inject(DestroyRef).onDestroy(() => window.removeEventListener('storage', listener));
+    }
     void this.initialize();
   }
 
   initialize(): Promise<void> {
-    this.initPromise ??= this.doInitialize();
+    this.initPromise ??= this.doInitialize().finally(() => { this.initialized = true; });
     return this.initPromise;
   }
 
@@ -44,7 +57,7 @@ export class AuthService {
       if (error) {
         throw error;
       }
-      this.authSession.set(data.session);
+      this.setSession(data.session);
     } catch (error) {
       throw new AuthServiceError(normalizeAuthError(error));
     }
@@ -64,7 +77,7 @@ export class AuthService {
 
   async signOut(): Promise<void> {
     if (environment.e2e.enabled) {
-      this.authSession.set(null);
+      this.setSession(null);
       localStorage.removeItem(e2eStorageKey);
       return;
     }
@@ -75,12 +88,12 @@ export class AuthService {
         throw error;
       }
     } finally {
-      this.authSession.set(null);
+      this.setSession(null);
     }
   }
 
   clearLocalSession(): void {
-    this.authSession.set(null);
+    this.setSession(null);
     if (environment.e2e.enabled) {
       localStorage.removeItem(e2eStorageKey);
     }
@@ -88,18 +101,19 @@ export class AuthService {
 
   private async doInitialize(): Promise<void> {
     if (environment.e2e.enabled) {
-      this.authSession.set(readE2eSession());
+      this.setSession(readE2eSession());
       return;
     }
 
     try {
       this.supabase.auth.onAuthStateChange((_event, session) => {
-        this.authSession.set(session);
+        this.setSession(session);
       });
+      const revision = this.sessionRevision;
       const { data } = await this.supabase.auth.getSession();
-      this.authSession.set(data.session);
+      if (revision === this.sessionRevision) this.setSession(data.session);
     } catch {
-      this.authSession.set(null);
+      this.setSession(null);
     }
   }
 
@@ -116,9 +130,21 @@ export class AuthService {
       const body = (await response.json()) as E2eSessionResponse;
       const session = makeE2eSession(body);
       localStorage.setItem(e2eStorageKey, JSON.stringify(session));
-      this.authSession.set(session);
+      this.setSession(session);
     } catch (error) {
       throw new AuthServiceError(normalizeAuthError(error));
+    }
+  }
+
+  private setSession(session: Session | null): void {
+    this.sessionRevision++;
+    const changed = (this.authSession()?.user.id ?? null) !== (session?.user.id ?? null);
+    this.authSession.set(session);
+    if (changed) {
+      this.identityVersion.update((version) => version + 1);
+      // Synchronous invalidation also catches U→W→U between signal effect runs.
+      // Initial restoration must not erase the same tab's live redirect handle.
+      if (this.initialized) this.identityChanged.next();
     }
   }
 }

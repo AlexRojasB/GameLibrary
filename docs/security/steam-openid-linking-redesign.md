@@ -2,6 +2,13 @@
 
 ## 1. Status, authority and scope
 
+2026-11-24 PR 4 authorization: following merged PR #12, the owner authorizes local
+Angular/browser integration, tests and commit on an independent branch from
+origin/dev d19d96a1145d770cb9659ea57d462bd7757ef1ff. Sections 10 and 14 PR 4 govern;
+Option A and all backend invariants remain. Keep normal UI unavailable and shipped
+readiness false. No activation, legacy reactivation, CI-budget change, hosted work,
+deployment, remote migration, push or merge. See linking-angular-browser.md.
+
 2026-11-24 PR 3 authorization: after merged PR #11 (persistence/Core), the owner
 authorized local API/protocol implementation, tests and commit only, on an
 independent branch from origin/dev 81ef59dd6b109d280150e8838e154a397c22399e.
@@ -9,7 +16,7 @@ Section 14 PR 3 and the approved Option A baseline govern. Shipped readiness sta
 false; no Angular confirmation, legacy reactivation, CI-budget modification, push,
 merge, deployment or remote migration. See linking-api-protocol.md for active scope.
 
-**Owner-approved v2 baseline; PR 3 local API/protocol implementation authorized.
+**Owner-approved v2 baseline; PR 4 local Angular/browser implementation authorized.
 Activation and production release NOT approved. Production blocker OPEN.**
 
 Earlier PR 2 authorization, 2026-11-24: following merged legacy retirement (PR #9), the owner

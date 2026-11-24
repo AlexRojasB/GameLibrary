@@ -4,6 +4,9 @@
 
 `Approved`
 
+2026-11-24: [linking-angular-browser.md](linking-angular-browser.md) is the active
+local PR 4 scope following merged API/protocol PR #12. Normal v2 remains unavailable.
+
 2026-11-24: [linking-api-protocol.md](linking-api-protocol.md) is the authorized
 local PR 3 scope following merged persistence/Core PR #11. It adds the approved
 API/OpenID boundary behind hard-false shipped readiness, not public activation.

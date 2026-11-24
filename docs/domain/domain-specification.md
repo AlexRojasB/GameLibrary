@@ -3,6 +3,12 @@ Domain Specification v0.9 --- Game Library
 Status: Approved
 Version: 0.9
 
+Feature 011 PR 4 amendment, 2026-11-24 -- Authorized local Angular/browser:
+Trusted UI presents the immutable verified SteamID and current application account;
+it never auto-confirms or treats callback flags/tab metadata as authority. Existing
+Core/API invariants remain authoritative. No Domain/schema change or activation.
+See specs/011-steam-integration/linking-angular-browser.md.
+
 Feature 011 PR 3 amendment, 2026-11-24 -- Authorized local API/protocol:
 Integrate the PR 2 private lifecycle with the approved strict Steam verification,
 independent cookie proof and JWT/Origin boundary. Unlink cancels live v2 rows under

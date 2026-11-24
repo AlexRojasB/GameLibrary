@@ -95,7 +95,14 @@
               "buildTarget": "game-library:build:development"
             },
             "e2e": {
-              "buildTarget": "game-library:build:e2e"
+              "buildTarget": "game-library:build:e2e",
+              "hmr": false,
+              "liveReload": false,
+              "headers": {
+                "Content-Security-Policy": "frame-ancestors 'none'",
+                "X-Frame-Options": "DENY",
+                "Referrer-Policy": "no-referrer"
+              }
             }
           },
           "defaultConfiguration": "development"
