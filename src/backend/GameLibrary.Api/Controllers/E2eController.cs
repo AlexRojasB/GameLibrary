@@ -50,6 +50,11 @@ public sealed class E2eController : ControllerBase
 
         var expires = DateTime.UtcNow.AddHours(2);
         var userId = E2eTestMode.UserId(_configuration);
+        // Second deterministic synthetic identity for guarded multi-account browser tests.
+        if (_configuration.GetValue<bool>("E2E:SteamLinking:Enabled") && request.Email.Trim() == "other@example.com")
+            userId = "00000000-0000-0000-0000-000000000009";
+        if (_configuration.GetValue<bool>("E2E:SteamLinking:Enabled") && request.Email.Trim().EndsWith("@example.test", StringComparison.Ordinal))
+            userId = new Guid(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(request.Email.Trim()))[..16]).ToString();
         return Ok(new E2eSessionResponse(
             E2eTestMode.CreateToken(_configuration, userId, expires),
             userId,

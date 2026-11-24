@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import { qaEnvironment } from './build-qa.mjs';
 
 const valid = {
@@ -7,6 +8,25 @@ const valid = {
   QA_SUPABASE_URL: 'https://abcdefghijklmnopqrst.supabase.co/',
   QA_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_synthetic-test-only',
 };
+
+test('frontend host and local browser host protect every SPA fallback with real framing headers', () => {
+  const host = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
+  assert.equal(host.git.deploymentEnabled, false);
+  const headers = Object.fromEntries(host.headers.find(rule => rule.source === '/(.*)').headers.map(item => [item.key, item.value]));
+  assert.equal(headers['Content-Security-Policy'], "frame-ancestors 'none'");
+  assert.equal(headers['X-Frame-Options'], 'DENY');
+  const angular = JSON.parse(readFileSync(new URL('../angular.json', import.meta.url), 'utf8'));
+  const local = angular.projects['game-library'].architect.serve.configurations.e2e.headers;
+  assert.equal(local['Content-Security-Policy'], headers['Content-Security-Policy']);
+  assert.equal(local['X-Frame-Options'], headers['X-Frame-Options']);
+});
+
+test('service worker caches static shell only, never Steam JSON or provider responses', () => {
+  const config = JSON.parse(readFileSync(new URL('../ngsw-config.json', import.meta.url), 'utf8'));
+  assert.equal(config.dataGroups, undefined);
+  assert.ok(config.assetGroups.every(group => !group.resources.urls));
+  assert.ok(config.assetGroups.every(group => group.resources.files.every(file => !file.includes('steam') && !file.includes('http'))));
+});
 
 test('separate HTTPS origins and public key, with test auth always disabled', () => {
   assert.deepEqual(qaEnvironment(valid), {

@@ -30,9 +30,25 @@ describe('SteamService', () => {
     req.flush({ enabled: true, linkAvailable: true, importAvailable: true, linked: false, steamId64: null, linkedAt: null, message: null });
   });
 
-  it('exposes no legacy initiation action or credentialed linking request', () => {
-    expect('createLinkRequest' in service).toBe(false);
+  it('uses credentialed fixed v2 creation with no legacy fallback', () => {
+    service.createLinkRequest().subscribe();
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/steam/link/v2/requests`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({});
+    expect(req.request.withCredentials).toBe(true);
+    req.flush({});
     httpMock.expectNone(`${environment.apiBaseUrl}/steam/link-requests`);
+  });
+
+  it.each(['review', 'confirm', 'cancel'])('uses the exact credentialed %s body without locator in URL', (operation) => {
+    const id = '11111111-1111-1111-1111-111111111111';
+    if (operation === 'review') service.reviewLink(id).subscribe();
+    if (operation === 'confirm') service.confirmLink(id, '76561198000000000').subscribe();
+    if (operation === 'cancel') service.cancelLink(id).subscribe();
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/steam/link/v2/${operation}`);
+    expect(req.request.method).toBe('POST'); expect(req.request.withCredentials).toBe(true);
+    expect(req.request.body).toEqual(operation === 'confirm' ? { transactionId: id, expectedSteamId64: '76561198000000000' } : { transactionId: id });
+    expect(req.request.params.keys()).toEqual([]); req.flush(null);
   });
 
   it('unlink sends DELETE to steam/link', () => {

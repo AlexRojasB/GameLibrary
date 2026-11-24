@@ -3,6 +3,13 @@ Product Specification v0.7 --- Game Library
 Status: Approved
 Version: 0.7
 
+Feature 011 PR 4 amendment, 2026-11-24 -- Authorized local Angular/browser:
+Implement approved redesign section 10 and section 14 PR 4: same-tab trusted Steam
+navigation, per-tab non-authorizing metadata, full verified SteamID/current-account
+review and explicit confirmation/cancel/recovery. Keep normal linking unavailable
+under hard-false shipped readiness. No activation/deployment/remote migration/push
+or merge. Active scope: specs/011-steam-integration/linking-angular-browser.md.
+
 Feature 011 PR 3 amendment, 2026-11-24 -- Authorized local API/protocol:
 Implement the approved Option A API/OpenID boundary in section 14 PR 3 of
 docs/security/steam-openid-linking-redesign.md. Callback stages only; explicit owner

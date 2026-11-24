@@ -202,7 +202,8 @@ test('preserves an existing Steam link, previews library, and imports selected g
   await expect(page.getByRole('heading', { name: 'Steam Library' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Linked Steam Account', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Link Steam account', exact: true })).toHaveCount(0);
-  await expect(page.getByText('Steam linking is temporarily unavailable.', { exact: false })).toBeVisible();
+  // The isolated host now explicitly admits v2, never the ordinary shipped host.
+  await expect(page.getByText('Steam linking is temporarily unavailable.', { exact: false })).toHaveCount(0);
   await expect(page.getByText('SteamID64: 76561198000000000')).toBeVisible();
 
   await page.getByRole('button', { name: 'Preview Steam library' }).click();
@@ -234,7 +235,7 @@ test('preserves an existing Steam link, previews library, and imports selected g
   await expect(page.getByRole('heading', { name: 'No plays logged yet.' })).toBeVisible();
 });
 
-test('rejects transferred legacy URLs and cannot relink after an explicit unlink', async ({ page, browser }) => {
+test('rejects transferred legacy URLs and offers only v2 after an explicit unlink in the isolated host', async ({ page, browser }) => {
   await page.goto('/manage/steam');
   const other = await browser.newContext();
   try {
@@ -251,7 +252,7 @@ test('rejects transferred legacy URLs and cannot relink after an explicit unlink
   await expect(page.getByRole('heading', { name: 'Linked Steam Account', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Unlink', exact: true }).click();
   await expect(page.getByText('No Steam Account Linked')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Link Steam account', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Link Steam account', exact: true })).toBeVisible();
 });
 
 async function dateTimeLocalOneHourAgo(page: Page): Promise<string> {

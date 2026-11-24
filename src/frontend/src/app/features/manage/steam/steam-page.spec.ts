@@ -7,16 +7,21 @@ import { environment } from '../../../../environments/environment';
 
 import { SteamPage } from './steam-page';
 import { SteamPreviewCandidate } from './steam.service';
+import { AuthService } from '../../../core/auth/auth.service';
+import { SUPABASE_CLIENT } from '../../../core/auth/supabase-client';
+import { createMockSupabase, createTestSession } from '../../../core/auth/testing/supabase-client.mock';
 
 describe('SteamPage', () => {
   let fixture: ComponentFixture<SteamPage>;
   let httpMock: HttpTestingController;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     TestBed.configureTestingModule({
       imports: [SteamPage],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]),
+        { provide: SUPABASE_CLIENT, useValue: createMockSupabase(createTestSession()).client }],
     });
+    await TestBed.inject(AuthService).initialize();
     fixture = TestBed.createComponent(SteamPage);
     httpMock = TestBed.inject(HttpTestingController);
   });
@@ -41,7 +46,7 @@ describe('SteamPage', () => {
     httpMock.expectNone(`${environment.apiBaseUrl}/steam/library/import`);
   });
 
-  it.each(['success', 'failure'])('keeps a volatile %s callback notice while removing only the callback query flag', (outcome) => {
+  it.each(['success', 'failure', 'review'])('keeps a volatile %s callback notice while removing only the callback query flag', (outcome) => {
     const route = TestBed.inject(ActivatedRoute);
     route.snapshot.queryParams = { steamLink: outcome, keep: 'yes' };
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
@@ -120,7 +125,7 @@ describe('SteamPage', () => {
     httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(defaultStatus());
     fixture.detectChanges();
 
-    expect('onLink' in fixture.componentInstance).toBe(false);
+    fixture.componentInstance['onLink'](); // Disabled v2 never invokes even its new action.
     httpMock.expectNone(`${environment.apiBaseUrl}/steam/link-requests`);
   });
 

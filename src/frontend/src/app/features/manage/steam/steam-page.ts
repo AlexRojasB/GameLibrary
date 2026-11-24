@@ -1,5 +1,9 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, effect, HostListener, inject, OnDestroy, OnInit, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
+
+import { AuthService } from '../../../core/auth/auth.service';
+import { SteamLinkFlow } from './steam-link-flow';
 
 import {
   SteamService,
@@ -13,11 +17,29 @@ import {
   templateUrl: './steam-page.html',
   styleUrl: './steam-page.scss',
 })
-export class SteamPage implements OnInit {
+export class SteamPage implements OnInit, OnDestroy {
   protected readonly maxImportGames = 100;
   private readonly steam = inject(SteamService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+  private readonly destroyRef = inject(DestroyRef);
+  protected readonly linking = inject(SteamLinkFlow);
+  protected readonly accountLabel = computed(() => this.auth.session()?.user.email || this.auth.session()?.user.id || 'Signed out');
+  protected readonly canLink = computed(() => this.status()?.enabled === true && this.status()?.linkAvailable === true && this.status()?.linkProtocolVersion === 2);
+  private initialized = false;
+  private resumeRequested = false;
+
+  constructor() {
+    this.auth.subjectChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.status.set(null); this.clearPrivateResults(); this.errorMessage.set(null);
+      this.unlinking.set(false); this.previewing.set(false); this.importing.set(false);
+      if (this.initialized && this.auth.isAuthenticated()) this.loadStatus();
+    });
+    effect(() => {
+      if (this.linking.revision() > 0) untracked(() => { if (this.initialized) this.loadStatus(); });
+    });
+  }
 
   protected readonly status = signal<SteamStatusResponse | null>(null);
   protected readonly loadingStatus = signal(true);
@@ -42,27 +64,70 @@ export class SteamPage implements OnInit {
   });
 
   ngOnInit(): void {
+    this.initialized = true;
     const queryParams = this.route.snapshot.queryParams;
+    this.resumeRequested = queryParams['steamLink'] === 'review' || queryParams['steamLink'] === 'failure';
     if (queryParams['steamLink'] === 'success') {
       this.callbackNotice.set('Steam linking is temporarily unavailable. Check your existing linked account below.');
       this.router.navigate([], { queryParams: { steamLink: null }, queryParamsHandling: 'merge', replaceUrl: true });
+    } else if (queryParams['steamLink'] === 'review') {
+      this.callbackNotice.set('Review the verified Steam identity before choosing whether to link it.');
+      this.router.navigate([], { queryParams: { steamLink: null }, queryParamsHandling: 'merge', replaceUrl: true });
     } else if (queryParams['steamLink'] === 'failure') {
       this.callbackFailed.set(true);
-      this.callbackNotice.set('Steam linking is temporarily unavailable. Existing linked accounts are unchanged.');
+      this.callbackNotice.set('Steam did not complete the return. Check linking status or cancel and start again.');
       this.router.navigate([], { queryParams: { steamLink: null }, queryParamsHandling: 'merge', replaceUrl: true });
     }
 
     this.loadStatus();
   }
 
+  ngOnDestroy(): void { this.initialized = false; this.linking.suspend(); }
+
+  @HostListener('window:pageshow', ['$event'])
+  protected onPageShow(event: PageTransitionEvent): void {
+    if (event.persisted) { this.linking.suspend(); this.loadStatus(); }
+  }
+
+  @HostListener('document:visibilitychange')
+  protected onVisibilityChange(): void {
+    if (document.visibilityState === 'hidden') this.linking.review.set(null);
+  }
+
+  protected onLink(): void {
+    if (!this.canLink() || this.status()?.linked || this.unlinking() || this.previewing() || this.importing()) return;
+    this.linking.start();
+  }
+
+  private clearPrivateResults(): void {
+    this.candidates.set([]); this.selected.set(new Set()); this.previewState.set(null);
+    this.previewMessage.set(null); this.importResult.set(null);
+  }
+
+  private current(): () => boolean {
+    const generation = this.auth.generation();
+    return () => this.initialized && generation === this.auth.generation();
+  }
+
   private loadStatus(): void {
+    const current = this.current();
     this.loadingStatus.set(true);
-    this.steam.getStatus().subscribe({
+    this.steam.getStatus().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (status) => {
+        if (!current()) return;
         this.status.set(status);
         this.loadingStatus.set(false);
+        if (this.canLink()) {
+          void this.auth.initialize().then(() => {
+            if (!current()) return;
+            this.linking.restore(this.resumeRequested);
+            this.resumeRequested = false;
+            if (this.linking.handle()) this.linking.refresh();
+          });
+        } else this.linking.suspend();
       },
       error: () => {
+        if (!current()) return;
         this.errorMessage.set('Unable to load Steam status.');
         this.loadingStatus.set(false);
       },
@@ -70,12 +135,15 @@ export class SteamPage implements OnInit {
   }
 
   protected onUnlink(): void {
-    if (this.unlinking() || this.previewing() || this.importing()) return;
+    if (this.unlinking() || this.previewing() || this.importing() || this.linking.busy()) return;
 
     this.unlinking.set(true);
     this.errorMessage.set(null);
-    this.steam.unlink().subscribe({
+    const current = this.current();
+    this.steam.unlink().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
+        if (!current()) return;
+        this.linking.forget();
         this.candidates.set([]);
         this.selected.set(new Set());
         this.previewState.set(null);
@@ -85,6 +153,7 @@ export class SteamPage implements OnInit {
         this.unlinking.set(false);
       },
       error: () => {
+        if (!current()) return;
         this.errorMessage.set('Unable to unlink Steam account.');
         this.unlinking.set(false);
       },
@@ -98,14 +167,17 @@ export class SteamPage implements OnInit {
     this.errorMessage.set(null);
     this.importResult.set(null);
     this.selected.set(new Set());
-    this.steam.preview().subscribe({
+    const current = this.current();
+    this.steam.preview().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
+        if (!current()) return;
         this.candidates.set(response.candidates);
         this.previewState.set(response.state);
         this.previewMessage.set(response.message);
         this.previewing.set(false);
       },
       error: (err) => {
+        if (!current()) return;
         if (err?.status === 404) {
           this.errorMessage.set('Link a Steam account before importing Steam games.');
         } else if (err?.status === 503) {
@@ -159,8 +231,10 @@ export class SteamPage implements OnInit {
 
     this.importing.set(true);
     this.errorMessage.set(null);
-    this.steam.import(appIds).subscribe({
+    const current = this.current();
+    this.steam.import(appIds).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
+        if (!current()) return;
         this.importResult.set(response);
         const importedIds = new Set([
           ...response.imported.map((game) => game.steamAppId),
@@ -173,6 +247,7 @@ export class SteamPage implements OnInit {
         this.loadStatus();
       },
       error: (err) => {
+        if (!current()) return;
         if (err?.status === 404) {
           this.errorMessage.set('Link a Steam account before importing Steam games.');
         } else if (err?.status === 500) {

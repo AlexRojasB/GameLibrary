@@ -44,6 +44,11 @@ builder.Services.Configure<CoverImageSearchOptions>(builder.Configuration.GetSec
 builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection("SteamIntegration"));
 
 var e2eModeEnabled = E2eTestMode.IsEnabled(builder.Configuration, builder.Environment);
+if (E2eSteamLinking.Validate(builder.Configuration, builder.Environment))
+{
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddSingleton<ISteamLinkReadiness, E2eSteamLinking>();
+}
 var fakeCovers = builder.Configuration.GetValue<bool>("E2E:CoverUploads:Enabled");
 if (fakeCovers && !(e2eModeEnabled && (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Test"))))
     throw new InvalidOperationException("E2E cover Storage requires Development/Test and the E2E authentication safety guard.");
@@ -83,7 +88,7 @@ else
 
 if (e2eModeEnabled && builder.Configuration.GetValue<bool>("E2E:SteamIntegration:Enabled"))
 {
-    builder.Services.AddScoped<ISteamClient, E2eSteamClient>();
+    builder.Services.AddSingleton<ISteamClient, E2eSteamClient>();
 }
 else
 {

@@ -6,7 +6,7 @@ application PostgreSQL; this does not change the base production architecture de
 
 ## Status
 
-Feature 011 (Steam Integration) is implemented. The app supports linking a Steam account via OpenID, previewing owned Steam games, and importing selected titles into the user's library with deterministic concurrency. Features 001–010 are preserved, including Supabase auth/JWT validation, platform management, VideoGame/BoardGame CRUD, Library browse/search/filter/sort, Random Picker result states/history semantics, Play Shelf UX/PWA/E2E, Play Log, domain invariants, cross-user isolation, and cover image search assistance.
+Feature 011 preserves existing Steam links, explicit library preview/import and unlink. Legacy linking is retired; the replacement OpenID v2 API and Angular confirmation are implemented behind hard-false normal readiness, not activated. Features 001–010 are preserved, including Supabase auth/JWT validation, platform management, VideoGame/BoardGame CRUD, Library browse/search/filter/sort, Random Picker result states/history semantics, Play Shelf UX/PWA/E2E, Play Log, domain invariants, cross-user isolation, and cover image search assistance.
 
 Feature 013 is **not releasable**. Angular Phase 2 implementation and automated
 verification are complete: explicit `coverUpdate` saves, local camera/file editing,
@@ -474,55 +474,92 @@ Playwright E2E uses explicit non-Production `E2E__CoverImageSearch__Enabled=true
 
 ## Steam Integration (Feature 011)
 
-Linking verifies identity through Steam OpenID and persists the verified SteamID64 plus hashed, expiring one-time link state (never raw state, Steam credentials or an OpenID transcript). Imported LibraryEntries store `steam_app_id` and optional external-reference `steam_playtime_minutes`. `ISteamClient` abstracts Steam verification and `GetOwnedGames`; the backend owns validation, user isolation and concurrency.
+**New linking remains unavailable in ordinary environments, including QA/Production.**
+Legacy creation/start/callback return constant 410. Runtime flags cannot override
+hard-false shipped v2 readiness. Existing links, explicit import and unlink remain
+usable; unlink does not delete games and does not promise that relinking is available.
+See the [approved redesign](docs/security/steam-openid-linking-redesign.md) and
+[PR 4 scope](specs/011-steam-integration/linking-angular-browser.md).
 
-Steam configuration is optional: existing manual workflows work without it. `/manage/steam` displays an unavailable notice when the enable flag or required public URLs are missing. Status reports linking and importing separately; a missing Web API key disables preview/import, not OpenID linking.
+Steam configuration is optional; manual workflows work without it. Status separates
+existing links, new-link availability and Web API import availability. Provider keys
+remain backend-only. No Steam password/session token, automatic import, sync or
+Play Log conversion is introduced. Imported entries retain `steam_app_id` and optional
+external-reference `steam_playtime_minutes`.
 
-For local development only, configure the API through user-secrets or environment variables. Use the same hostname for frontend and API, with different ports:
+Existing-link preview/import configuration (not activation instructions):
 
 ```
 SteamIntegration__Enabled=true
-SteamIntegration__PublicApiBaseUrl=http://localhost:5218
-SteamIntegration__FrontendBaseUrl=http://localhost:4200
+SteamIntegration__SecureLinkingEnabled=false
+SteamIntegration__PublicApiBaseUrl=http://127.0.0.1:5218
+SteamIntegration__FrontendBaseUrl=http://127.0.0.1:4200
 SteamIntegration__OpenIdProviderUrl=https://steamcommunity.com/openid/login
 SteamIntegration__OpenIdVerifyUrl=https://steamcommunity.com/openid/login
-SteamIntegration__FrontendSuccessPath=/manage/steam?steamLink=success
-SteamIntegration__FrontendFailurePath=/manage/steam?steamLink=failure
 SteamIntegration__WebApiKey=<server-only-key-required-for-preview-and-import>
 SteamIntegration__TimeoutSeconds=5
 SteamIntegration__LinkStateLifetimeMinutes=10
 ```
 
-The section name is **SteamIntegration**, not `Steam`; `Steam__...` is ignored. The API key is never a frontend variable. `SteamIntegration__OwnedGamesUrl` defaults to `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/`. Production linking requires HTTPS API/frontend URLs. The authenticated link-request call alone uses a host-only HttpOnly correlation cookie and exact-origin credentialed CORS; it does not replace Supabase JWT authentication. A transferred URL or blocked cookie fails linking safely.
+The section is **SteamIntegration**, not `Steam`. Future v2 activation requires
+validated explicit HTTPS API/frontend bases and the separately approved release
+gates; no current flag enables the normal build. All four v2 JSON operations use
+Bearer + exact Origin + credentials, never a global credential switch. Ordinary
+status/preview/import/unlink remain Bearer-only.
 
-**QA remains disabled until separate activation approval.** Required QA URLs, the minimal additional Neon runtime grants, browser-cookie compatibility gates and private owner key installation are documented in [Steam QA activation](docs/deployment/steam-qa-activation.md). Do not run migrations, reset the working runtime password, enable test providers in Production, or treat local verification as authorization to change Railway/Neon/Vercel/Supabase.
+**QA remains disabled until separate activation approval.** Historical
+[QA activation notes](docs/deployment/steam-qa-activation.md) are not an executable
+v2 release procedure. Real Steam interoperability, hosted browser/cookie/header
+evidence and operational pause/drain/invalidation gates remain pending. Local tests
+do not establish global legacy retirement or all-store privacy. Do not deploy,
+apply remote migrations or enable test providers in QA/Production.
 
-Endpoints: JSON operations require the existing Supabase JWT. The start and callback redirects are anonymous browser navigations requiring matching browser proof and valid one-time SQL state; callback additionally requires Steam verification.
+V2 contracts below exist behind disabled admission. The callback verifies/stages
+only; linking requires explicit authenticated owner confirmation of the immutable ID.
 
 | Method | Route | Success | Errors |
 | --- | --- | --- | --- |
 | `GET` | `/steam/status` | `200` with `{ enabled, linkAvailable, importAvailable, linked, steamId64, linkedAt, message }` | `401` |
-| `POST` | `/steam/link-requests` | `200` with `{ startUrl, expiresAt }` | `401`, `409`, `503` |
-| `GET` | `/steam/link/start/{rawState}` | `302` redirect to Steam OpenID or E2E callback | `302` failure redirect |
-| `GET` | `/steam/link/callback` | `302` redirect to frontend success/failure URL | `302` failure redirect |
+| `POST` | `/steam/link/v2/requests` | `201` private body `{ protocolVersion: 2, transactionId, authorizationUrl, expiresAt }` | `401`, `403`, `409`, `429`, `503` |
+| `GET` | `/steam/link/v2/callback` | `303` fixed review/failure redirect; never creates account | fixed failure redirect |
+| `POST` | `/steam/link/v2/review` | `200` Pending/AwaitingConfirmation/current Linked receipt | `401`, `403`, `404`, `409`, `429`, `503` |
+| `POST` | `/steam/link/v2/confirm` | `200` Linked/current receipt with matching expectedSteamId64 | `401`, `403`, `404`, `409`, `429`, `503` |
+| `POST` | `/steam/link/v2/cancel` | `204`; never unlinks a consumed result | `401`, `403`, `404`, `429`, `503` |
 | `DELETE` | `/steam/link` | `204` | `401` |
 | `POST` | `/steam/library/preview` | `200` with `{ state, candidates[], message }` | `401`, `404`, `503` |
 | `POST` | `/steam/library/import` | `200` with `{ imported[], alreadyImported[], unavailable[], invalid[] }` | `400`, `401`, `404`, `503` |
 
 Behavior:
 
-- **OpenID verification.** Assertions are checked against the trusted `SteamIntegration__OpenIdVerifyUrl`, identity and exact return URL. Only state hashes are persisted; the bounded browser cookie also contains a hash, never raw state. SQL expiry/replay checks remain authoritative. Callback responses do not delete cookies, so delayed responses cannot erase a newer flow.
+- **OpenID verification.** Pinned bounded direct verification, signed-field/nonce checks and exact return_to; independent random HttpOnly browser proof, not a state-derived hash. Only contextual verifier/state hash are persisted. Callback never refreshes/deletes the cookie or links an account.
 - **Unlink-first relinking.** Linking when a Steam account is already linked returns `409`. The user must unlink first.
 - **Concurrency and identity.** Per-Library SQL locking serializes links/unlinks/imports. A SteamID64 is unique across Libraries; a Steam AppID is unique only within its Library. The backend validates/deduplicates selected AppIDs, refetches provider data and imports transactionally. Reimports skip existing AppIDs. Manual same-name games are never merged or overwritten.
 - **Explicit batches.** Select All caps selection at 100 and preserves explicit choices. Every batch requires user review and an explicit Import action; no automatic chunking or background sync.
 - **Private/empty libraries.** Recognized successful empty Steam responses show no-visible-games/privacy guidance. HTTP auth/rate-limit/server failures and malformed/network responses remain errors, not successful empty libraries.
 - **Covers/playtime.** Supported Steam logos may supply an external cover only when both cover references are empty, atomically. Existing user-selected covers win. Steam playtime is external reference data, never an automatic PlayLogEntry or GameStatus/progress update.
 - **Random Picker eligibility.** Steam-imported entries participate like any other Owned VideoGame.
-- **Schema.** Existing `AddSteamIntegration` and `AddSteamPlaytimeTracking` migrations contain the required tables/fields; linking stabilization adds no schema migration.
+- **Schema.** PR 2's additive v2 migration is required by the API. PRs 3/4 add no migration. Missing schema disables linking only; existing data/import/unlink remain independent.
 
-Frontend: a protected `/manage/steam` route (`features/manage/steam/`) provides the full Steam integration UX. The Manage hub includes a Steam card linking to this route. The page handles linked/unlinked states, preview candidates with selectable checkboxes, import with summary, duplicate-click protection, and error states.
+Frontend `/manage/steam` shows linking actions only for available protocol version 2.
+It validates the exact Steam HTTPS destination before same-tab native navigation,
+stores only T/initiating subject/deadline in tab sessionStorage, then presents the
+full verified SteamID and current Game Library account for explicit Confirm/Cancel.
+No automatic confirmation/preview/import, URL/JWT/proof storage, locator-in-URL or
+legacy fallback. Refresh can review a live handle; lost storage/blocked proof needs
+restart. Account changes clear private results/metadata and suppress stale responses.
+HTTP framing headers cover the frontend/SPA fallback; hosted verification is pending.
 
-Playwright E2E uses `E2E__SteamIntegration__Enabled=true` with a deterministic `FakeSteamClient` that verifies any OpenID assertion and returns three fixed owned games (Dota 2, Counter-Strike 2, Team Fortress 2).
+Playwright explicitly adds `E2E__SteamLinking__Enabled=true` only in its isolated
+Development/Test host, with E2E auth/provider, literal `127.0.0.1` bases and
+`game_library_e2e` on loopback. Production/Staging reject that composition before I/O.
+Shipped readiness remains hard false. The browser intercepts Steam at the provider
+boundary (no real network), returns realistic synthetic signed assertions and uses
+real Kestrel/Core/PostgreSQL/browser cookie transport. The E2E provider validates
+the synthetic HMAC and spends nonces once; it no longer accepts arbitrary assertions.
+Existing import fixtures still return Dota 2, Counter-Strike 2 and Team Fortress 2.
+Playwright refuses to reuse arbitrary running servers. Never point E2E/reset at a
+real/hosted Library. This fixture does not establish real Steam or installed-device
+browser interoperability.
 
 Verification:
 

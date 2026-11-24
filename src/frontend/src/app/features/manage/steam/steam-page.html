@@ -19,10 +19,36 @@
   } @else if (!status()) {
     <p class="steam-loading">Unable to load Steam status.</p>
   } @else {
-    <div class="steam-notice steam-notice--warning" role="status">
+    @if (!canLink()) {
+      <div class="steam-notice steam-notice--warning" role="status">
       Steam linking is temporarily unavailable. Existing linked accounts are unchanged.
       Unlinking an account will not allow you to link it again while linking is unavailable.
-    </div>
+      </div>
+    }
+
+    @if (canLink()) {
+      @if (linking.message()) {
+        <p class="steam-notice steam-notice--info" role="status">{{ linking.message() }}</p>
+      }
+      @if (linking.handle()) {
+        <section class="steam-card steam-review" aria-labelledby="steam-review-title" [attr.aria-busy]="linking.busy()">
+          <h2 id="steam-review-title">Review Steam link</h2>
+          <p>Game Library account: <strong>{{ accountLabel() }}</strong></p>
+          @if (linking.review()?.state === 'AwaitingConfirmation') {
+            <p>Verified SteamID64: <strong data-testid="verified-steam-id">{{ linking.review()!.steamId64 }}</strong></p>
+            <p>Check the complete SteamID. Verification does not mean this is the account you intended.
+              Nothing is linked until you confirm. Wrong account? Cancel and start again.</p>
+            <button class="btn btn--primary" (click)="linking.confirm()" [disabled]="linking.busy()">Confirm linking this Steam account</button>
+          } @else {
+            <p>{{ linking.busy() ? 'Checking Steam linking…' : 'No current confirmation is ready. Check linking status to review the durable result.' }}</p>
+          }
+          <div class="steam-card__actions">
+            <button class="btn btn--secondary" (click)="linking.refresh()" [disabled]="linking.busy()">Check linking status</button>
+            <button class="btn btn--secondary" (click)="linking.cancel()" [disabled]="linking.busy()">Cancel linking</button>
+          </div>
+        </section>
+      }
+    }
 
     @if (!status()!.enabled) {
       <div class="steam-notice steam-notice--info">Steam integration is not configured.</div>
@@ -42,7 +68,7 @@
           <button class="btn btn--primary" (click)="onPreview()" [disabled]="!status()!.importAvailable || previewing() || importing() || unlinking()">
             {{ previewing() ? 'Loading…' : 'Preview Steam library' }}
           </button>
-          <button class="btn btn--danger" (click)="onUnlink()" [disabled]="unlinking() || importing() || previewing()">
+          <button class="btn btn--danger" (click)="onUnlink()" [disabled]="unlinking() || importing() || previewing() || linking.busy()">
             {{ unlinking() ? 'Unlinking…' : 'Unlink' }}
           </button>
         </div>
@@ -50,7 +76,13 @@
     } @else {
       <div class="steam-card">
         <h2>No Steam Account Linked</h2>
-        <p>New Steam links are unavailable. You can continue managing your games manually.</p>
+        @if (canLink()) {
+          <p>Starting a new link replaces any unfinished request for your account, including in another tab or browser.
+            Complete Steam verification in this tab, then return here for an explicit account review.</p>
+          <button class="btn btn--primary" (click)="onLink()" [disabled]="linking.busy()">{{ linking.handle() ? 'Start again with Steam' : 'Link Steam account' }}</button>
+        } @else {
+          <p>New Steam links are unavailable. You can continue managing your games manually.</p>
+        }
       </div>
     }
 

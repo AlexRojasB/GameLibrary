@@ -1,4 +1,8 @@
 .steam {
+  .steam-review {
+    overflow-wrap: anywhere;
+    .steam-card__actions { margin-top: 0.75rem; }
+  }
   &-notice {
     padding: 0.8rem 1rem;
     border-radius: var(--radius-card);
