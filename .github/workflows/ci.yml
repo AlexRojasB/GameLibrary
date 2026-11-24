@@ -44,10 +44,13 @@ jobs:
         run: |
           bash tools/cover-native/prepare.sh linux-x64
           dotnet restore src/backend/GameLibrary.sln --locked-mode
+          dotnet restore tools/cover-api-body-tests/BodyTests.csproj
       - name: Build and run Core tests without external network
         run: |
           bash tools/ci/run-isolated.sh none dotnet build src/backend/GameLibrary.sln -c Release --no-restore
           bash tools/ci/run-isolated.sh none dotnet test tests/backend/GameLibrary.Core.Tests -c Release --no-build --no-restore
+          bash tools/ci/run-isolated.sh none dotnet build tools/cover-api-body-tests -c Release --no-restore
+          bash tools/ci/run-isolated.sh none dotnet tools/cover-api-body-tests/bin/Release/net10.0/CoverApiVerification.BodyTests.dll
       - name: Verify Production policy is packaged
         run: |
           bash tools/ci/run-isolated.sh none dotnet publish src/backend/GameLibrary.Api -c Release --no-build --no-restore -o "$RUNNER_TEMP/api-publish" -p:PublishTrimmed=false -p:PublishSingleFile=false
@@ -151,4 +154,12 @@ jobs:
       - name: Validate existing G01 and bounded whole-API Linux gates
         run: |
           docker pull "$(cat tools/ci/postgres-image.txt)"
-          bash tools/ci/native-runtime.sh
+          python3 -B tools/ci/native-runtime-evidence.py --output "$RUNNER_TEMP/native-runtime-evidence"
+      - name: Preserve bounded native resource evidence, including failures
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-runtime-evidence-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/native-runtime-evidence/
+          if-no-files-found: error
+          retention-days: 14

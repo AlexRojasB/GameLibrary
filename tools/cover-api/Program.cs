@@ -34,9 +34,17 @@ internal static class Gate
             throw new InvalidOperationException("Explicit local bounded verification opt-in is required.");
         if (!OperatingSystem.IsLinux() || RuntimeInformation.ProcessArchitecture != Architecture.X64 || Environment.UserName == "root")
             throw new InvalidOperationException("Use the approved non-root Noble Linux amd64 verification container.");
-        var limit = long.Parse(File.ReadAllText("/sys/fs/cgroup/memory.max").Trim());
-        Assert.Equal(512L * 1024 * 1024, limit);
-        Assert.Contains("200000 100000", File.ReadAllText("/sys/fs/cgroup/cpu.max"));
+        try { return await NativeResourceBudget.VerifyAsync(Run); }
+        catch (Exception)
+        {
+            // Never expose exception/configuration/request details in resource evidence.
+            Console.WriteLine("NATIVE_RESOURCE_ERROR code=verification-failed");
+            return 1;
+        }
+    }
+
+    private static async Task<int> Run()
+    {
         Console.WriteLine($"TARGET runtime={RuntimeInformation.FrameworkDescription} os={RuntimeInformation.OSDescription} arch={RuntimeInformation.ProcessArchitecture} user={Environment.UserName}");
         using var overall = new CancellationTokenSource(TimeSpan.FromMinutes(8));
         var token = overall.Token;
@@ -47,7 +55,8 @@ internal static class Gate
         await database.Fixture.InitializeAsync();
         await using var provider = new StorageFixture();
         await provider.Start();
-        var factory = Api();
+        await using var factories = new FactoryLifetime();
+        var factory = factories.Current = Api();
         using var client = Client(factory);
         await Wait(async () => (await client.GetAsync("/health", token)).IsSuccessStatusCode);
         var limits = factory.Services.GetRequiredService<IOptions<KestrelServerOptions>>().Value.Limits;
@@ -104,7 +113,7 @@ internal static class Gate
                 using (response)
                 {
                     Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-                    Assert.Equal(2097152, (await response.Content.ReadAsByteArrayAsync(token)).Length);
+                    await BufferedResponseBody.AssertLengthAsync(response.Content, 2097152, token);
                     Privacy(response);
                 }
             provider.WritesBlocked = provider.ReadsBlocked = null;
@@ -239,7 +248,7 @@ internal static class Gate
         }
         provider.FailDeletes = true;
         await factory.DisposeAsync();
-        factory = Api();
+        factory = factories.Current = Api();
         using (var restarted = Client(factory, client.DefaultRequestHeaders.Authorization))
         {
             await Wait(() => Task.FromResult(provider.Deletes > 0));
@@ -255,7 +264,7 @@ internal static class Gate
         await using (var db = database.Fixture.CreateDb())
             await db.CoverUploads.Where(u => u.Id == due).ExecuteUpdateAsync(s => s.SetProperty(u => u.CleanupAfter, DateTimeOffset.UtcNow.AddMinutes(-1)), token);
         await factory.DisposeAsync();
-        factory = Api(enabled: false);
+        factory = factories.Current = Api(enabled: false);
         using (var disabled = Client(factory, client.DefaultRequestHeaders.Authorization))
         {
             await Wait(async () => { await using var db = database.Fixture.CreateDb(); return !await db.CoverUploads.AnyAsync(u => u.Id == due, token); });
@@ -286,6 +295,7 @@ internal static class Gate
             Assert.Equal(seed, await db.Games.Where(g => g.Id == attached).Select(g => g.CoverUploadId).SingleAsync(token));
         }
         await factory.DisposeAsync();
+        factories.Current = null;
         provider.ReadsBlocked = null;
         Check("bounded safe shutdown with a pending provider request preserves attachment");
 
@@ -322,10 +332,7 @@ internal static class Gate
         }
         Check("real-host 15-minute cleanup timer, retained tombstone scheduling and active-reference preservation");
         Metrics("final");
-        var memoryEvents = File.ReadAllText("/sys/fs/cgroup/memory.events");
-        Assert.Contains("oom 0", memoryEvents);
-        Assert.Contains("oom_kill 0", memoryEvents);
-        Assert.True(long.Parse(File.ReadAllText("/sys/fs/cgroup/memory.peak").Trim()) < limit);
+        Assert.Equal(18, cases);
         Console.WriteLine($"RESULT cases={cases} elapsedMs={elapsed.ElapsedMilliseconds} processCpuMs={(Process.GetCurrentProcess().TotalProcessorTime - cpu).TotalMilliseconds:F0} providerWrites={provider.Writes} providerReads={provider.Reads} providerDeletes={provider.Deletes} providerCancellations={provider.Cancellations}");
         return 0;
 
@@ -480,8 +487,33 @@ internal static class Gate
     }
 }
 
+// GetAsync has already buffered the body. Count through EOF without making another full copy.
+internal static class BufferedResponseBody
+{
+    internal static async Task AssertLengthAsync(HttpContent content, long expected, CancellationToken ct)
+    {
+        await using var stream = await content.ReadAsStreamAsync(ct);
+        var buffer = new byte[16 * 1024];
+        long length = 0;
+        int read;
+        while ((read = await stream.ReadAsync(buffer, ct)) != 0)
+            length += read;
+        Assert.Equal(expected, length);
+    }
+}
+
 internal sealed class DatabaseLifetime : IAsyncDisposable
 {
     internal readonly CoverHttpDatabaseFixture Fixture = new();
     public async ValueTask DisposeAsync() => await Fixture.DisposeAsync();
+}
+
+// Own only the current host, never an accumulating list of retired factory graphs.
+internal sealed class FactoryLifetime : IAsyncDisposable
+{
+    internal WebApplicationFactory<global::Program>? Current;
+    public async ValueTask DisposeAsync()
+    {
+        if (Current is { } current) await current.DisposeAsync();
+    }
 }
