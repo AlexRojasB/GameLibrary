@@ -23,14 +23,44 @@ public class GameLibraryDbContext : DbContext
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
+        ValidateSteamLinkTransitions();
         ValidateCoverReceipts();
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
+        ValidateSteamLinkTransitions();
         ValidateCoverReceipts();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void ValidateSteamLinkTransitions()
+    {
+        foreach (var entry in ChangeTracker.Entries<SteamLinkRequest>().Where(e => e.State == EntityState.Modified
+                     && e.OriginalValues.GetValue<short>(nameof(SteamLinkRequest.ProtocolVersion)) == 2))
+        {
+            foreach (var name in new[] { nameof(SteamLinkRequest.LibraryId), nameof(SteamLinkRequest.ProtocolVersion),
+                         nameof(SteamLinkRequest.InitiatingUserId), nameof(SteamLinkRequest.BrowserBindingHash),
+                         nameof(SteamLinkRequest.StateHash), nameof(SteamLinkRequest.CreatedAt), nameof(SteamLinkRequest.ExpiresAt) })
+            {
+                var property = entry.Property(name);
+                var equal = property.OriginalValue is byte[] original && property.CurrentValue is byte[] current
+                    ? original.AsSpan().SequenceEqual(current) : Equals(property.OriginalValue, property.CurrentValue);
+                if (!equal) throw new InvalidOperationException("Steam linking creation fields are immutable.");
+            }
+            foreach (var name in new[] { nameof(SteamLinkRequest.VerifiedSteamId64), nameof(SteamLinkRequest.AssertionAcceptedAt),
+                         nameof(SteamLinkRequest.ConsumedAt), nameof(SteamLinkRequest.LinkedAccountId), nameof(SteamLinkRequest.CancelledAt) })
+            {
+                var property = entry.Property(name);
+                if (property.OriginalValue is not null && !Equals(property.OriginalValue, property.CurrentValue))
+                    throw new InvalidOperationException("Steam linking transitions are write-once.");
+                if ((entry.OriginalValues.GetValue<DateTimeOffset?>(nameof(SteamLinkRequest.CancelledAt)) is not null
+                     || entry.OriginalValues.GetValue<DateTimeOffset?>(nameof(SteamLinkRequest.ConsumedAt)) is not null)
+                    && property.IsModified && !Equals(property.OriginalValue, property.CurrentValue))
+                    throw new InvalidOperationException("Terminal Steam linking transactions cannot change.");
+            }
+        }
     }
 
     private void ValidateCoverReceipts()
@@ -480,6 +510,7 @@ public class GameLibraryDbContext : DbContext
 
         modelBuilder.Entity<SteamLinkRequest>(entity =>
         {
+            SteamLinkPersistence.Configure(entity);
             entity.ToTable("steam_link_requests");
             entity.HasKey(r => r.Id)
                 .HasName("pk_steam_link_requests");

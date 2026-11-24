@@ -322,6 +322,10 @@ public class CoverLifecycleTests(CoverLifecycleFixture fixture) : IClassFixture<
     public async Task Migration_preserves_existing_external_cover_and_enforces_relational_constraints()
     {
         await using var db = fixture.CreateDb();
+        // This nonparallel fixture exclusively owns a random disposable database.
+        // Test a forward upgrade from empty, not a destructive downgrade through
+        // later additive migrations whose receipts intentionally cannot be dropped.
+        await db.Database.EnsureDeletedAsync();
         var migrator = db.GetService<IMigrator>();
         await migrator.MigrateAsync("20261028185426_AddFamilyFriendly");
         var libraryId = Guid.NewGuid();

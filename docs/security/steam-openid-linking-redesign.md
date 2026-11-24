@@ -2,7 +2,16 @@
 
 ## 1. Status, authority and scope
 
-**Proposed design — implementation and activation NOT approved. Production blocker OPEN.**
+**Owner-approved v2 baseline; PR 2 local persistence/Core implementation authorized.
+Activation and production release NOT approved. Production blocker OPEN.**
+
+2026-11-24 authorization: following merged legacy retirement (PR #9), the owner
+approved the recommended Option A / D01–D11 baseline and PR 2 only: additive EF
+state and private Core proof/lifecycle, with real disposable PostgreSQL tests.
+No new public handlers, Angular, runtime activation, deployment, remote migration,
+push or merge is authorized. The historical review/approval requests below describe
+the original review, not a new choice of protocol. Product/Domain/Architecture and
+Feature 011 now record this bounded authorization in linking-persistence-core.md.
 Revision: **v2 security design review, 2026-11-21**. Technical recommendations below
 are explicit and testable, but are not owner approval or evidence of an implemented
 secure protocol. Re-reviewed the complete prior document, current API/Core/Angular,

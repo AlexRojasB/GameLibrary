@@ -4,6 +4,11 @@
 
 `Approved`
 
+2026-11-24: [linking-persistence-core.md](linking-persistence-core.md) is the active
+owner-authorized PR 2 scope and adopts the approved v2 redesign for private Core
+and additive persistence only. It supersedes historical callback-created account
+and legacy state semantics for v2; it does not restore any public linking route.
+
 2026-11-21: [linking-retirement.md](linking-retirement.md) is the active, narrowly
 authorized application-level security milestone. It supersedes historical legacy
 linking availability, redirect, cookie issuance and completion behavior in this file

@@ -3,6 +3,19 @@ Architecture Specification v0.4 --- Game Library
 Status: Approved
 Version: 0.4
 
+Feature 011 PR 2 amendment, 2026-11-24 -- Approved local persistence/Core:
+Implement Option A's approved private Core lifecycle and one additive EF migration
+in existing steam_link_requests, with versioned NULL-safe constraints, partial unique
+Library index and binary contextual verifier. Use Library→row locks, READ COMMITTED,
+PostgreSQL clock_timestamp(), bounded SQL budgets, post-write JWT/deadline checks
+and fresh-primary lock-barrier reconciliation; no automatic mutation replay.
+Cleanup is at most 100 eligible rows of the caller's Library during creation/cancel,
+not a worker or inactivity deletion SLA. No additional project/dependency, RLS
+workflow, public handler, Angular or activation. Shipped readiness remains hard
+false. Legacy rejection, existing imports/status/unlink and native CI 768/640 remain.
+See specs/011-steam-integration/linking-persistence-core.md. This is not proof of
+global legacy retirement or authorization to apply schema outside disposable tests.
+
 Feature 011 security milestone, 2026-11-21 -- Authorized local implementation:
 
 Legacy linking is unconditionally rejected at API and Core boundaries in the new

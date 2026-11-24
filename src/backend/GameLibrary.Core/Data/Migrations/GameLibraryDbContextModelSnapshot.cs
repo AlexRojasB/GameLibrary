@@ -523,6 +523,18 @@ namespace GameLibrary.Core.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("AssertionAcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("assertion_accepted_at");
+
+                    b.Property<byte[]>("BrowserBindingHash")
+                        .HasColumnType("bytea")
+                        .HasColumnName("browser_binding_hash");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
+
                     b.Property<DateTimeOffset?>("ConsumedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("consumed_at");
@@ -535,9 +547,23 @@ namespace GameLibrary.Core.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
 
+                    b.Property<string>("InitiatingUserId")
+                        .HasColumnType("text")
+                        .HasColumnName("initiating_user_id");
+
                     b.Property<Guid>("LibraryId")
                         .HasColumnType("uuid")
                         .HasColumnName("library_id");
+
+                    b.Property<Guid?>("LinkedAccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("linked_account_id");
+
+                    b.Property<short>("ProtocolVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)1)
+                        .HasColumnName("protocol_version");
 
                     b.Property<string>("StateHash")
                         .IsRequired()
@@ -545,8 +571,15 @@ namespace GameLibrary.Core.Data.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("state_hash");
 
+                    b.Property<string>("VerifiedSteamId64")
+                        .HasColumnType("text")
+                        .HasColumnName("verified_steam_id64");
+
                     b.HasKey("Id")
                         .HasName("pk_steam_link_requests");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("ix_steam_link_requests_expires_at");
 
                     b.HasIndex("LibraryId")
                         .HasDatabaseName("ix_steam_link_requests_library_id");
@@ -555,11 +588,25 @@ namespace GameLibrary.Core.Data.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_steam_link_requests_state_hash");
 
+                    b.HasIndex(new[] { "LibraryId" }, "ix_steam_link_requests_v2_live_library")
+                        .IsUnique()
+                        .HasFilter("protocol_version = 2 AND cancelled_at IS NULL AND consumed_at IS NULL");
+
                     b.ToTable("steam_link_requests", null, t =>
                         {
                             t.HasCheckConstraint("ck_steam_link_requests_expires_at", "expires_at > created_at");
 
                             t.HasCheckConstraint("ck_steam_link_requests_state_hash", "char_length(state_hash) = 64");
+
+                            t.HasCheckConstraint("ck_steam_link_requests_v2_binding", "protocol_version = 1 OR (\n    initiating_user_id IS NOT NULL AND char_length(btrim(initiating_user_id)) > 0\n    AND browser_binding_hash IS NOT NULL AND octet_length(browser_binding_hash) = 32\n    AND state_hash ~ '^[0-9a-f]{64}$')");
+
+                            t.HasCheckConstraint("ck_steam_link_requests_v2_dates", "protocol_version = 1 OR (\n    (cancelled_at IS NULL OR (consumed_at IS NULL AND cancelled_at >= created_at))\n    AND (assertion_accepted_at IS NULL OR\n         (assertion_accepted_at >= created_at AND assertion_accepted_at < expires_at))\n    AND (consumed_at IS NULL OR\n         (consumed_at >= assertion_accepted_at AND consumed_at < expires_at)))");
+
+                            t.HasCheckConstraint("ck_steam_link_requests_v2_identity", "protocol_version = 1 OR (\n    (verified_steam_id64 IS NULL AND assertion_accepted_at IS NULL) OR\n    (verified_steam_id64 IS NOT NULL AND assertion_accepted_at IS NOT NULL AND\n     CASE WHEN verified_steam_id64 ~ '^[1-9][0-9]{0,19}$'\n          THEN verified_steam_id64::numeric BETWEEN 1 AND 18446744073709551615\n          ELSE FALSE END))");
+
+                            t.HasCheckConstraint("ck_steam_link_requests_v2_phase", "protocol_version = 1 OR (\n    (consumed_at IS NULL AND linked_account_id IS NULL) OR\n    (consumed_at IS NOT NULL AND linked_account_id IS NOT NULL\n     AND verified_steam_id64 IS NOT NULL AND assertion_accepted_at IS NOT NULL))");
+
+                            t.HasCheckConstraint("ck_steam_link_requests_version", "protocol_version IN (1, 2)");
                         });
                 });
 
