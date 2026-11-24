@@ -78,7 +78,8 @@ a claim that documentation completed activation or that a QA bypass is approved.
 | Lint / TypeScript spec noEmit / EF pending-model check | PASS |
 | Complete PostgreSQL/API suite | **1297 passed**, zero failures/skips; 8m56s |
 | Final operational/mixed-host/old-schema assertions | **10 passed**, zero failures/skips after final Release build |
-| Complete desktop/mobile E2E | **46/52 passed**, six failures, zero retries/skips; 11.0m — publication blocker |
+| Initial complete desktop/mobile E2E (`956f941`) | **46/52 passed**, six failures, zero retries/skips; 11.0m; later remediation results below |
+| Final remediation complete desktop/mobile E2E | **51/52 passed**, **28/28 Steam**, one desktop cover-preparation failure; zero retries/skips, 4.6m — publication blocker |
 
 The full 1297-case run preceded one additional mixed-host test and extension of
 the old-schema HTTP assertions (test-only changes). The final 10-case selection
@@ -95,7 +96,7 @@ Local logs are restricted approved temporary storage under `steam-pr5-*` in
 `/private/var/folders/fd/h4rhj_wn5_71qy5q79xm8r_m0000gn/T/opencode/`.
 No raw browser traces/protocol canaries are committed or published.
 
-### Current E2E failures — not acceptance-complete
+### Preserved initial PR 5 E2E failures (`956f941`)
 
 One complete run, source frozen, no concurrent builds/test suites,
 `--retries=0 --workers=1 --trace=retain-on-failure`. **26/28 Steam cases passed**;
@@ -116,8 +117,8 @@ completed response; this does not prove an API authorization failure or identify
 the cause of the browser session closure. The desktop trace error limits diagnosis;
 it must not be interpreted as evidence that cookie-transfer protection passed.
 
-The complete frontend/E2E tree and cover source are byte-identical to current
-`origin/dev`. Prior PR 4 comparisons already demonstrated sampled cover instability
+At `956f941`, the complete frontend/E2E tree and cover source were byte-identical
+to `origin/dev`. Prior PR 4 comparisons already demonstrated sampled cover instability
 on its own baseline, and the merge's standard CI is green. Those facts do **not**
 prove every present failure is pre-existing or unrelated to the new observation
 middleware. No security bypass, violated owner invariant or definite root cause
@@ -129,6 +130,96 @@ publication recommendation; no open-ended diagnostic campaign was started.
 Artifacts: `steam-pr5-e2e.log` and `steam-pr5-e2e/` in the restricted temporary
 directory above. Protocol traces remain private; only sanitized conclusions appear
 here. The green API/Core/Angular suites do not replace the failed browser acceptance.
+
+### Owner-authorized final E2E remediation
+
+Started from clean `956f9418e298376502ff56a99f0c9527fbb3e8eb` on the same branch.
+All six preserved contexts and five available traces were reviewed; the missing
+desktop transfer trace still limits historical diagnosis. The E2E serve options
+remain **hmr=false / liveReload=false**. All five valid initial failure traces had
+**zero NG0751 diagnostics and zero `/@ng/component` requests**. The PR 4 correction
+has not regressed; it was never a demonstrated universal cover-instability cure.
+
+**Bounded reproductions (one worker, zero retries/skips, same existing timeouts):**
+
+- Unchanged PR 5 targeted desktop/mobile selection: **7/10 passed (2.5m)**.
+  Desktop Escape failed export completion; desktop lost-Create-response failed
+  preparation; desktop two-cookie-context Steam case exhausted its 30s test budget.
+  Other selected cases passed, including mobile account-switch. The new transfer
+  trace shows expensive setup/native navigation (an initial root navigation about
+  8.4s), real creation **201** and callback **303**, then teardown at the deadline.
+  The last heading expectation was still pending; `receiver.close()` reported a
+  closed browser after timeout. No failed review-authorization response is shown.
+- Exact detached local `origin/dev` reference
+  **0d96b06cc715d67522f8e0ccb3203845264eca4f**, same installed lockfile dependencies,
+  prepared native assets, settings and targeted selection, fresh local services:
+  **6/10 passed (3.3m)**. Four cover failures: VideoGame export desktop/mobile,
+  lost-Create preparation desktop and Escape export mobile. All **4 selected Steam
+  cases passed** without PR 5's observer. Baseline source tree stayed clean.
+  This directly reproduces cover preparation/export failures without the new
+  observer; it does not prove every failure has one cause or exclude a timing
+  contribution from observation in every Steam run.
+
+**Minimal correction:** a feature-local, test-scoped `accountEmail` fixture gives
+each test its existing unique synthetic identity and real UI login in `beforeEach`.
+The transfer, wrong-account and pending-response scenarios reuse that initial email
+instead of immediately performing a second sender login under another setup-only
+identity. This removes redundant logout/root reload/login/navigation work from the
+unchanged 30s budget. Actual U→W→U transitions, receiver UI login in a separate
+cookie context, proof transfer/derivation and every security assertion remain.
+No API/body/provider mocking shortcut, direct auth-session injection, removed
+assertion, timeout increase, retry, rate/isolation change or production fix.
+
+The PR 5 admission implementation is byte-identical to `origin/dev` apart from a
+comment. Its only added HTTP execution behavior is the metadata observer before
+the privacy middleware: short counter locks, no request retention, SQL/provider
+call or lock held across `next`. Prior admission/privacy/held-writer regression
+evidence remains valid. This remediation does not disable or weaken observation,
+execute invalidation/activation procedures or claim that a single A/B comparison
+conclusively attributes all Steam timing failures. Covers are unchanged because
+these bounded runs do not justify a speculative decoder/cropper correction.
+
+Fresh checks: configuration/header/cache **18/18**, lint and configured TypeScript
+spec `noEmit` passed; Playwright discovers the same **28 Steam cases**. An attempted
+extra standalone E2E typecheck was not a configured project check: TypeScript 6
+first required `--ignoreConfig`, then reported the existing installation lacks
+`@types/node`. No dependency was added and no standalone E2E typecheck pass is
+claimed. The actual Playwright fixture is verified by browser execution below.
+Earlier application builds/API/Core/Angular suites are reused unchanged evidence,
+not rerun claims for a test-setup/report-only correction.
+
+Post-correction targeted selection: **8/12 passed (3.0m)**, zero retries/skips.
+All **6/6 Steam** cases passed (transfer, wrong account/switch-back and pending
+create/review account changes on desktop/mobile), with the observer still enabled.
+Four covers failed: VideoGame export desktop/mobile, Escape export desktop and
+lost-Create preparation desktop. This supports removing redundant initial login
+work, not a universal timing/stability or cover-fix claim. A static comparison also
+confirmed all 14 Steam scenario titles, every expectation line and the real-login
+helper are preserved; actual account switches and separate-context proof remain.
+
+**Final complete result: 51/52 passed (4.6m), zero retries/skips.** Exactly one
+complete desktop/mobile run under this remediation authorization used
+`--retries=0 --workers=1 --trace=retain-on-failure`, source frozen and no concurrent
+builds/test suites. All **28/28 Steam** scenarios passed with the operational
+observer enabled, including both originally failing Steam scenarios and every
+account-switch/transfer security assertion. No further rerun follows this result.
+
+**Concrete remaining blocker:** desktop VideoGame upload/crop/replace/remove
+failed at `covers.spec.ts:254` (called from line 33): after choosing the first local
+image, the add dialog remained at `Preparing image...` and its editor never became
+visible within the unchanged 5s expectation. The retained ZIP is valid, contains
+zero NG0751/HMR component requests and **zero cover-upload POSTs**: failure occurred
+in local preparation, before upload/claim/save/replacement assertions. Mobile and
+all other cover cases passed in this run. The same sampled workflow failed in the
+exact baseline too, but its definitive cause and broad stability remain unresolved.
+Do not treat earlier failed paths as permanently fixed just because they passed
+in this final run. No decoder/cropper change, assertion relaxation or further
+diagnostic campaign is justified/performed here. The suite remains red.
+
+Restricted artifacts/logs use `steam-pr5-remediation-before`,
+`steam-pr5-remediation-baseline-e2e`, `steam-pr5-remediation-after` and
+`steam-pr5-remediation-final` in the existing approved temporary directory. Do not
+publish raw cookie/JWT/assertion/correlation payloads from retained traces.
 
 ## 3. T01–T30 traceability review
 
@@ -223,7 +314,7 @@ this task grants neither. Existing historical records are not erased or re-read.
 | Gate | Current state |
 | --- | --- |
 | Approved protocol/Domain/local architecture | SATISFIED for the bounded local deliverable |
-| Local protocol/confirmation/negative/race/owner tests | Backend/unit evidence green; current complete browser run **RED (46/52)** |
+| Local protocol/confirmation/negative/race/owner tests | Backend/unit evidence green; final browser run **RED (51/52)**, all **28/28 Steam** passed; cover preparation remains blocked |
 | Metadata observation and fault-tested maintenance procedure | Implemented locally; not proof of operational execution |
 | Standard CI/native verification | Baseline five green; exact final PR 5 SHA pending publication authorization |
 | Every old serving/restart/rollback source retired | **UNVERIFIED / operational authorization needed** |
@@ -257,9 +348,12 @@ pauses/drains/invalidates and never executes a Down migration or restores old pr
 
 **NOT ready to publish PR 5 as acceptance-complete:** local safety changes and
 operational procedures are implemented/committed for review, but the current complete
-E2E suite remains red (four cover cases and two Steam cases). All six failures are
-preserved above without a conclusive root-cause claim. A bounded follow-up must
-resolve/verify the browser blockers before claiming complete local acceptance.
+E2E suite remains red: **51/52**, with one desktop VideoGame local-preparation
+failure. All **28 Steam** cases passed after the minimal setup correction; the
+original six failures and bounded comparisons remain preserved above. The remaining
+cover blocker needs a separately bounded follow-up before complete local acceptance;
+no definitive historical cover-instability resolution or universal timing cure is
+claimed. This authorized remediation stops without another run.
 
 **Activation remains NO-GO independently of those local failures.** Global retirement,
 drain/invalidation, exact final CI/rollback artifact, infrastructure privacy and
