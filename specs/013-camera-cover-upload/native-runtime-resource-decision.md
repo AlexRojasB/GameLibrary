@@ -1,7 +1,9 @@
 # Native-runtime resource decision — 2026-11-23
 
-Status: architecture approved for isolated local implementation. Hosted validation,
-publication, PR #9 changes, merge, deployment and Steam OpenID v2 are NOT authorized.
+Status: 768/640 MiB approved for publication and normal required PR validation after
+the completed Linux matrix. The twelve additional diagnostic confirmations are
+explicitly canceled by the owner. No further diagnostic workloads, PR #9 changes,
+merge, deployment or Steam OpenID v2 are authorized.
 
 ## Separate contracts
 
@@ -30,7 +32,8 @@ one candidate without detailed observers. Two complete instrumented pairs saved
 allocation attribution, application leak or consistent PR #9 regression is proven.
 
 Use A-minimal (remove only the second buffered response copy) plus conditional C.
-768 is a candidate, not demonstrated sufficient. 640 is an engineering threshold,
+At the initial decision, 768 was a candidate, not demonstrated sufficient.
+640 is an engineering threshold,
 not a measured percentile: it provides 128 MiB to the hard cap, approximately 25%
 over the largest recorded 509.707 MiB lower bound before an OOM. Changing the cap
 may change GC behavior and peak memory; allocations are not resident bytes.
@@ -64,18 +67,43 @@ and numeric status, including failures. Missing telemetry is never zero/success.
 The required job remains named `native-runtime`; no skips, retries, continue-on-error,
 manual success check or diagnostic result can replace it.
 
-## Validation and approval boundaries
+## Completed validation and revised owner approval
 
-Local helper/unit/build/source-equivalence tests precede Linux execution. Portable
-tests are not kernel/native/OOM evidence. The frozen matrix protocol defines 18
-complete Linux workloads with all failures preserved. Execution needs new approval.
-Review the matrix before authorizing twelve additional final-profile confirmations
-(eight minimal/four detailed), publication or incorporation. No statistical SLO or
-leak-free claim follows from a small finite sample or green CI.
+The authorized [18-trial Linux matrix](native-runtime-linux-matrix-report.md) ran
+once at implementation SHA `9a321e6265b39976d4e37d6dacec88a7910e70c9`:
+512 MiB completed 5/6 (one preserved exit-137/OOM), 768 completed 6/6 with final
+peaks 399.015625–531.296875 MiB, and diagnostic-only 1024 completed 6/6. The overall
+diagnostic run remains FAILURE. All six 768 trials met the unchanged 640 threshold,
+effective limits, zero events, no swap, full workload and post-teardown metrics.
+Local helper/unit/build/source-equivalence tests preceded Linux execution; portable
+tests are not kernel/native/OOM evidence.
+
+The owner explicitly judges this matrix sufficient to proceed and replaces the
+previous twelve-confirmation plan (eight minimal/four detailed) with normal PR
+validation, balancing confidence, development time and CI costs. Do NOT execute
+those twelve or any additional diagnostic matrix. The frozen protocol and previous
+implementation report remain historical, not instructions to launch more trials.
+
+Publish an independent remediation PR to current dev. Require all five normal
+checks: backend, postgres, frontend, e2e and native-runtime. Native acceptance is
+94 image cases, 60 operations, both negative controls and all 18 ordered API cases,
+peak <=640 MiB, correct effective 768 MiB/no-extra-swap configuration, zero unexpected
+events, complete startup/post-teardown metrics and exit 0/OOM false. No coverage or
+isolation regression. Any failure must be reported specifically: no automatic rerun,
+memory escalation, threshold relaxation or weakened workload/isolation.
+
+The owner accepts the documented measurement scope for this PR: awaited workload
+and teardown, NOT the complete remaining container lifetime. All 17 complete matrix
+trials had final peak equal to pre-teardown peak; no observed sample exceeded it.
+After that final read, logging/validation/.NET exit still occur; external final
+samples found the cgroup gone. Docker exit/OOM covers termination, but a brief
+>640 MiB tail below the cap could escape detection. This gap is not closed by
+approval or by green CI. No statistical SLO, leak-free claim or definitive
+elimination of intermittent OOM follows from the finite sample or normal PR checks.
 
 API-only 512 MiB compliance and G06 release requirements remain unverified by this
 combined-infrastructure exception. Do not change production memory policy or close
-G06. Future CI remediation publication should be an independent reviewed PR to dev;
+G06. CI remediation publication is an independent reviewed PR to dev;
 sync PR #9 only with separate approval and require normal checks on its new SHA.
 Historical red checks remain recorded; branch protection is not bypassed.
 

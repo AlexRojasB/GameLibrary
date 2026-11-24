@@ -1,6 +1,6 @@
 # G06 Operational Verification
 
-## 2026-11-23 Addendum — local remediation authorized, Linux validation pending
+## 2026-11-23 Addendum — matrix completed, normal PR validation approved
 
 The historical 512 MiB pass below does not establish repeatable combined-verifier
 stability. Required job 137859720672 was OOM-killed; diagnostic run 45244794203
@@ -9,10 +9,21 @@ harness without detailed observers. The copy correction reduced cumulative manag
 allocations by 46.4–49.8 MiB in two complete instrumented pairs, not a guaranteed
 resident-peak reduction. No application leak or consistent PR #9 regression is proven.
 
-The owner approved isolated implementation of the test-only 768 MiB cap/no-extra-swap
-and mandatory 640 MiB peak threshold. API-only 512 MiB requirements are unchanged.
-The 18-workload diagnostic matrix is prepared separately and must not execute until
-approved. Neither 768 nor 1024 MiB has been validated. **G06 remains PARTIAL**;
+The authorized 18-trial Linux matrix completed 17 full workloads, with one preserved
+OOM at 512 MiB. 768 passed 6/6, maximum final peak 531.296875 MiB; 1024 passed 6/6
+but remains diagnostic-only. The owner approves test-only 768 MiB/no-extra-swap and
+mandatory 640 MiB measured peak for publication as an independent PR to dev.
+The owner replaces twelve additional confirmations with normal required backend,
+postgres, frontend, e2e and native-runtime validation, balancing confidence/time/CI
+cost. No additional diagnostic workloads or automatic reruns are authorized.
+See [the complete matrix evidence](native-runtime-linux-matrix-report.md).
+
+The peak includes awaited verifier teardown, not the subsequent logging/validation/
+.NET exit tail. Docker exit/OOM checks cover termination, not a certified final
+lifetime peak: a brief >640 MiB tail below the cap could escape the last read.
+This limitation is accepted for PR validation, not solved; intermittent OOM is not
+definitively eliminated. API-only 512 MiB requirements are unchanged.
+**G06 remains PARTIAL**;
 this exception does not certify production/API-only resources, real Storage,
 hosting/ingress, monitoring/spend, operator approval or feature release readiness.
 See [decision, enforcement and rollback](native-runtime-resource-decision.md).

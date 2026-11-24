@@ -255,8 +255,20 @@ native negative controls remain at 512 MiB. Diagnostic 512/768/1024 profiles can
 replace required CI acceptance. Missing/invalid metrics, wrong effective limits,
 memory/swap limit or OOM events, nonzero exit and incomplete workload fail closed.
 All 94 image cases, 60 operations, two negative controls and 18 API cases remain.
-This is approval to implement locally, not evidence of sufficiency or a passed G06.
-See [the resource decision](native-runtime-resource-decision.md).
+Publication decision after the completed Linux matrix: approve 768/640 for normal
+required PR validation; six of six 768 trials passed, maximum 531.296875 MiB.
+The owner explicitly cancels the twelve additional diagnostic confirmations to
+balance engineering confidence, development time and CI cost. Instead require
+backend, postgres, frontend, e2e and native-runtime to pass normally on an independent
+PR to dev. Failures must be reported, not automatically rerun or worked around by
+raising limits, relaxing thresholds or reducing coverage/isolation. No additional
+diagnostic matrix, PR #9 update, merge, deployment or Steam OpenID v2 is authorized.
+The final kernel peak includes awaited verifier teardown but not logging/validation/
+.NET exit after that read. Docker exit/OOM checks do not certify a brief >640 MiB
+tail below the hard cap. The owner accepts this measurement limitation for PR
+validation; intermittent OOM is not definitively eliminated. API-only 512 MiB and
+G06 remain open requirements. See [the resource decision](native-runtime-resource-decision.md)
+and [completed matrix evidence](native-runtime-linux-matrix-report.md).
 
 | Setting | Selected target |
 | --- | --- |

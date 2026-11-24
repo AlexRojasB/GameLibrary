@@ -3,7 +3,7 @@ Architecture Specification v0.4 --- Game Library
 Status: Approved
 Version: 0.4
 
-Native verification amendment, 2026-11-23 -- Authorized isolated implementation:
+Native verification amendment, 2026-11-23 -- Approved CI publication/PR validation:
 
 The test-only combined verifier (API + HTTP driver + image fixtures + simulated
 Storage in one process/cgroup) may use a 768 MiB memory and memory+swap cap, with
@@ -13,8 +13,16 @@ state must be verified fail-closed. G01 and both asset-failure controls retain
 512 MiB. Diagnostic 512/768/1024 profiles are comparisons, not alternate acceptance
 profiles; no escalation or profile override is allowed in the required CI path.
 The API-only initial/production verification budget remains 512 MiB. This exception
-does not certify API-only compliance, establish sufficiency of 768 MiB, close G06,
-change production configuration or authorize hosted execution/deployment.
+does not certify API-only compliance, guarantee future stability, close G06 or
+change production configuration. The completed 18-trial Linux matrix supports
+768/640 for normal required PR validation (6/6 at 768, maximum 531.296875 MiB).
+The owner explicitly replaces the planned twelve diagnostic confirmations with
+the five normal required checks; no further diagnostic workloads are authorized.
+Publication is an independent PR to dev, not a PR #9 update, merge or deployment.
+The measured peak covers awaited verifier teardown, not the remaining runtime-exit
+tail: logging/validation/.NET exit occur after the final read. Docker exit/OOM
+checks cover termination but cannot certify a brief tail peak above 640 and below
+768 MiB. This limitation is accepted for PR validation, not silently resolved.
 See specs/013-camera-cover-upload/native-runtime-resource-decision.md.
 
 Feature 013 amendment, 2026-10-28 -- Approved design:

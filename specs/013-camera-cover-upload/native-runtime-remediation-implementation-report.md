@@ -1,6 +1,10 @@
 # Native-runtime remediation — local implementation report
 
-2026-11-23. **Local implementation/preparation only. No Linux matrix executed.**
+2026-11-23. **Historical local implementation/preparation report.** Statements below
+describe that phase only (at its close, no Linux matrix had executed and nothing
+was pushed). The subsequent [Linux matrix report](native-runtime-linux-matrix-report.md)
+and [revised resource decision](native-runtime-resource-decision.md) supersede its
+pending-execution/publication and twelve-confirmation plan, not its recorded results.
 
 ## Identity and scope
 
