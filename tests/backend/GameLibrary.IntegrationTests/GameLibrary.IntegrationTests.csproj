@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\backend\GameLibrary.Api\GameLibrary.Api.csproj" />
+    <Content Include="../../../tools/steam-linking/invalidate-batch.sql" Link="SteamLinking/invalidate-batch.sql" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

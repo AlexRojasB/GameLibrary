@@ -4,6 +4,10 @@
 
 `Approved`
 
+2026-11-24: [linking-final-validation.md](linking-final-validation.md) is the active
+local PR 5 scope following merged Angular/browser PR #13. Operational/hosted gates
+are explicit blockers, not completed actions; normal v2 stays hard-disabled.
+
 2026-11-24: [linking-angular-browser.md](linking-angular-browser.md) is the active
 local PR 4 scope following merged API/protocol PR #12. Normal v2 remains unavailable.
 

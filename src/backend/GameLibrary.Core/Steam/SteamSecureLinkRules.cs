@@ -7,7 +7,8 @@ namespace GameLibrary.Core.Steam;
 
 internal static class SteamSecureLinkRules
 {
-    // No public handlers or DI registration in PR 2. Runtime flags cannot enable this build.
+    // PR 5 retains the hold until separately authorized hosted/privacy/operational
+    // evidence and eligibility review. Runtime flags cannot enable this build.
     internal static bool BuildReady => false;
 
     internal static string NewSecret() => Encode(RandomNumberGenerator.GetBytes(32));

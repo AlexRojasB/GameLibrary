@@ -1,5 +1,12 @@
 # Steam OpenID log privacy — local mitigation, release blocker OPEN
 
+> Historical PR #8 mitigation/evidence. The legacy flow described below is retired
+> in current source, not a current activation contract. V2 review and outstanding
+> infrastructure privacy evidence are tracked in the
+> [final-validation report](../security/steam-linking-v2-final-validation-report.md)
+> and [operator runbook](steam-linking-v2-runbook.md). Historical hosted observations
+> have not been re-queried or promoted into all-store assurance.
+
 Work started 2026-11-19; local verification completed 2026-11-21.
 Base: `origin/dev` `ce7247250b2e0af7909f487dc00860d8f5787400`.
 Branch: `fix/steam-openid-log-privacy`, isolated worktree. No push, PR, merge,

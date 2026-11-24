@@ -2,6 +2,14 @@
 
 ## 1. Status, authority and scope
 
+2026-11-24 PR 5 authorization: after merged PR #13, local final review,
+necessary corrections/tests, operational/QA procedures and commit are authorized
+from origin/dev 0d96b06cc715d67522f8e0ccb3203845264eca4f. Section 14 PR 5 governs.
+Keep shipped readiness false and normal v2 inaccessible while external evidence
+is missing; no legacy reactivation, push, deployment, remote migration or CI-budget
+change. See linking-final-validation.md and the final-validation report/runbook.
+Earlier task-boundary verdicts below are historical, not current activation approval.
+
 2026-11-24 PR 4 authorization: following merged PR #12, the owner authorizes local
 Angular/browser integration, tests and commit on an independent branch from
 origin/dev d19d96a1145d770cb9659ea57d462bd7757ef1ff. Sections 10 and 14 PR 4 govern;
@@ -16,7 +24,7 @@ Section 14 PR 3 and the approved Option A baseline govern. Shipped readiness sta
 false; no Angular confirmation, legacy reactivation, CI-budget modification, push,
 merge, deployment or remote migration. See linking-api-protocol.md for active scope.
 
-**Owner-approved v2 baseline; PR 4 local Angular/browser implementation authorized.
+**Owner-approved v2 baseline; PR 5 local final validation authorized.
 Activation and production release NOT approved. Production blocker OPEN.**
 
 Earlier PR 2 authorization, 2026-11-24: following merged legacy retirement (PR #9), the owner
