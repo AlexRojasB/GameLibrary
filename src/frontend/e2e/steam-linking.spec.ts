@@ -1,5 +1,5 @@
 import { createHash, createHmac, randomUUID } from 'node:crypto';
-import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { expect, test as base, type BrowserContext, type Page } from '@playwright/test';
 
 const api = 'http://127.0.0.1:5218';
 const root = api + '/steam/link/v2/';
@@ -9,6 +9,12 @@ const ns = 'http://specs.openid.net/auth/2.0';
 const signed = 'op_endpoint,claimed_id,identity,return_to,response_nonce,assoc_handle';
 const assertionKey = 'steam-v2-isolated-synthetic-provider'; // Synthetic fixture only.
 const steamId = () => (70000000000000000n + BigInt('0x' + randomUUID().replaceAll('-', '').slice(0, 12))).toString();
+
+// One real UI login per initial test identity. Reuse it for the receiver/switch-back
+// setup instead of logging the sender out and straight back in before the scenario.
+const test = base.extend<{ accountEmail: string }>({
+  accountEmail: async ({}, use) => { await use(`steam-${randomUUID()}@example.test`); },
+});
 
 type Handle = { transactionId: string; initiatingUserId: string; expiresAt: string };
 type ProviderFixture = { identity: string; callback: string | null; authorization: string | null; count: number };
@@ -90,7 +96,7 @@ async function call(page: Page, path: string, body?: unknown) {
 }
 async function expectUnlinked(page: Page) { expect((await call(page, '/steam/status')).body.linked).toBe(false); }
 
-test.beforeEach(async ({ page, context, request }) => {
+test.beforeEach(async ({ page, context, request, accountEmail }) => {
   // Deny even incidental external requests (e.g. provider favicons). The explicit
   // provider route installed later handles native Steam navigation in memory.
   await context.route('**/*', route => {
@@ -98,7 +104,7 @@ test.beforeEach(async ({ page, context, request }) => {
     return host === '127.0.0.1' || host === 'localhost' ? route.fallback() : route.abort();
   });
   expect((await request.post(api + '/e2e/reset')).ok()).toBe(true);
-  await signIn(page, `steam-${randomUUID()}@example.test`);
+  await signIn(page, accountEmail);
 });
 
 test('native provider return stages only, full-ID review survives refresh, explicit confirm preserves import and unlink', async ({ page, context }) => {
@@ -166,8 +172,8 @@ test('provider cancellation is nonmutating; explicit cancellation and restart ar
   await expect(page.getByText('Linking cancelled.', { exact: false })).toBeVisible();
 });
 
-test('two real cookie contexts reject transferred URL, derived proof and authenticated receiver but sender completes', async ({ page, context, browser }) => {
-  const email = `transfer-${randomUUID()}@example.test`; await signIn(page, email);
+test('two real cookie contexts reject transferred URL, derived proof and authenticated receiver but sender completes', async ({ page, context, browser, accountEmail }) => {
+  const email = accountEmail;
   const provider = await fakeProvider(context); await start(page);
   const receiver = await browser.newContext();
   try {
@@ -224,8 +230,8 @@ test('browser expiry removes local identity and handle; equality never issues co
   await expectUnlinked(page);
 });
 
-test('wrong application account cannot review or confirm; switching back requires fresh review and explicit confirmation', async ({ page, context }) => {
-  const email = `owner-${randomUUID()}@example.test`; await signIn(page, email);
+test('wrong application account cannot review or confirm; switching back requires fresh review and explicit confirmation', async ({ page, context, accountEmail }) => {
+  const email = accountEmail;
   const provider = await fakeProvider(context); await start(page); await approve(page);
   const metadata = (await handle(page))!;
   const otherTab = await context.newPage(); await signIn(otherTab, 'other@example.com');
@@ -307,10 +313,9 @@ test('storage rejection and a malicious authorization response cannot navigate o
   expect(await handle(page)).toBeNull(); await expectUnlinked(page);
 });
 
-test('account switch while creation or review response waits suppresses stale navigation and private identity', async ({ page, context }) => {
+test('account switch while creation or review response waits suppresses stale navigation and private identity', async ({ page, context, accountEmail }) => {
   await fakeProvider(context);
-  const originalEmail = `stale-${randomUUID()}@example.test`;
-  await signIn(page, originalEmail);
+  const originalEmail = accountEmail;
   const other = await context.newPage();
   let release!: () => void;
   let arrived!: () => void;

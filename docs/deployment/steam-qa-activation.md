@@ -1,5 +1,11 @@
 # Steam QA activation — proposal, not an executed cloud change
 
+> **Historical pre-v2 proposal — DO NOT EXECUTE as v2 activation instructions.**
+> The grant list, migration count and cookie/CORS/consent semantics below describe
+> an older implementation. They are not current v2 requirements or evidence of
+> current hosted configuration. Use the [v2 operator/QA/rollback runbook](steam-linking-v2-runbook.md)
+> and its separately authorized gates. Normal shipped readiness remains false.
+
 Local stabilization does not enable the deployed QA application. Retain the
 working runtime password, Supabase Auth, existing schemas, manual CRUD and
 uploads-disabled cleanup configuration. Do not rerun the 11 applied EF migrations.

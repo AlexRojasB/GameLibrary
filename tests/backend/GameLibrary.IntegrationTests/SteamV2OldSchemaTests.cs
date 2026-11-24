@@ -4,6 +4,8 @@ using GameLibrary.Core.Steam;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using System.Net;
+using System.Net.Http.Json;
 
 namespace GameLibrary.IntegrationTests;
 
@@ -31,7 +33,15 @@ public sealed class SteamV2OldSchemaTests(SteamSecureFixture fixture) : IClassFi
         Assert.False(await SteamSecureLinkService.HasSchemaAsync(db, default));
         var steam = new SteamIntegrationService(db, new LibraryService(db), new FakeSteamClient());
         Assert.True((await steam.GetAccountAsync(user, default)).Linked);
-        await steam.UnlinkAsync(user, default);
+        using var host = new SteamV2Factory(fixture.ConnectionString);
+        using var client = host.Browser(user);
+        using var unavailable = await client.PostAsJsonAsync("/steam/link/v2/requests", new { });
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, unavailable.StatusCode);
+        Assert.False(unavailable.Headers.Contains("Set-Cookie"));
+        using var status = await client.GetAsync("/steam/status");
+        Assert.Equal(HttpStatusCode.OK, status.StatusCode);
+        using var unlink = await client.DeleteAsync("/steam/link");
+        Assert.Equal(HttpStatusCode.NoContent, unlink.StatusCode);
         Assert.False(await db.SteamAccounts.AnyAsync(a => a.LibraryId == library.Id));
         Assert.True(await db.Database.SqlQuery<bool>($"SELECT EXISTS(SELECT 1 FROM steam_link_requests WHERE id = {id} AND consumed_at IS NULL) AS \"Value\"").SingleAsync());
     }

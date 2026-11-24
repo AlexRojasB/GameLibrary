@@ -3,6 +3,14 @@ Architecture Specification v0.4 --- Game Library
 Status: Approved
 Version: 0.4
 
+Feature 011 PR 5 amendment, 2026-11-24 -- Authorized local final validation:
+Add metadata-only process observation and locally fault-tested, bounded operator
+invalidation/rollback procedures within the existing architecture. No worker,
+public diagnostics/maintenance endpoint, dependency, project or schema addition.
+Keep hard-false shipped readiness while hosted/privacy/operational gates remain
+unverified; runtime flags cannot override it. No CI-budget change, push, deployment
+or remote migration. See specs/011-steam-integration/linking-final-validation.md.
+
 Feature 011 PR 4 amendment, 2026-11-24 -- Authorized local Angular/browser:
 Implement approved redesign section 14 PR 4 within feature-local signals/services,
 minimal synchronous auth-generation notification, per-tab T/U/deadline metadata and

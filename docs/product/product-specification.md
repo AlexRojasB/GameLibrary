@@ -3,6 +3,13 @@ Product Specification v0.7 --- Game Library
 Status: Approved
 Version: 0.7
 
+Feature 011 PR 5 amendment, 2026-11-24 -- Authorized local final validation:
+Review the approved v2 threat matrix, add only necessary verification/operational
+safety corrections and prepare privacy, retirement, migration, QA and rollback
+procedures. Keep normal linking unavailable and legacy rejected. Hosted evidence,
+global retirement and activation require separate authorization. No push/deployment
+or remote migration. See specs/011-steam-integration/linking-final-validation.md.
+
 Feature 011 PR 4 amendment, 2026-11-24 -- Authorized local Angular/browser:
 Implement approved redesign section 10 and section 14 PR 4: same-tab trusted Steam
 navigation, per-tab non-authorizing metadata, full verified SteamID/current-account

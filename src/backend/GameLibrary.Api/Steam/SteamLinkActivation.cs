@@ -8,7 +8,7 @@ namespace GameLibrary.Api.Steam;
 public interface ISteamLinkReadiness { bool Ready { get; } }
 internal sealed class ShippedSteamLinkReadiness : ISteamLinkReadiness
 {
-    public bool Ready => SteamSecureLinkRules.BuildReady; // Hard false in PRs 1–4.
+    public bool Ready => SteamSecureLinkRules.BuildReady; // PR 5 retains the external-evidence hold.
 }
 
 public sealed class SteamLinkActivation(GameLibraryDbContext db, IOptionsMonitor<SteamOptions> options,

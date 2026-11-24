@@ -479,7 +479,9 @@ Legacy creation/start/callback return constant 410. Runtime flags cannot overrid
 hard-false shipped v2 readiness. Existing links, explicit import and unlink remain
 usable; unlink does not delete games and does not promise that relinking is available.
 See the [approved redesign](docs/security/steam-openid-linking-redesign.md) and
-[PR 4 scope](specs/011-steam-integration/linking-angular-browser.md).
+[PR 5 local final-validation scope](specs/011-steam-integration/linking-final-validation.md),
+[acceptance report](docs/security/steam-linking-v2-final-validation-report.md) and
+[operator/QA/rollback runbook](docs/deployment/steam-linking-v2-runbook.md).
 
 Steam configuration is optional; manual workflows work without it. Status separates
 existing links, new-link availability and Web API import availability. Provider keys

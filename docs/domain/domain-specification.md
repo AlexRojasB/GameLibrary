@@ -3,6 +3,13 @@ Domain Specification v0.9 --- Game Library
 Status: Approved
 Version: 0.9
 
+Feature 011 PR 5 amendment, 2026-11-24 -- Authorized local final validation:
+Preserve all v2 invariants. Controlled pause invalidation may only cancel
+unconsumed/uncancelled v2 rows under Library→row locks after admission/drain is
+established; never delete accounts, rewrite receipts or revive legacy rows. Local
+tests do not establish global operational quiescence or authorize activation.
+See specs/011-steam-integration/linking-final-validation.md.
+
 Feature 011 PR 4 amendment, 2026-11-24 -- Authorized local Angular/browser:
 Trusted UI presents the immutable verified SteamID and current application account;
 it never auto-confirms or treats callback flags/tab metadata as authority. Existing

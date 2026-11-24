@@ -35,6 +35,7 @@ builder.Services.AddScoped<CoverImageSearchService>();
 builder.Services.AddScoped<SteamIntegrationService>();
 builder.Services.AddSingleton<ISteamLinkReadiness, ShippedSteamLinkReadiness>();
 builder.Services.AddScoped<SteamLinkActivation>();
+builder.Services.AddSingleton<SteamLinkDrainObserver>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<CoverImageProcessor>();
 builder.Services.AddScoped<CoverUploadService>();
@@ -200,6 +201,7 @@ app.Use(async (context, next) =>
     await next();
 });
 
+app.Use(SteamLinkDrainObserver.ObserveAsync);
 app.Use(SteamLogPrivacy.LogCompletionAsync);
 
 app.UseExceptionHandler(new ExceptionHandlerOptions

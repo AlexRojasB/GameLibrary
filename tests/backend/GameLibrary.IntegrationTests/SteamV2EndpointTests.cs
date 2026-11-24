@@ -562,6 +562,8 @@ public sealed class SteamV2EndpointTests(SteamSecureFixture fixture) : IClassFix
         host.Provider.BeforeVerify = async ct => { entered.SetResult(); await release.Task.WaitAsync(ct); };
         var callback = client.GetAsync(Callback(Assertion(flow)));
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var observer = host.Services.GetRequiredService<SteamLinkDrainObserver>();
+        Assert.Equal(1, observer.Snapshot().Active);
         var options = host.Services.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<SteamOptions>>().CurrentValue;
         try
         {
@@ -575,6 +577,7 @@ public sealed class SteamV2EndpointTests(SteamSecureFixture fixture) : IClassFix
         }
         finally { release.SetResult(); }
         using var response = await callback; Assert.False(response.Headers.Contains("Set-Cookie"));
+        Assert.Equal(0, observer.Snapshot().Active);
         await using var inspect = fixture.Db(); var row = await inspect.SteamLinkRequests.AsNoTracking().SingleAsync(r => r.Id == flow.Id);
         Assert.Equal(change == "pause", row.AssertionAcceptedAt is not null);
         Assert.Null(row.ConsumedAt); // A flag flip doesn't revoke admitted work; no callback links.
