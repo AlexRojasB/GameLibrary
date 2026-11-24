@@ -30,12 +30,9 @@ describe('SteamService', () => {
     req.flush({ enabled: true, linkAvailable: true, importAvailable: true, linked: false, steamId64: null, linkedAt: null, message: null });
   });
 
-  it('createLinkRequest posts to steam/link-requests', () => {
-    service.createLinkRequest().subscribe();
-    const req = httpMock.expectOne(`${environment.apiBaseUrl}/steam/link-requests`);
-    expect(req.request.method).toBe('POST');
-    expect(req.request.withCredentials).toBe(true);
-    req.flush({ startUrl: 'https://api.example.test/steam/link/start/abc', expiresAt: '2026-01-01T00:00:00Z' });
+  it('exposes no legacy initiation action or credentialed linking request', () => {
+    expect('createLinkRequest' in service).toBe(false);
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/link-requests`);
   });
 
   it('unlink sends DELETE to steam/link', () => {

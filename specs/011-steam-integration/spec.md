@@ -4,6 +4,12 @@
 
 `Approved`
 
+2026-11-21: [linking-retirement.md](linking-retirement.md) is the active, narrowly
+authorized application-level security milestone. It supersedes historical legacy
+linking availability, redirect, cookie issuance and completion behavior in this file
+and linking-stabilization.md. Existing account/import/domain checks remain binding;
+the v2 redesign and coordinated global retirement are not activated by this approval.
+
 The owner-authorized local Steam linking stabilization of 2026-11-18/19 is defined
 in [linking-stabilization.md](linking-stabilization.md). Its browser-correlation,
 empty-response and capped-selection clarifications supersede the corresponding

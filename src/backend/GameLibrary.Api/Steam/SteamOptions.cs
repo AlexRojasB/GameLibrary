@@ -27,6 +27,8 @@ public sealed class SteamOptions
 
 public static class SteamOptionsExtensions
 {
+    // Historical name: provider configuration validity only, never protocol readiness.
+    // The retired controller/Core operations cannot be enabled by these options.
     public static bool LinkAvailable(this SteamOptions options) =>
         options.Enabled
         && IsHttpUri(options.PublicApiBaseUrl)
@@ -50,9 +52,6 @@ public static class SteamOptionsExtensions
 
     public static string CallbackUrl(this SteamOptions options, string rawState) =>
         options.PublicApiBase() + "/steam/link/callback?state=" + Uri.EscapeDataString(rawState);
-
-    public static string StartUrl(this SteamOptions options, string rawState) =>
-        options.PublicApiBase() + "/steam/link/start/" + Uri.EscapeDataString(rawState);
 
     public static string FrontendSuccessUrl(this SteamOptions options) =>
         Combine(options.FrontendBaseUrl!, options.FrontendSuccessPath);

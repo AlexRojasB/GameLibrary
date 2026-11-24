@@ -7,6 +7,13 @@ public class SteamIntegrationException : Exception
     }
 }
 
+public sealed class SteamLinkingRetiredException : SteamIntegrationException
+{
+    public const string UnavailableMessage = "Steam linking is temporarily unavailable. Existing linked accounts are unchanged.";
+
+    public SteamLinkingRetiredException() : base(UnavailableMessage) { }
+}
+
 public sealed class SteamIntegrationNotConfiguredException : SteamIntegrationException
 {
     public SteamIntegrationNotConfiguredException() : base("Steam integration is not configured.")

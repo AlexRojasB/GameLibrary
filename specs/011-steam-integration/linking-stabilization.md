@@ -1,5 +1,9 @@
 # Feature 011 — authorized local linking stabilization
 
+Historical linking behavior below is superseded for the new retirement binary by
+[linking-retirement.md](linking-retirement.md), authorized 2026-11-21. Keep these
+notes as historical security intent, not a compatibility exception to rejection.
+
 2026-11-18/19. Owner-authorized implementation and local tests only. No cloud
 permission/configuration changes, publication, real Steam calls or deployment.
 Product, Domain and the two-project Architecture remain authoritative. No schema,

@@ -14,11 +14,6 @@ export interface SteamStatusResponse {
   message: string | null;
 }
 
-export interface SteamLinkRequestResponse {
-  startUrl: string;
-  expiresAt: string;
-}
-
 export interface SteamPreviewCandidate {
   steamAppId: number;
   name: string;
@@ -51,10 +46,6 @@ export class SteamService {
 
   getStatus(): Observable<SteamStatusResponse> {
     return this.http.get<SteamStatusResponse>(`${environment.apiBaseUrl}/steam/status`);
-  }
-
-  createLinkRequest(): Observable<SteamLinkRequestResponse> {
-    return this.http.post<SteamLinkRequestResponse>(`${environment.apiBaseUrl}/steam/link-requests`, {}, { withCredentials: true });
   }
 
   unlink(): Observable<void> {

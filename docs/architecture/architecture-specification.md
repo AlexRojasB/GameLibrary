@@ -3,6 +3,17 @@ Architecture Specification v0.4 --- Game Library
 Status: Approved
 Version: 0.4
 
+Feature 011 security milestone, 2026-11-21 -- Authorized local implementation:
+
+Legacy linking is unconditionally rejected at API and Core boundaries in the new
+binary, not controlled by an enable flag. HTTP tombstones carry no linking authority
+and may return a constant anonymous 410; all private application operations retain
+Supabase JWT authorization. No v2 routes, migration, shared fence, worker, dependency
+or infrastructure is introduced. Existing links/explicit imports/unlink remain usable.
+Global retirement needs separately authorized removal/drain of every old writer and
+uncertain transaction reconciliation. Source-only rejection is not that barrier.
+See specs/011-steam-integration/linking-retirement.md.
+
 Native verification amendment, 2026-11-23 -- Approved CI publication/PR validation:
 
 The test-only combined verifier (API + HTTP driver + image fixtures + simulated

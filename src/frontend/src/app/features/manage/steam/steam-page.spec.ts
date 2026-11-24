@@ -48,7 +48,8 @@ describe('SteamPage', () => {
     fixture.detectChanges();
     httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(defaultStatus());
     fixture.detectChanges();
-    expect(text()).toContain(outcome === 'success' ? 'Steam linking completed' : 'Steam linking failed');
+    expect(text()).toContain('Steam linking is temporarily unavailable');
+    expect(text()).not.toContain('Steam linking completed');
     expect(navigate).toHaveBeenCalledWith([], {
       queryParams: { steamLink: null }, queryParamsHandling: 'merge', replaceUrl: true,
     });
@@ -85,7 +86,7 @@ describe('SteamPage', () => {
   it('renders import-unavailable message when Web API key is missing', () => {
     fixture.detectChanges();
     httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush({
-      enabled: true, linkAvailable: true, importAvailable: false,
+      enabled: true, linkAvailable: false, importAvailable: false,
       linked: false, steamId64: null, linkedAt: null, message: null,
     });
     fixture.detectChanges();
@@ -104,54 +105,32 @@ describe('SteamPage', () => {
     expect(text()).toContain('Preview Steam library');
   });
 
-  it('renders unlinked state with link button', () => {
+  it('renders unlinked state without a link button even with stale linkAvailable true', () => {
     fixture.detectChanges();
-    httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(defaultStatus());
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush({ ...defaultStatus(), linkAvailable: true });
     fixture.detectChanges();
 
     expect(text()).toContain('No Steam Account Linked');
-    expect(text()).toContain('Link Steam account');
+    expect(text()).toContain('Steam linking is temporarily unavailable');
+    expect(fixture.nativeElement.querySelector('button')).toBeNull();
   });
 
-  it('link action calls POST /steam/link-requests and navigates to startUrl', () => {
-    let capturedHref = '';
-    const fakeLocation = {
-      get href() { return capturedHref; },
-      set href(val: string) { capturedHref = val; },
-    } as Location;
-    Object.defineProperty(window, 'location', { value: fakeLocation, writable: true, configurable: true });
-
-    const startUrl = 'https://api.example.test/steam/link/start/abc123';
-
+  it('has no legacy link action or navigation', () => {
     fixture.detectChanges();
     httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(defaultStatus());
     fixture.detectChanges();
 
-    clickButton('button');
-    fixture.detectChanges();
-
-    const req = httpMock.expectOne(`${environment.apiBaseUrl}/steam/link-requests`);
-    expect(req.request.method).toBe('POST');
-    req.flush({ startUrl, expiresAt: '2026-01-01T00:10:00Z' });
-
-    expect(capturedHref).toBe(startUrl);
+    expect('onLink' in fixture.componentInstance).toBe(false);
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/link-requests`);
   });
 
-  it('already-linked conflict renders unlink-first guidance', () => {
+  it('warns that unlinking cannot be followed by relinking during retirement', () => {
     fixture.detectChanges();
-    httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(defaultStatus());
-    fixture.detectChanges();
-
-    clickButton('button');
+    httpMock.expectOne(`${environment.apiBaseUrl}/steam/status`).flush(linkedStatus());
     fixture.detectChanges();
 
-    httpMock.expectOne(`${environment.apiBaseUrl}/steam/link-requests`).flush(
-      { detail: 'Unlink the current Steam account before linking another account.' },
-      { status: 409, statusText: 'Conflict' },
-    );
-    fixture.detectChanges();
-
-    expect(text()).toContain('Unlink the current Steam account before linking another account.');
+    expect(text()).toContain('Unlinking an account will not allow you to link it again');
+    httpMock.expectNone(`${environment.apiBaseUrl}/steam/link-requests`);
   });
 
   it('unlink action calls DELETE /steam/link and updates state', () => {
@@ -750,14 +729,14 @@ describe('SteamPage', () => {
 
   function defaultStatus() {
     return {
-      enabled: true, linkAvailable: true, importAvailable: true,
+      enabled: true, linkAvailable: false, importAvailable: true,
       linked: false, steamId64: null, linkedAt: null, message: null,
     };
   }
 
   function linkedStatus() {
     return {
-      enabled: true, linkAvailable: true, importAvailable: true,
+      enabled: true, linkAvailable: false, importAvailable: true,
       linked: true, steamId64: '76561198000000000',
       linkedAt: '2026-01-01T00:00:00Z', message: null,
     };

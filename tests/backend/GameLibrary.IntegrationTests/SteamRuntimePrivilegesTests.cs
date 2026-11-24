@@ -10,7 +10,7 @@ namespace GameLibrary.IntegrationTests;
 public sealed class SteamRuntimePrivilegesTests
 {
     [Fact]
-    public async Task Narrow_grant_delta_supports_real_link_import_and_unlink_without_identity_or_expiry_updates()
+    public async Task Retired_linking_needs_no_grants_and_existing_link_import_and_unlink_keep_narrow_privileges()
     {
         var connection = new NpgsqlConnectionStringBuilder(
             Environment.GetEnvironmentVariable("ConnectionStrings__Test")
@@ -45,19 +45,17 @@ public sealed class SteamRuntimePrivilegesTests
         var user = "steam-grants-" + Guid.NewGuid().ToString("N");
         await using (var denied = Context())
         {
-            var ex = await Assert.ThrowsAsync<DbUpdateException>(() =>
+            await Assert.ThrowsAsync<SteamLinkingRetiredException>(() =>
                 Service(denied).CreateLinkRequestAsync(user, TimeSpan.FromMinutes(10), default));
-            Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, Assert.IsType<PostgresException>(ex.InnerException).SqlState);
         }
 
         // This is the proposed extra permission set, executed ONLY locally.
         await Sql(owner, $"GRANT INSERT ON public.steam_accounts TO {role}");
         await Sql(owner, $"GRANT SELECT, INSERT ON public.steam_link_requests TO {role}");
         await Sql(owner, $"GRANT UPDATE(consumed_at) ON public.steam_link_requests TO {role}");
-        SteamLinkRequestView state;
-        await using (var start = Context())
-            state = await Service(start).CreateLinkRequestAsync(user, TimeSpan.FromMinutes(10), default);
-        var returnTo = "https://api.example.test/steam/link/callback?state=" + state.RawState;
+        // Even historical extra grants cannot reopen the retired Core entry points.
+        var state = SteamIntegrationRules.GenerateRawState();
+        var returnTo = "https://api.example.test/steam/link/callback?state=" + state;
         var steamId = (76561198000000000UL + (ulong)Random.Shared.NextInt64(1, uint.MaxValue))
             .ToString(System.Globalization.CultureInfo.InvariantCulture);
         var parameters = new Dictionary<string, string?>
@@ -70,10 +68,14 @@ public sealed class SteamRuntimePrivilegesTests
         };
         await using (var callback = Context())
         {
-            Assert.True(await Service(callback).HasPendingLinkRequestAsync(state.RawState, default));
-            await Service(callback).CompleteLinkAsync(state.RawState, parameters,
-                "https://steamcommunity.com/openid/login", returnTo, "https://api.example.test/", default);
+            Assert.False(await Service(callback).HasPendingLinkRequestAsync(state, default));
+            await Assert.ThrowsAsync<SteamLinkingRetiredException>(() => Service(callback).CompleteLinkAsync(state, parameters,
+                "https://steamcommunity.com/openid/login", returnTo, "https://api.example.test/", default));
         }
+        var library = new Core.Libraries.Library { Id = Guid.NewGuid(), UserId = user };
+        ownerDb.Libraries.Add(library);
+        ownerDb.SteamAccounts.Add(new SteamAccount { Id = Guid.NewGuid(), LibraryId = library.Id, SteamId64 = steamId, LinkedAt = DateTimeOffset.UtcNow });
+        await ownerDb.SaveChangesAsync();
         fake.SetOwnedGames([new SteamOwnedGame(570, "Runtime grants game", 12, null, null)]);
         await using (var import = Context())
         {
@@ -96,7 +98,7 @@ public sealed class SteamRuntimePrivilegesTests
             var error = await Assert.ThrowsAsync<PostgresException>(() => Sql(runtimeConnection, sql));
             Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, error.SqlState);
         }
-        Assert.True(await ownerDb.SteamLinkRequests.AnyAsync(r => r.StateHash == SteamIntegrationRules.HashState(state.RawState) && r.ConsumedAt != null));
+        Assert.False(await ownerDb.SteamLinkRequests.AnyAsync(r => r.StateHash == SteamIntegrationRules.HashState(state)));
         Assert.True(await ownerDb.LibraryEntries.AnyAsync(e => e.Library.UserId == user && e.SteamAppId == 570));
         Assert.False(await ownerDb.SteamAccounts.AnyAsync(a => a.Library.UserId == user));
         // The role and all test rows disappear with this task's disposable local

@@ -21,7 +21,6 @@ export class SteamPage implements OnInit {
 
   protected readonly status = signal<SteamStatusResponse | null>(null);
   protected readonly loadingStatus = signal(true);
-  protected readonly linking = signal(false);
   protected readonly unlinking = signal(false);
   protected readonly previewing = signal(false);
   protected readonly importing = signal(false);
@@ -45,11 +44,11 @@ export class SteamPage implements OnInit {
   ngOnInit(): void {
     const queryParams = this.route.snapshot.queryParams;
     if (queryParams['steamLink'] === 'success') {
-      this.callbackNotice.set('Steam linking completed. Check your linked account below.');
+      this.callbackNotice.set('Steam linking is temporarily unavailable. Check your existing linked account below.');
       this.router.navigate([], { queryParams: { steamLink: null }, queryParamsHandling: 'merge', replaceUrl: true });
     } else if (queryParams['steamLink'] === 'failure') {
       this.callbackFailed.set(true);
-      this.callbackNotice.set('Steam linking failed. Start again in this browser, allow the linking cookie, and complete the request before it expires.');
+      this.callbackNotice.set('Steam linking is temporarily unavailable. Existing linked accounts are unchanged.');
       this.router.navigate([], { queryParams: { steamLink: null }, queryParamsHandling: 'merge', replaceUrl: true });
     }
 
@@ -66,25 +65,6 @@ export class SteamPage implements OnInit {
       error: () => {
         this.errorMessage.set('Unable to load Steam status.');
         this.loadingStatus.set(false);
-      },
-    });
-  }
-
-  protected onLink(): void {
-    if (this.linking()) return;
-    this.linking.set(true);
-    this.errorMessage.set(null);
-    this.steam.createLinkRequest().subscribe({
-      next: (response) => {
-        window.location.href = response.startUrl;
-      },
-      error: (err) => {
-        if (err?.status === 409) {
-          this.errorMessage.set('Unlink the current Steam account before linking another account.');
-        } else {
-          this.errorMessage.set('Unable to start Steam link flow.');
-        }
-        this.linking.set(false);
       },
     });
   }
