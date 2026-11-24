@@ -3,6 +3,19 @@ Domain Specification v0.9 --- Game Library
 Status: Approved
 Version: 0.9
 
+Feature 011 PR 2 amendment, 2026-11-24 -- Approved local persistence/Core:
+The approved v2 transaction binds immutable T/U/Library/state hash/browser verifier;
+independent random browser proof is never persisted raw. A callback may stage one
+verified SteamID but never create a SteamAccount. Linking requires the initiating
+authenticated owner, matching proof, immutable staged identity and matching explicit
+expected-ID precondition. Confirmation consumes once and creates the unique account
+atomically, with a write-once receipt surviving unlink. PostgreSQL time/deadlines and
+signed JWT expiry are checked after locks and all writes/waits. Cancellation,
+replacement and expiry never revive; cleanup is owner-scoped/bounded and cannot
+delete accounts. Existing links/import/user data remain unchanged. This supersedes
+historical callback-consumes/linking semantics only for private v2 Core under
+specs/011-steam-integration/linking-persistence-core.md; legacy remains rejected.
+
 Feature 011 security milestone, 2026-11-21 -- Authorized local implementation:
 
 The new binary must not create or replace SteamAccount through legacy linking,

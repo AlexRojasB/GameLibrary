@@ -3,6 +3,17 @@ Product Specification v0.7 --- Game Library
 Status: Approved
 Version: 0.7
 
+Feature 011 PR 2 amendment, 2026-11-24 -- Approved local persistence/Core:
+Approve the recommended v2 baseline in docs/security/steam-openid-linking-redesign.md:
+independent browser proof, callback staging without linking, explicit authenticated
+owner confirmation of the full immutable SteamID, one live transaction per Library,
+no extra confirmation token, and expiry+24h opportunistic retention with no inactive
+Library deletion SLA. Numeric-ID review is not human-intent attestation, MFA or
+protection against a stolen JWT initiating its own flow. PR 2 implements private
+persistence/Core only; legacy remains retired and v2 publicly unavailable. No
+Angular, deployment, activation or global-retirement claim. See
+specs/011-steam-integration/linking-persistence-core.md for the bounded scope.
+
 Feature 011 security milestone, 2026-11-21 -- Authorized local implementation:
 
 Temporarily reject legacy Steam account linking unconditionally in the new binary.
