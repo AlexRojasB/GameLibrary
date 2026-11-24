@@ -9,6 +9,18 @@ const valid = {
   QA_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_synthetic-test-only',
 };
 
+test('E2E server disables development reloads without changing ordinary serve configurations', () => {
+  const angular = JSON.parse(readFileSync(new URL('../angular.json', import.meta.url), 'utf8'));
+  const configurations = angular.projects['game-library'].architect.serve.configurations;
+  // Exercise real deferred loading/native navigation, not HMR's eager component graph.
+  assert.equal(configurations.e2e.hmr, false);
+  assert.equal(configurations.e2e.liveReload, false);
+  for (const name of ['development', 'production']) {
+    assert.equal(configurations[name].hmr, undefined);
+    assert.equal(configurations[name].liveReload, undefined);
+  }
+});
+
 test('frontend host and local browser host protect every SPA fallback with real framing headers', () => {
   const host = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
   assert.equal(host.git.deploymentEnabled, false);

@@ -89,6 +89,9 @@ no client SDK change, user_metadata authority or session-revocation claim is add
 
 ## Verification
 
+The following table records implementation-stage results at `d256356`, not a
+fresh execution of every suite during the targeted remediation below.
+
 | Check | Result |
 | --- | --- |
 | Complete PostgreSQL/API suite | **1289 passed**, final Release suite, zero failures/skips; 5m49s |
@@ -99,8 +102,8 @@ no client SDK change, user_metadata authority or session-revocation claim is add
 | Release solution build | PASS, zero warnings/errors |
 | Angular production build | PASS; **692.98 kB** initial bundle, unchanged 700 kB warning / 1 MB error budgets |
 | Lint / TypeScript spec noEmit / EF pending-model | PASS |
-| Full desktop/mobile E2E, zero retries | **Not green**: first run **47/52**, isolated confirmation **45/52**; see failures below |
-| Final focused Steam desktop/mobile E2E | **27/28 passed**, zero retries/skips; account-switch cases passed, one startup timeout remains |
+| Implementation-stage full desktop/mobile E2E, zero retries | First run **47/52**, isolated confirmation **45/52**; superseded by remediation **52/52** below |
+| Implementation-stage focused Steam desktop/mobile E2E | **27/28 passed**, zero retries/skips; superseded by remediation coverage below |
 
 No native resource campaign or hosted PR 4 CI was run. Existing Random Picker SCSS
 budget warning and Vite/Vitest notices remain unsuppressed. Local logs/artifacts are
@@ -153,6 +156,96 @@ retained only in the approved session temporary directory under `steam-pr4-*`.
   verification blocker; no assertion, timeout, isolation guard or production gate
   was weakened and no further run was used to hide it.
 
+### Owner-authorized targeted E2E remediation (2026-11-24)
+
+New bounded authorization follows the implementation-stage stop above. Start:
+clean `feat/steam-linking-v2-angular` at
+`d2563565c52bf95c4129bccc4a5d003e8d649f4f`; fetched `origin/dev` remained
+`d19d96a1145d770cb9659ea57d462bd7757ef1ff`. No push, hosted operation, remote
+migration, production activation, PR 5 work or CI/native budget change.
+
+All seven failure snapshots from the **45/52** complete run were inspected:
+
+| Failed scenario | Project | Observed evidence |
+| --- | --- | --- |
+| VideoGame upload/crop/replace/remove | Desktop | Edit dialog remained at `Preparing image...`; editor visibility failed at `covers.spec.ts:254` |
+| BoardGame camera/Fit/conflict | Desktop | Add dialog remained at `Preparing image...`; same editor assertion |
+| Escape during delayed upload | Desktop | Add dialog remained at `Preparing image...`; same editor assertion, before delayed upload behavior |
+| Wrong application account / switch back | Desktop | Login heading, blank email; home assertion failed |
+| Wrong application account / switch back | Mobile | Login heading, blank email; home assertion failed |
+| Account switch with pending create/review | Desktop | Login heading, blank email; home assertion failed |
+| Account switch with pending create/review | Mobile | Login heading, blank email; home assertion failed |
+
+The later **27/28** Steam run had a separate desktop cleared/refused-cookie
+scenario timeout waiting for its initial Link action. It did not establish that
+cookie-proof rejection itself failed, nor that initiation reached the API.
+
+**Reproduction and comparison, before repository correction:**
+
+- Unchanged targeted desktop run: **2/6 passed**, zero retries. VideoGame and
+  cleared/refused-cookie cases passed; BoardGame and Escape failed preparing images;
+  both account-switch cases timed out. Retained traces locate a timeout during
+  `page.reload()` waiting for document load and another during the subsequent
+  initiation action. Angular emitted **NG0751**, documenting HMR's eager loading of
+  `@defer` dependencies. Traces include the large `/@ng/component` request graph,
+  including incomplete requests in the pending-response account-switch failure.
+  This is development-server evidence, not proof of a provider/auth rejection or
+  a demonstrated sole cause of the original blank-email failures.
+- Exact detached `origin/dev`, identical installed lockfile dependencies and
+  prepared native assets, no baseline source changes: **1/3 desktop cover cases
+  passed**, zero retries. VideoGame failed preparing; Escape failed waiting for
+  export completion (`covers.spec.ts:260`); BoardGame passed. Covers source,
+  fixtures and tests are byte-identical to the PR 4 starting point. This establishes
+  pre-existing instability in sampled cover workflows, not categorical proof that
+  every historical cover failure is unrelated to PR 4/shared auth or headers.
+- Temporary control retained all projects, assertions, timeouts, server guards and
+  one worker, changing only frontend `--hmr=false --live-reload=false`: **10/12
+  passed** (2.2m), zero retries/skips. **6/6 Steam** passed, including initiation,
+  both account-switch scenarios on desktop/mobile and refused-cookie coverage.
+  Covers were **4/6**: desktop VideoGame remained at `Preparing image...`; mobile
+  Escape received **429 instead of 201** at its real upload interception, before
+  the delayed-completion/Escape assertions. HMR removal does not solve cover
+  preparation. The control's first invocation failed config-import interop before
+  any tests; only the corrected invocation contributes these results.
+
+**Minimal correction:** `angular.json` disables HMR/live reload **only** in the
+E2E serve configuration. This avoids developer reload machinery and HMR's eager
+component graph during native-navigation/deferred-editor regression tests. The
+control supports this bounded harness change; it does not establish that HMR was
+the only cause of every prior timeout. One configuration regression test enforces
+the E2E settings while retaining ordinary development/production configuration.
+No application/auth/protocol/cover source, browser scenario, assertion, timeout,
+retry policy, dependency or security control changed.
+
+The observed 429 is preserved, not retried away: existing cover admission uses
+5/minute and 20/hour per authenticated subject. Cover scenarios share their
+synthetic subject; `/e2e/reset` resets database/fake Storage, not process limiter
+windows. The status alone does not identify which window rejected this request.
+No limiter reset/bypass, increased budget or new identity strategy was added.
+
+**Fresh checks before the final browser run:** configuration/header/cache **18/18**,
+lint and TypeScript spec `noEmit` passed. Production build passed with unchanged
+**692.98 kB** initial bundle; existing Random Picker SCSS warning remains. Earlier
+API/Core/Angular unit results above are retained evidence, not rerun claims.
+
+**Final complete E2E: 52/52 passed (5.4m), zero failures/retries/skips.** Exactly
+one complete run under this authorization, with
+`--retries=0 --workers=1 --trace=retain-on-failure`, ordinary checked-in config,
+source frozen and no concurrent builds/test suites. All **28 Steam cases** passed
+across desktop/mobile, including initiation, refused-cookie and both account-switch
+scenarios. All cover cases passed too, including the previously observed preparation,
+export and delayed-upload paths. No subsequent rerun or correction was used to
+replace this result. The prior failures remain recorded above, not reclassified
+as harmless flakes or a proven universal HMR defect.
+
+Evidence is local restricted temporary storage under
+`/private/var/folders/fd/h4rhj_wn5_71qy5q79xm8r_m0000gn/T/opencode/`:
+`steam-pr4-e2e-final`, `steam-pr4-steam-confirmation`,
+`steam-pr4-remediation-before`, `steam-pr4-remediation-baseline-e2e`,
+`steam-pr4-remediation-no-hmr`, and `steam-pr4-remediation-final`, with corresponding
+`.log` files. Retained browser traces contain synthetic protocol transport; do not
+publish raw cookies/JWTs/assertions/correlation metadata with this report.
+
 ## Threat mapping and boundaries
 
 - **T06/T19/T23/T30:** full verified ID/account context, fake/old callback hints,
@@ -182,13 +275,16 @@ retained only in the approved session temporary directory under `steam-pr4-*`.
 
 ## Remaining gates / publication readiness
 
-**NOT ready to publish as a fully validated PR:** complete E2E regression remains
-red in the existing cover preparation cases; their relationship to the shared
-auth/header changes has not been disproved. The latest focused Steam run also has
-one unresolved startup timeout. Earlier green Steam cases are not a replacement
-for current passing acceptance evidence or a green complete suite. Local implementation is committed for owner
-review with this verification blocker explicit, not marked acceptance-complete.
-No publication is authorized by this task. Five required hosted CI checks and target Noble/linux-amd64
+**Locally ready for PR 4 publication/review, after separate owner authorization:**
+the bounded remediation's sole final complete E2E run is **52/52 green**, including
+all 28 Steam cases. Build/lint/type/configuration checks also pass. No current local
+E2E blocker remains. The minimal correction is E2E-only, not a production protocol
+or cover change. The historical cover preparation/export instability and the control's
+429 have not been conclusively root-caused; one green run is not a stability
+guarantee, and any recurrence must retain its evidence rather than be retried away.
+
+No publication is authorized by this task; this is not hosted-CI, merge, release or
+production readiness. Five required hosted CI checks and target Noble/linux-amd64
 execution must run for this PR's exact published SHA after separate authorization.
 The baseline's green native result is not this branch's evidence. Native 768/640
 policy remains unchanged; API-only 512 MiB/G06 and intermittent OOM are not closed.
