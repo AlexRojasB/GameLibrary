@@ -113,7 +113,7 @@ test('searches and selects a cover during VideoGame creation', async ({ page }) 
   );
 });
 
-test('picks a game and keeps visible session history', async ({ page }) => {
+test('picks a game and keeps independent current-round history per mode', async ({ page }) => {
   await page.getByRole('link', { name: 'Pick' }).first().click();
   await expect(page.getByRole('heading', { name: /let the shelf decide/i })).toBeVisible();
 
@@ -127,7 +127,13 @@ test('picks a game and keeps visible session history', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Filter this pick' }).click();
   await page.getByLabel('Mode').selectOption('BoardGames');
+  await expect(page.getByRole('button', { name: 'Pick a game', exact: true })).toBeEnabled();
+  await expect(page.locator('.random-picker-card--history')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Previous picks' })).toHaveCount(0);
+  await page.getByLabel('Mode').selectOption('All');
   await expect(page.getByRole('heading', { name: 'Previous picks' })).toBeVisible();
+  await expect(page.locator('.random-picker-card--history')).toHaveCount(1);
+  await expect(page.getByRole('article', { name: 'Current pick' })).toBeVisible();
 });
 
 test('classifies games, filters the Library, and preserves family picker history', async ({ page }) => {
@@ -180,20 +186,37 @@ test('classifies games, filters the Library, and preserves family picker history
   await page.getByLabel('Family friendly only').uncheck();
   await expect(page.locator('.random-picker-card--history')).toHaveCount(1);
   await page.getByLabel('Family friendly only').check();
+  const videoRecovery = page.waitForResponse(r => r.request().method() === 'GET' && r.url().endsWith('/random-picker/rounds/VideoGames'));
   await page.getByLabel('Mode').selectOption('VideoGames');
+  expect((await (await videoRecovery).json()).filters.familyFriendlyOnly).toBe(false);
+  await expect(page.getByLabel('Mode')).toHaveValue('VideoGames');
+  await expect(page.getByRole('button', { name: 'Pick a game', exact: true })).toBeEnabled();
+  await expect(page.getByLabel('Family friendly only')).not.toBeChecked();
+  await expect(page.locator('.random-picker-card--history')).toHaveCount(0);
+  await page.getByLabel('Family friendly only').check();
   await expect(page.getByLabel('Family friendly only')).toBeChecked();
   await page.getByRole('button', { name: 'Pick a game' }).click();
   await expect(page.getByRole('heading', { name: 'No owned games match' })).toBeVisible();
-  await expect(page.locator('.random-picker-card--history')).toContainText('Family Tabletop');
+  await expect(page.locator('.random-picker-card--history')).toHaveCount(0);
 
   await page.getByLabel('Mode').selectOption('BoardGames');
+  await expect(page.getByRole('button', { name: 'Pick a game', exact: true })).toBeEnabled();
+  await expect(page.getByLabel('Family friendly only')).not.toBeChecked();
+  await page.getByLabel('Family friendly only').check();
   await page.getByRole('button', { name: 'Pick a game' }).click();
+  await expect(current).toContainText('Family Tabletop');
+  await page.getByRole('button', { name: 'Another', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'All matching games already shown' })).toBeVisible();
   await expect(page.locator('.random-picker-card--history')).toHaveCount(1);
   await page.getByRole('button', { name: 'Start over' }).click();
   await expect(page.locator('.random-picker-card--history')).toHaveCount(0);
   await page.getByRole('button', { name: 'Pick a game' }).click();
   await expect(current).toContainText('Family Tabletop');
+  await page.getByLabel('Mode').selectOption('All');
+  await expect(page.getByRole('button', { name: 'Pick a game', exact: true })).toBeEnabled();
+  await expect(page.getByLabel('Family friendly only')).toBeChecked();
+  await expect(page.locator('.random-picker-card--history')).toHaveCount(1);
+  await expect(page.locator('.random-picker-card--history')).toContainText('Family Tabletop');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 

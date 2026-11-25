@@ -25,11 +25,19 @@ public class RandomPickerService
         await using var snapshot = await _db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
         await _db.Database.ExecuteSqlRawAsync("SET TRANSACTION READ ONLY", ct);
 
-        var candidates = ApplyFilters(_db.Games
+        return await PickInTransactionAsync(userId, parsed, ct);
+    }
+
+    internal IQueryable<Game> Candidates(string userId, RandomPickerQuery parsed) => ApplyFilters(_db.Games
             .Where(g => g.LibraryEntry.Library.UserId == userId
                 && g.LibraryEntry.AcquisitionStatus == AcquisitionStatus.Owned
                 && !_db.CurrentlyPlayingSlots.Any(s => s.LibraryId == g.LibraryEntry.LibraryId
                     && s.GameType == g.GameType && s.LibraryEntryId == g.LibraryEntry.Id)), parsed);
+
+    // Durable round mutations already hold the Library-first transaction/lock.
+    internal async Task<RandomPickerResult> PickInTransactionAsync(string userId, RandomPickerQuery parsed, CancellationToken ct)
+    {
+        var candidates = Candidates(userId, parsed);
 
         if (!await candidates.AnyAsync(ct))
         {
@@ -47,9 +55,13 @@ public class RandomPickerService
         }
 
         var selectedEntryId = unshownIds[Random.Shared.Next(unshownIds.Count)];
-        var selected = await unshown
-            .Where(g => g.LibraryEntry.Id == selectedEntryId)
-            .Select(g => new RandomPickerItemView(
+        var selected = await Project(unshown.Where(g => g.LibraryEntry.Id == selectedEntryId)).SingleAsync(ct);
+
+        return new RandomPickerResult(RandomPickerState.Success, selected);
+    }
+
+    internal static IQueryable<RandomPickerItemView> Project(IQueryable<Game> games) =>
+        games.Select(g => new RandomPickerItemView(
                 g.LibraryEntry.Id,
                 g.Id,
                 g.GameType,
@@ -66,11 +78,7 @@ public class RandomPickerService
                 g.ApproximateDuration,
                 g.InteractionType,
                 g.IsFamilyFriendly,
-                g.CoverUploadId))
-            .SingleAsync(ct);
-
-        return new RandomPickerResult(RandomPickerState.Success, selected);
-    }
+                g.CoverUploadId));
 
     internal static IQueryable<Game> ApplyFilters(IQueryable<Game> query, RandomPickerQuery parsed)
     {

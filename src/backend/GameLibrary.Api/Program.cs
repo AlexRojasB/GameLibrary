@@ -31,6 +31,7 @@ builder.Services.AddScoped<PlatformService>();
 builder.Services.AddScoped<VideoGameService>();
 builder.Services.AddScoped<BoardGameService>();
 builder.Services.AddScoped<RandomPickerService>();
+builder.Services.AddScoped<PickerRoundService>();
 builder.Services.AddScoped<CurrentlyPlayingService>();
 builder.Services.AddScoped<PlayLogService>();
 builder.Services.AddScoped<CoverImageSearchService>();

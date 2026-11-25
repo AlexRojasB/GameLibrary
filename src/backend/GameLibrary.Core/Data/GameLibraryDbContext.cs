@@ -4,6 +4,7 @@ using GameLibrary.Core.CurrentlyPlaying;
 using GameLibrary.Core.Libraries;
 using GameLibrary.Core.PlayLog;
 using GameLibrary.Core.Platforms;
+using GameLibrary.Core.RandomPicker;
 using GameLibrary.Core.Steam;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -89,6 +90,8 @@ public class GameLibraryDbContext : DbContext
     public DbSet<LibraryEntry> LibraryEntries => Set<LibraryEntry>();
 
     public DbSet<CurrentlyPlayingSlot> CurrentlyPlayingSlots => Set<CurrentlyPlayingSlot>();
+
+    public DbSet<PickerRound> PickerRounds => Set<PickerRound>();
 
     public DbSet<Genre> Genres => Set<Genre>();
 
@@ -372,6 +375,30 @@ public class GameLibraryDbContext : DbContext
                 .WithOne(entry => entry.LibraryEntry)
                 .HasForeignKey(entry => entry.LibraryEntryId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PickerRound>(entity =>
+        {
+            entity.ToTable("picker_rounds", t =>
+            {
+                t.HasCheckConstraint("ck_picker_rounds_mode", "mode IN ('All', 'VideoGames', 'BoardGames')");
+                t.HasCheckConstraint("ck_picker_rounds_state", "state IS NULL OR state IN ('Success', 'NoCandidates', 'AllAlreadyShown')");
+                t.HasCheckConstraint("ck_picker_rounds_revision", "revision > 0");
+                t.HasCheckConstraint("ck_picker_rounds_filters", "jsonb_typeof(filters) = 'object'");
+                t.HasCheckConstraint("ck_picker_rounds_operation", "last_operation_id <> '00000000-0000-0000-0000-000000000000'::uuid AND last_operation_hash ~ '^[a-f0-9]{64}$'");
+            });
+            entity.HasKey(r => new { r.LibraryId, r.Mode }).HasName("pk_picker_rounds");
+            entity.Property(r => r.LibraryId).HasColumnName("library_id");
+            entity.Property(r => r.Mode).HasColumnName("mode").HasConversion<string>().HasMaxLength(20);
+            entity.Property(r => r.Revision).HasColumnName("revision");
+            entity.Property(r => r.FiltersJson).HasColumnName("filters").HasColumnType("jsonb");
+            entity.Property(r => r.State).HasColumnName("state").HasConversion<string>().HasMaxLength(20);
+            entity.Property(r => r.CurrentLibraryEntryId).HasColumnName("current_library_entry_id");
+            entity.Property(r => r.HistoryLibraryEntryIds).HasColumnName("history_library_entry_ids");
+            entity.Property(r => r.ShownLibraryEntryIds).HasColumnName("shown_library_entry_ids");
+            entity.Property(r => r.LastOperationId).HasColumnName("last_operation_id");
+            entity.Property(r => r.LastOperationHash).HasColumnName("last_operation_hash").HasMaxLength(64);
+            entity.HasOne(r => r.Library).WithMany().HasForeignKey(r => r.LibraryId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<CurrentlyPlayingSlot>(entity =>

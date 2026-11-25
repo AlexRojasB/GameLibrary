@@ -3,6 +3,20 @@ Domain Specification v0.9 --- Game Library
 Status: Approved
 Version: 0.9
 
+GL-16 approved exception — current Picker round recovery only:
+Each Library may persist one current round per All, VideoGames and BoardGames mode,
+with independent filters, proposal, ordered unique shown history/IDs and outcome.
+Only backend draws add results. Mode changes do not overwrite another mode. An
+explicit reset clears only its active round's proposal/outcome/history/shown IDs,
+not its filters or other rounds. Filter edits keep shown IDs/history and clear the
+proposal/outcome. Restore resolves fresh same-Library game data and revalidates the
+proposal against current eligibility/filters/Currently Playing; deleted/foreign
+games are never exposed or promoted into a new proposal. Ineligible historical
+items remain read-only; deleted items are omitted without unshowing their IDs.
+This is an exception to the temporary/non-persisted session rules below for current
+round recovery only, not a completed-round archive or gameplay/Play Log history.
+See specs/015-persistent-picker-round/spec.md; all other invariants remain intact.
+
 GL-17 / GL-27 first-delivery amendment — owner-requested local implementation:
 Each Library may hold at most one Currently Playing selection per GameType. A
 selection references an existing same-Library LibraryEntry; the backend derives

@@ -512,6 +512,72 @@ namespace GameLibrary.Core.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("GameLibrary.Core.RandomPicker.PickerRound", b =>
+                {
+                    b.Property<Guid>("LibraryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("library_id");
+
+                    b.Property<string>("Mode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("mode");
+
+                    b.Property<Guid?>("CurrentLibraryEntryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("current_library_entry_id");
+
+                    b.Property<string>("FiltersJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("filters");
+
+                    b.PrimitiveCollection<Guid[]>("HistoryLibraryEntryIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("history_library_entry_ids");
+
+                    b.Property<string>("LastOperationHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("last_operation_hash");
+
+                    b.Property<Guid>("LastOperationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("last_operation_id");
+
+                    b.Property<long>("Revision")
+                        .HasColumnType("bigint")
+                        .HasColumnName("revision");
+
+                    b.PrimitiveCollection<Guid[]>("ShownLibraryEntryIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("shown_library_entry_ids");
+
+                    b.Property<string>("State")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.HasKey("LibraryId", "Mode")
+                        .HasName("pk_picker_rounds");
+
+                    b.ToTable("picker_rounds", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_picker_rounds_filters", "jsonb_typeof(filters) = 'object'");
+
+                            t.HasCheckConstraint("ck_picker_rounds_mode", "mode IN ('All', 'VideoGames', 'BoardGames')");
+
+                            t.HasCheckConstraint("ck_picker_rounds_operation", "last_operation_id <> '00000000-0000-0000-0000-000000000000'::uuid AND last_operation_hash ~ '^[a-f0-9]{64}$'");
+
+                            t.HasCheckConstraint("ck_picker_rounds_revision", "revision > 0");
+
+                            t.HasCheckConstraint("ck_picker_rounds_state", "state IS NULL OR state IN ('Success', 'NoCandidates', 'AllAlreadyShown')");
+                        });
+                });
+
             modelBuilder.Entity("GameLibrary.Core.Steam.SteamAccount", b =>
                 {
                     b.Property<Guid>("Id")
@@ -755,6 +821,17 @@ namespace GameLibrary.Core.Data.Migrations
                         .HasConstraintName("fk_play_log_entries_library_entries_library_entry_id");
 
                     b.Navigation("LibraryEntry");
+                });
+
+            modelBuilder.Entity("GameLibrary.Core.RandomPicker.PickerRound", b =>
+                {
+                    b.HasOne("GameLibrary.Core.Libraries.Library", "Library")
+                        .WithMany()
+                        .HasForeignKey("LibraryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Library");
                 });
 
             modelBuilder.Entity("GameLibrary.Core.Steam.SteamAccount", b =>

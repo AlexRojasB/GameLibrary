@@ -281,6 +281,18 @@ Missing player-count metadata does not satisfy an active player-count filter.
 
 Random Picker
 
+GL-16 exception: persist only the current round for recovery, independently for
+All, VideoGames and BoardGames, scoped to the authenticated Library. Recover its
+proposal, newest-first history, shown IDs, outcome and current filter context.
+All remains the default. Switching modes recovers that mode's own round; Start
+over clears only the active mode's proposal/history/shown IDs/outcome and keeps
+its filters. Filter changes preserve that round's history/shown IDs and clear its
+displayed proposal/outcome as before. The backend remains authoritative for draws,
+ownership and fresh eligibility. Stale/deleted proposals cannot be selected on
+recovery. This narrow exception does not authorize completed-round archives,
+statistics, play sessions, completion workflows or general history persistence.
+See specs/015-persistent-picker-round/spec.md.
+
 The backend is authoritative for:
 
 Candidate eligibility.
@@ -291,7 +303,7 @@ Exclusion of shown IDs.
 
 Random selection.
 
-The frontend owns only volatile session state:
+Outside the GL-16 current-round recovery exception, the frontend owns only volatile session state:
 
 Current mode.
 
@@ -303,15 +315,17 @@ Visible volatile result history.
 
 Already-shown IDs.
 
-Do not persist RandomPickerSession.
+Do not persist RandomPickerSession or Picker history beyond the GL-16 current-round exception.
 
 Changing filters does not clear shown IDs.
 
-Changing filters or mode does not clear visible result history.
+Changing filters does not clear visible result history. GL-16 mode changes switch
+between independent saved rounds without clearing either mode's history.
 
 A previously shown game remains shown for that session.
 
-Reset shown history clears both shown IDs and visible result history.
+Reset shown history clears both shown IDs and visible result history of the active
+mode's round only under GL-16; other modes remain untouched.
 
 The API must preserve the conceptual distinction between:
 

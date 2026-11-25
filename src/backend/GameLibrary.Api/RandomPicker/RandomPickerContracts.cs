@@ -10,11 +10,22 @@ public sealed record RandomPickerPickRequest(
     int? AvailableDuration,
     IReadOnlyList<string>? InteractionTypes,
     int? RatingMin,
-    bool? FamilyFriendlyOnly);
+    bool? FamilyFriendlyOnly,
+    long? RoundRevision = null,
+    Guid? OperationId = null);
+
+public sealed record PickerRoundMutationRequest(long? RoundRevision, Guid? OperationId);
+
+public sealed record PickerRoundResponse(
+    string Mode, long Revision, RandomPickerPickRequest Filters,
+    string? State, RandomPickerItemResponse? Result,
+    IReadOnlyList<RandomPickerItemResponse> History, IReadOnlyList<Guid> ShownLibraryEntryIds,
+    bool ProposalUnavailable);
 
 public sealed record RandomPickerPickResponse(
-    string State,
-    RandomPickerItemResponse? Result);
+    string? State,
+    RandomPickerItemResponse? Result,
+    PickerRoundResponse? Round = null);
 
 public sealed record RandomPickerItemResponse(
     Guid LibraryEntryId,

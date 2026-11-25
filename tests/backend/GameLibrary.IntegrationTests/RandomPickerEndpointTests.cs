@@ -297,6 +297,7 @@ public class RandomPickerEndpointTests : IClassFixture<RandomPickerTestFactory>,
                 "steam_link_requests",
                 "cover_uploads",
                 "currently_playing",
+                "picker_rounds",
             }.OrderBy(x => x),
             tables.OrderBy(x => x));
     }

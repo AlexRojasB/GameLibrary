@@ -7,7 +7,6 @@ import { Register } from './features/auth/register/register';
 import { Home } from './features/auth/home/home';
 import { PlatformsList } from './features/platforms/platforms-list/platforms-list';
 import { LibraryPage } from './features/library/library-page/library-page';
-import { RandomPickerPage } from './features/random-picker/random-picker-page/random-picker-page';
 import { ManageHub } from './features/manage/manage-hub';
 import { SteamPage } from './features/manage/steam/steam-page';
 import { PlayLogPage } from './features/play-log/play-log-page/play-log-page';
@@ -18,7 +17,7 @@ export const routes: Routes = [
   { path: 'register', component: Register, canActivate: [guestGuard] },
   { path: 'health', component: HealthCheck },
   { path: 'library', component: LibraryPage, canActivate: [authGuard] },
-  { path: 'random-picker', component: RandomPickerPage, canActivate: [authGuard] },
+  { path: 'random-picker', loadComponent: () => import('./features/random-picker/random-picker-page/random-picker-page').then((module) => module.RandomPickerPage), canActivate: [authGuard] },
   { path: 'play-log', component: PlayLogPage, canActivate: [authGuard] },
   { path: 'manage', component: ManageHub, canActivate: [authGuard] },
   { path: 'manage/steam', component: SteamPage, canActivate: [authGuard] },

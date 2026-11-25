@@ -3,6 +3,19 @@ Architecture Specification v0.4 --- Game Library
 Status: Approved
 Version: 0.4
 
+GL-16 approved exception — current Picker round recovery only:
+Use one EF-owned picker_rounds row per (Library, All/VideoGames/BoardGames mode),
+storing validated filter context, ordered entry IDs, current proposal/outcome and
+revision plus a bounded last-operation receipt. Only server draws append results;
+no client-authored result snapshots. Owner-scoped APIs, Library-first locks and
+optimistic revision checks protect writes; a repeated acknowledged operation does
+not draw twice or revive an old reset. Rehydrate fresh owner-scoped metadata and
+eligibility on reads. Angular uses feature-local services/signals; pending online
+mutations may finish across navigation but there is no offline mutation queue or
+persistent browser cache. This narrowly supersedes volatile/no-PostgreSQL-session
+rules below for recovering the three current rounds, not completed-round archives
+or new infrastructure/dependencies. See specs/015-persistent-picker-round/spec.md.
+
 GL-17 / GL-27 first-delivery amendment — owner-requested local implementation:
 Use the existing Api/Core projects and Angular services/signals for durable Library
 Currently Playing selections, separate from volatile Picker state. One additive EF
