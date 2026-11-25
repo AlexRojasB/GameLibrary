@@ -388,50 +388,19 @@ describe('RandomPickerPage current-round recovery', () => {
       .toBe(value ? null : 'Family friendly');
   });
 
-  it('Log play still requires explicit dialog confirmation and prevents duplicate posts while Another stays usable', () => {
-    propose();
-    click('Log play');
-    http.expectNone(r => r.url.endsWith('/play-log'));
-    const host = (fixture.nativeElement as HTMLElement).querySelector('app-log-play-dialog')!;
-    const date = host.querySelector('input[type="datetime-local"]') as HTMLInputElement;
-    date.value = '2026-08-24T18:30';
-    date.dispatchEvent(new Event('input'));
-    const duration = host.querySelector('input[type="number"]') as HTMLInputElement;
-    duration.value = '90';
-    duration.dispatchEvent(new Event('input'));
+  it.each([video, board])('has no logging action or dialog for $gameType; Another and Select Game do not log', item => {
+    propose(item);
+    expect(text()).not.toContain('Log play');
+    expect(text()).not.toContain('Log Play Time');
+    expect((fixture.nativeElement as HTMLElement).querySelector('app-log-play-dialog')).toBeNull();
+    click('Select Game');
+    http.expectOne(r => r.url.endsWith('/currently-playing')).flush({ videoGame: null, boardGame: null });
     fixture.detectChanges();
-    (host.querySelector('button[type="submit"]') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    const log = http.expectOne(r => r.url.endsWith('/play-log'));
-    expect(log.request.body).toEqual({ gameId: video.gameId, playedAt: new Date('2026-08-24T18:30').toISOString(), durationMinutes: 90 });
-    click('Logging...');
-    http.expectNone(r => r.url.endsWith('/play-log'));
     click('Another');
-    acknowledge(pick(), proposal('All', [board, video], 2));
-    log.flush({ id: 'log-1' });
-    fixture.detectChanges();
-    expect(text()).not.toContain('Play logged.');
-  });
-
-  it('keeps readable Log play validation errors and existing session-expiry handling', async () => {
-    propose();
-    function submit() {
-      click('Log play');
-      const host = (fixture.nativeElement as HTMLElement).querySelector('app-log-play-dialog')!;
-      const date = host.querySelector('input[type="datetime-local"]') as HTMLInputElement;
-      date.value = '2026-08-24T18:30';
-      date.dispatchEvent(new Event('input'));
-      fixture.detectChanges();
-      (host.querySelector('button[type="submit"]') as HTMLButtonElement).click();
-      return http.expectOne(r => r.url.endsWith('/play-log'));
-    }
-    submit().flush({ detail: 'Only owned games can be logged.' }, { status: 400, statusText: 'Bad Request' });
-    fixture.detectChanges();
-    expect(text()).toContain('Only owned games can be logged.');
-    submit().flush(null, { status: 401, statusText: 'Unauthorized' });
-    await fixture.whenStable();
-    expect(TestBed.inject(AuthService).isAuthenticated()).toBe(false);
-    expect(TestBed.inject(Router).url).toBe('/login');
+    acknowledge(pick(), round('All', { revision: 2, state: 'ALL_ALREADY_SHOWN', history: [item], shownLibraryEntryIds: [item.libraryEntryId] }));
+    expect(page()['visibleHistory']()).toEqual([item]);
+    expect(page()['shownLibraryEntryIds']()).toEqual([item.libraryEntryId]);
+    http.expectNone(r => r.url.endsWith('/play-log'));
   });
 
   it.each<RandomPickerMode>(['All', 'VideoGames', 'BoardGames'])('persists mode-specific filter controls in %s without dropping Family friendly', value => {

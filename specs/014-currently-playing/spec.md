@@ -33,6 +33,11 @@ the unchanged Picker/session, ownership, cover and Game/LibraryEntry invariants.
   cross-tab live synchronization. Slots remain stored until explicit replacement
   or existing entry deletion; ordinary game edits gain no new side effects.
 
+Follow-up scope note: GL-16 subsequently authorizes current-round recovery under
+specs/015-persistent-picker-round/spec.md. GL-17 now authorizes only the logging UI
+relocation under specs/016-home-log-play-time/spec.md. Other deferred rules above
+remain deferred; neither follow-up adds automatic slot clearing or completion.
+
 ## API and persistence
 
 `GET /currently-playing` returns `{ videoGame: item|null, boardGame: item|null }`.
