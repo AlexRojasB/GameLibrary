@@ -20,6 +20,7 @@ export class Register {
   });
 
   protected readonly submitting = signal(false);
+  protected readonly passwordVisible = signal(false);
   protected readonly error = signal('');
   protected readonly needsEmailConfirmation = signal(false);
 
