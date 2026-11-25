@@ -53,3 +53,11 @@ required CI run. Investigate concrete failures only, preserve assertions and avo
 unrelated diagnostic campaigns. No merge, deployment, remote migration or Steam/QA
 change. Preserve pending QA files untouched/uncommitted. Stop for review after
 reporting the PR URL, final SHA and observed CI results.
+
+The owner subsequently authorized investigating PR #19's concrete Steam nonce
+freshness failure and publishing a justified correction on this branch. The
+verified correction is test-only: immutable fixture anchors plus exact nonce
+boundary regressions. Runtime tolerance/protocol and other Steam behavior remain
+unchanged. Run affected/focused nonce tests locally, then normal CI for the new
+SHA; no unrelated diagnostics, QA change, merge or deployment. See
+nonce-freshness-ci-investigation.md for evidence and scope.
