@@ -35,16 +35,18 @@ public sealed class CurrentlyPlayingService(GameLibraryDbContext db)
         await db.Database.ExecuteSqlRawAsync("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='10s'", ct);
 
         // Same Library-first order as game edits/deletion. Re-read eligibility after
-        // the lock, so a stale Picker card cannot select a deleted/non-Owned/excluded game.
+        // the lock, so a stale Picker card cannot select a deleted/non-Owned/excluded
+        // game, including a VideoGame completed since the proposal was drawn.
         var library = await db.Libraries.FromSqlInterpolated(
             $"SELECT * FROM libraries WHERE user_id = {userId} FOR UPDATE")
             .AsNoTracking().SingleOrDefaultAsync(ct) ?? throw new SelectionNotFoundException();
         var entry = await db.LibraryEntries.AsNoTracking()
             .Where(e => e.LibraryId == library.Id && e.GameId == gameId)
-            .Select(e => new { e.Id, e.AcquisitionStatus, e.IsExcludedFromPicker, e.Game.GameType })
+            .Select(e => new { e.Id, e.AcquisitionStatus, e.IsExcludedFromPicker, e.GameStatus, e.Game.GameType })
             .SingleOrDefaultAsync(ct) ?? throw new SelectionNotFoundException();
         if (entry.AcquisitionStatus != AcquisitionStatus.Owned) throw new SelectionNotOwnedException();
-        if (entry.IsExcludedFromPicker) throw new SelectionExcludedException();
+        if (entry.IsExcludedFromPicker || (entry.GameType == GameType.VideoGame && entry.GameStatus == GameStatus.Completed))
+            throw new SelectionExcludedException();
 
         var type = entry.GameType.ToString();
         // The composite PK is the final at-most-one-slot guard. Repeating the same

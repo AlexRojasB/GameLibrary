@@ -3,6 +3,14 @@ Architecture Specification v0.4 --- Game Library
 Status: Approved
 Version: 0.4
 
+GL-10 — Completed VideoGame Picker exclusion:
+Extend existing Core candidate eligibility with the VideoGame/Completed predicate;
+GL-16 recovery/repeated draws already revalidate through it. Recheck type/status
+alongside manual exclusion after the existing Library-first selection lock and use
+the existing exclusion conflict response. Reuse GameStatus/EF mappings, round
+history/protocol and Angular controls unchanged. No schema, migration, dependency,
+new UI setting or infrastructure. See specs/018-completed-picker-exclusion/spec.md.
+
 GL-09 — manual Picker exclusion:
 Add only a non-null boolean library_entries.is_excluded_from_picker DEFAULT false
 through EF, preserving old data. Expose an owner-scoped desired-value PUT from Library

@@ -308,7 +308,14 @@ public sealed class SteamV2EndpointTests(SteamSecureFixture fixture) : IClassFix
     {
         using var host = new SteamV2Factory(fixture.ConnectionString); using var client = host.Browser(User());
         var flow = await Create(client); var assertion = Assertion(flow);
-        assertion["openid.response_nonce"] = DateTimeOffset.UtcNow.AddSeconds(seconds).ToString("yyyy-MM-dd'T'HH:mm:ss'Z'") + "synthetic";
+        await using var db = fixture.Db();
+        var row = await db.SteamLinkRequests.AsNoTracking().SingleAsync(r => r.Id == flow.Id);
+        // Anchor past cases to immutable creation, and the future case beyond the
+        // live transaction's expiry +60s. Whole-second formatting cannot bring it
+        // into the allowed window while live, regardless of callback elapsed time.
+        // Exact +/-1us policy boundaries are covered by SteamNonceFreshnessTests.
+        var anchor = seconds > 0 ? row.ExpiresAt : row.CreatedAt;
+        assertion["openid.response_nonce"] = anchor.AddSeconds(seconds).ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture) + "synthetic";
         using var response = await client.GetAsync(Callback(assertion)); Assert.Equal(0, host.Provider.Calls);
         await ReviewState(client, flow, "Pending");
     }

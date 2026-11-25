@@ -5,6 +5,10 @@ Status: owner-requested local implementation for review. Branch
 `a559321ac172f6f00802be579d53dd3cc20f0534`.
 GL-09 is the product task ID; Feature 009 remains the existing Play Log feature.
 
+Follow-up: GL-10 under specs/018-completed-picker-exclusion/spec.md now authorizes
+the separate Completed VideoGame eligibility restriction deferred in this delivery.
+It must not write or replace the manual exclusion flag; all other GL-09 rules remain.
+
 ## Acceptance / invariants
 
 - Every Library VideoGame/BoardGame, regardless of acquisition status, has

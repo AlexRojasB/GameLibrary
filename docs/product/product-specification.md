@@ -3,6 +3,16 @@ Product Specification v0.7 --- Game Library
 Status: Approved
 Version: 0.7
 
+GL-10 owner-requested delivery — Completed VideoGame Picker exclusion:
+VideoGames whose LibraryEntry.GameStatus is Completed are ineligible for Picker
+draws in All/VideoGames, saved-proposal recovery and stale selection. BoardGames
+are unaffected. This status rule is independent of GL-09's manual exclusion flag;
+changing away from Completed removes only the status restriction, not ownership,
+manual exclusion, filters, shown IDs or Currently Playing restrictions. Ordered
+history remains read-only. Do not clear slots, mutate play logs/Steam or introduce
+completion workflows. This supersedes GL-09's deferral of automatic exclusion only.
+See specs/018-completed-picker-exclusion/spec.md. Local implementation only.
+
 GL-09 owner-requested delivery — manual Picker exclusion:
 Every Library VideoGame/BoardGame has a reversible Exclude from Picker setting,
 initially off for existing and new games. Library cards allow excluding/re-including
