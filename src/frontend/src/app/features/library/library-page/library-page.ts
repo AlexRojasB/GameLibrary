@@ -1,6 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, computed, inject, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
+import { takeUntil } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { CoverImage } from '../../games/cover-image/cover-image';
@@ -43,6 +45,7 @@ export class LibraryPage implements OnDestroy {
   private readonly playLogService = inject(PlayLogService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(true);
   protected readonly items = signal<LibraryItem[]>([]);
@@ -55,6 +58,8 @@ export class LibraryPage implements OnDestroy {
   protected readonly loggingGameIds = signal<string[]>([]);
   protected readonly logSuccessByGameId = signal<Record<string, string>>({});
   protected readonly logErrorByGameId = signal<Record<string, string>>({});
+  protected readonly exclusionPendingIds = signal<string[]>([]);
+  protected readonly exclusionErrors = signal<Record<string, string>>({});
 
   protected readonly acquisitionStatuses = ACQUISITION_STATUSES;
   protected readonly gameStatuses = GAME_STATUSES;
@@ -70,6 +75,10 @@ export class LibraryPage implements OnDestroy {
   private searchDebounce: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    this.auth.subjectChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.exclusionPendingIds.set([]);
+      this.exclusionErrors.set({});
+    });
     this.loadLookups();
     this.load();
   }
@@ -85,7 +94,8 @@ export class LibraryPage implements OnDestroy {
     this.loading.set(true);
     this.error.set('');
 
-    this.libraryService.browse(this.filters(), this.sort()).subscribe({
+    this.libraryService.browse(this.filters(), this.sort())
+      .pipe(takeUntilDestroyed(this.destroyRef), takeUntil(this.auth.subjectChanges)).subscribe({
       next: (items) => {
         if (id !== this.requestId) {
           return;
@@ -186,6 +196,28 @@ export class LibraryPage implements OnDestroy {
     this.logSuccessByGameId.update((messages) => withoutKey(messages, item.id));
     this.logErrorByGameId.update((messages) => withoutKey(messages, item.id));
     this.logPlayDialog()?.open({ id: item.id, name: item.name });
+  }
+
+  protected setPickerExclusion(item: LibraryItem): void {
+    if (this.exclusionPendingIds().includes(item.id)) return;
+    this.exclusionPendingIds.update(ids => [...ids, item.id]);
+    this.exclusionErrors.update(errors => withoutKey(errors, item.id));
+    this.libraryService.setPickerExclusion(item.id, !item.isExcludedFromPicker)
+      .pipe(takeUntilDestroyed(this.destroyRef), takeUntil(this.auth.subjectChanges)).subscribe({
+        next: () => {
+          this.exclusionPendingIds.update(ids => ids.filter(id => id !== item.id));
+          this.load(); // Fresh confirmed setting, preserving current browse criteria.
+        },
+        error: (error: HttpErrorResponse) => {
+          this.exclusionPendingIds.update(ids => ids.filter(id => id !== item.id));
+          if (error.status === 401) {
+            this.handleSessionExpired();
+            return;
+          }
+          this.exclusionErrors.update(errors => ({ ...errors,
+            [item.id]: 'Unable to save Picker exclusion. Reload Library to check the saved setting before trying again.' }));
+        },
+      });
   }
 
   protected onLogPlayConfirmed(request: CreatePlayLogEntryRequest): void {

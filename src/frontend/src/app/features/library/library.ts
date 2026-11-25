@@ -12,6 +12,7 @@ export interface LibraryItem extends CoverReference {
   gameType: LibraryGameType;
   name: string;
   isFamilyFriendly: boolean;
+  isExcludedFromPicker: boolean;
   createdAt: string;
   acquisitionStatus: AcquisitionStatus;
   rating: number | null;

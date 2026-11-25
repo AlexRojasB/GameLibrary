@@ -56,6 +56,21 @@ public class LibraryService
         return await new LibraryService(clean).EnsureAsync(userId, ct);
     }
 
+    public async Task SetPickerExclusionAsync(string userId, Guid gameId, bool excluded, CancellationToken ct)
+    {
+        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
+        await _db.Database.ExecuteSqlRawAsync("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='10s'", ct);
+        var library = await _db.Libraries.FromSqlInterpolated(
+            $"SELECT * FROM libraries WHERE user_id = {userId} FOR UPDATE")
+            .AsNoTracking().SingleOrDefaultAsync(ct) ?? throw new LibraryItemNotFoundException();
+        // Serialize with selection/durable draws. Change only this setting, never
+        // replay a stale full-form Game/LibraryEntry or mutate saved round state.
+        var changed = await _db.LibraryEntries.Where(e => e.LibraryId == library.Id && e.GameId == gameId)
+            .ExecuteUpdateAsync(s => s.SetProperty(e => e.IsExcludedFromPicker, excluded), ct);
+        if (changed == 0) throw new LibraryItemNotFoundException();
+        await transaction.CommitAsync(ct);
+    }
+
     public async Task<IReadOnlyList<LibraryItemView>> BrowseAsync(
         string userId, LibraryQueryRequest request, CancellationToken ct)
     {
@@ -137,7 +152,8 @@ public class LibraryService
                 g.ApproximateDuration,
                 g.InteractionType,
                 g.IsFamilyFriendly,
-                g.CoverUploadId))
+                g.CoverUploadId,
+                g.LibraryEntry.IsExcludedFromPicker))
             .ToListAsync(ct);
     }
 

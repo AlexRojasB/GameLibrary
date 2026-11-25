@@ -31,6 +31,7 @@ public class RandomPickerService
     internal IQueryable<Game> Candidates(string userId, RandomPickerQuery parsed) => ApplyFilters(_db.Games
             .Where(g => g.LibraryEntry.Library.UserId == userId
                 && g.LibraryEntry.AcquisitionStatus == AcquisitionStatus.Owned
+                && !g.LibraryEntry.IsExcludedFromPicker
                 && !_db.CurrentlyPlayingSlots.Any(s => s.LibraryId == g.LibraryEntry.LibraryId
                     && s.GameType == g.GameType && s.LibraryEntryId == g.LibraryEntry.Id)), parsed);
 

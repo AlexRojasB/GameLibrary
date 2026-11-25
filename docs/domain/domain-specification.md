@@ -3,6 +3,17 @@ Domain Specification v0.9 --- Game Library
 Status: Approved
 Version: 0.9
 
+GL-09 — manual Picker exclusion:
+LibraryEntry.IsExcludedFromPicker is a required boolean defaulting to false for both
+game types and every acquisition status. Only the authenticated Library owner may
+set it. True disqualifies an entry from all Picker draws and current-proposal
+recovery/selection, independently of GameStatus. History/shown IDs remain unchanged;
+existing same-Library history remains read-only. Re-inclusion does not unshow an
+entry or override filters, Owned or Currently Playing rules; an unchanged saved
+proposal may recover only if freshly eligible. Changing this flag modifies no other
+entry/game data, active slot, PlayLogEntry or Steam reference. See
+specs/017-manual-picker-exclusion/spec.md.
+
 GL-16 approved exception — current Picker round recovery only:
 Each Library may persist one current round per All, VideoGames and BoardGames mode,
 with independent filters, proposal, ordered unique shown history/IDs and outcome.

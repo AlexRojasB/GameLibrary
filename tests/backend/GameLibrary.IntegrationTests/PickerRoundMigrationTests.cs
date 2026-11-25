@@ -66,7 +66,8 @@ public sealed class PickerRoundMigrationTests
             await migrator.MigrateAsync(previous);
             Assert.Equal("Preserved", (await db.Games.SingleAsync()).Name);
             Assert.Equal(entry, (await db.CurrentlyPlayingSlots.SingleAsync()).LibraryEntryId);
-            Assert.Equal(game, (await db.LibraryEntries.SingleAsync()).GameId);
+            // Only query columns present at this historical rollback boundary.
+            Assert.Equal(game, await db.LibraryEntries.Select(e => e.GameId).SingleAsync());
         }
         finally
         {

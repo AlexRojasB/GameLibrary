@@ -3,6 +3,16 @@ Product Specification v0.7 --- Game Library
 Status: Approved
 Version: 0.7
 
+GL-09 owner-requested delivery — manual Picker exclusion:
+Every Library VideoGame/BoardGame has a reversible Exclude from Picker setting,
+initially off for existing and new games. Library cards allow excluding/re-including
+without hiding/deleting the game. The backend excludes it in every Picker mode and
+rejects stale selection; recovered proposals must revalidate it while keeping ordered
+history read-only. Re-inclusion preserves shown IDs and all other eligibility rules,
+filters and Currently Playing exclusions. This changes no GameStatus, slots, logs or
+Steam behavior and adds no automatic Completed exclusion. See
+specs/017-manual-picker-exclusion/spec.md. Local implementation/migration only.
+
 GL-17 owner-requested follow-up — Log Play Time from Home:
 Each populated Currently Playing slot on Home (VideoGame and BoardGame) offers
 Log Play Time, opening the existing Log Play dialog with that game preselected.

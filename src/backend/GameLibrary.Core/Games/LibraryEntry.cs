@@ -21,6 +21,8 @@ public class LibraryEntry
 
     public AcquisitionStatus AcquisitionStatus { get; set; }
 
+    public bool IsExcludedFromPicker { get; set; }
+
     public int? Rating { get; set; }
 
     public string? Notes { get; set; }
