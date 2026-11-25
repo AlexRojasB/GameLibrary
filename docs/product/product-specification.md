@@ -3,6 +3,17 @@ Product Specification v0.7 --- Game Library
 Status: Approved
 Version: 0.7
 
+GL-17 owner-requested follow-up — Log Play Time from Home:
+Each populated Currently Playing slot on Home (VideoGame and BoardGame) offers
+Log Play Time, opening the existing Log Play dialog with that game preselected.
+Reuse the existing manual PlayedAt/optional DurationMinutes validation and save
+semantics. On success refetch Home's Currently Playing data; cancellation/failure
+must not mutate slots or any Picker round. Remove logging from the Picker; Library
+logging and Play Log viewing/editing remain unchanged. This supersedes the earlier
+deferral of relocation and Picker logging UI requirements only, not domain rules.
+No completion, automatic slot clearing, statistics, new logging semantics or schema
+is authorized. See specs/016-home-log-play-time/spec.md. Local implementation only.
+
 GL-16 approved exception — current Picker round recovery only:
 Persist three independent current rounds per authenticated Library: All (default),
 VideoGames and BoardGames. Recover the proposal, newest-first history, shown IDs,
@@ -841,8 +852,8 @@ still pending.
 
 When creating a Play Log entry, the user can choose when the play actually
 happened. Manual logging interactions default the played date/time to the current
-browser-local date/time, and the user may change it before submitting. Random
-Picker logging uses the same interaction and defaults the played date/time to now.
+browser-local date/time, and the user may change it before submitting. Home
+Currently Playing logging uses the same interaction and defaults to now.
 
 PlayedAt represents when the user says the play occurred. It is persisted and
 transported as an offset-aware/UTC-compatible timestamp, and normal UI displays it
@@ -876,8 +887,8 @@ makes the game identity read-only and obvious. Saving updates the card without a
 full application reload. If PlayedAt changes, the Play Log list re-sorts newest
 first immediately.
 
-Edit actions belong only to the Play Log page. Library cards and Random Picker
-result cards may create new logs but must not expose Play Log edit actions.
+Edit actions belong only to the Play Log page. Library cards and Home Currently
+Playing slots may create new logs but must not expose Play Log edit actions.
 
 Deleting Play Log entries, changing the associated game, and richer session
 details remain outside this feature unless a future approved specification adds

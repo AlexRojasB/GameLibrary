@@ -1,5 +1,10 @@
 # 009 - Play Log
 
+GL-17 follow-up: specs/016-home-log-play-time/spec.md relocates only the Picker's
+create-log UI to populated Home Currently Playing slots. The historical Picker UI
+requirements below are superseded by that delivery; existing logging rules/API,
+Library actions and Play Log editing remain unchanged.
+
 ## Status
 
 `Approved - Manual Review Amendment Pending Implementation`

@@ -24,6 +24,8 @@
                   <app-cover-image [coverImageUrl]="item.coverImageUrl" [coverUploadId]="item.coverUploadId"
                     [alt]="item.name + ' cover'" />
                   <p class="home__selected-name">{{ item.name }}</p>
+                  <button type="button" class="button button--secondary" (click)="logPlayTime(item)"
+                    [disabled]="logPendingGameId() !== null">Log Play Time</button>
                 } @else {
                   <p>No {{ slot.label.toLowerCase() }} selected.</p>
                   <a routerLink="/random-picker">Select a game from the Picker</a>
@@ -31,6 +33,9 @@
               </article>
             }
           </div>
+        }
+        @if (logSuccess()) {
+          <p role="status">{{ logSuccess() }}</p>
         }
       </section>
       <div class="home__actions" aria-label="Primary actions">
@@ -68,3 +73,4 @@
     }
   }
 </section>
+<app-log-play-dialog #logPlayDialog (createSubmitted)="onLogPlayConfirmed($event)" (cancelled)="onLogCancelled()" />

@@ -204,9 +204,6 @@
             [disabled]="selectionPending() || selectedGameId() === result.gameId">
             {{ selectionPending() ? 'Selecting...' : selectedGameId() === result.gameId ? 'Selected' : 'Select Game' }}
           </button>
-          <button type="button" class="button button--secondary" (click)="logPlay(result)" [disabled]="isLogging(result)">
-            {{ isLogging(result) ? 'Logging...' : 'Log play' }}
-          </button>
           <button type="button" class="button button--secondary" (click)="edit(result)">Edit</button>
         </div>
         @if (selectedGameId() === result.gameId) {
@@ -214,12 +211,6 @@
         }
         @if (selectionError()) {
           <p class="random-picker-card__error" role="alert">{{ selectionError() }}</p>
-        }
-        @if (logSuccess()) {
-          <p class="random-picker-card__notice" role="status">{{ logSuccess() }}</p>
-        }
-        @if (logError()) {
-          <p class="random-picker-card__error" role="alert">{{ logError() }}</p>
         }
       </div>
       </article>
@@ -258,5 +249,4 @@
     </section>
   }
 
-  <app-log-play-dialog #logPlayDialog (createSubmitted)="onLogPlayConfirmed($event)" />
 </section>

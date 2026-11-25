@@ -77,6 +77,47 @@ public sealed class CurrentlyPlayingEndpointTests(RandomPickerTestFactory factor
     }
 
     [Fact]
+    public async Task LoggingSelectedGamesUsesExistingValidationAndPreservesSlotsAndAllPickerRounds()
+    {
+        using var client = Client(NewUser());
+        var video = await Create(client, "VideoGame", "Home video");
+        var board = await Create(client, "BoardGame", "Home board");
+        var modes = new[] { "All", "VideoGames", "BoardGames" };
+        foreach (var mode in modes)
+            (await client.PostAsJsonAsync("/random-picker/pick", new
+            { mode, roundRevision = 0, operationId = Guid.NewGuid() })).EnsureSuccessStatusCode();
+        (await Select(client, video)).EnsureSuccessStatusCode();
+        (await Select(client, board)).EnsureSuccessStatusCode();
+        var slotsBefore = await client.GetStringAsync("/currently-playing");
+        var roundsBefore = await Task.WhenAll(modes.Select(mode => client.GetStringAsync($"/random-picker/rounds/{mode}")));
+        var playedAt = DateTimeOffset.UtcNow.AddHours(-1);
+        foreach (var game in new[] { video, board })
+        {
+            var logged = await client.PostAsJsonAsync("/play-log", new { gameId = game, playedAt, durationMinutes = 90 });
+            Assert.Equal(HttpStatusCode.Created, logged.StatusCode);
+            var result = (await logged.Content.ReadFromJsonAsync<LoggedPlay>())!;
+            Assert.Equal(game, result.GameId);
+            Assert.Equal(playedAt, result.PlayedAt);
+            Assert.Equal(90, result.DurationMinutes);
+        }
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/play-log", new
+        { gameId = video, playedAt, durationMinutes = 0 })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/play-log", new
+        { gameId = board, playedAt = DateTimeOffset.UtcNow.AddHours(1), durationMinutes = 90 })).StatusCode);
+        using var foreign = Client(NewUser());
+        Assert.Equal(HttpStatusCode.NotFound, (await foreign.PostAsJsonAsync("/play-log", new
+        { gameId = video, playedAt, durationMinutes = 90 })).StatusCode);
+        Assert.Empty((await foreign.GetFromJsonAsync<LoggedPlay[]>("/play-log"))!);
+        Assert.Equal(2, (await client.GetFromJsonAsync<LoggedPlay[]>("/play-log"))!.Length);
+        Assert.Equal(slotsBefore, await client.GetStringAsync("/currently-playing"));
+        Assert.Equal(roundsBefore, await Task.WhenAll(modes.Select(mode => client.GetStringAsync($"/random-picker/rounds/{mode}"))));
+        await using var db = Db();
+        var entry = await db.LibraryEntries.SingleAsync(e => e.GameId == video);
+        Assert.Equal(GameStatus.Backlog, entry.GameStatus);
+        Assert.Equal(20, entry.ProgressPercentage);
+    }
+
+    [Fact]
     public async Task ReplacementAndRepeatedSelectionOnlyAffectTheMatchingType()
     {
         var user = NewUser();
@@ -324,6 +365,7 @@ public sealed class CurrentlyPlayingEndpointTests(RandomPickerTestFactory factor
     }
 
     private sealed record Created(Guid Id);
+    private sealed record LoggedPlay(Guid GameId, DateTimeOffset PlayedAt, int? DurationMinutes);
     private sealed record PickResponse(string State, PickItem? Result);
     private sealed record PickItem(Guid GameId, Guid LibraryEntryId);
 }
