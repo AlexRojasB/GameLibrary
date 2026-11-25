@@ -11,7 +11,7 @@ import { LibraryItem } from '../../library/library';
 import { LibraryPage } from '../../library/library-page/library-page';
 import { PlayLogEntry } from '../../play-log/play-log';
 import { PlayLogPage } from '../../play-log/play-log-page/play-log-page';
-import { RandomPickerItem } from '../../random-picker/random-picker';
+import { PickerRound, RandomPickerItem } from '../../random-picker/random-picker';
 import { RandomPickerPage } from '../../random-picker/random-picker-page/random-picker-page';
 
 import { mockCoverVisibility } from './cover-image.testing';
@@ -55,9 +55,12 @@ describe('Managed cover page integration', () => {
   });
 
   afterEach(() => {
-    fixture?.destroy();
-    http.verify();
-    vi.unstubAllGlobals();
+    try {
+      fixture?.destroy();
+      http.verify();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   function flushLookups(): void {
@@ -102,8 +105,22 @@ describe('Managed cover page integration', () => {
     flushLookups();
     const first: RandomPickerItem = { ...video, libraryEntryId: 'entry-1', gameId: video.id };
     const second: RandomPickerItem = { ...external, libraryEntryId: 'entry-2', gameId: external.id };
+    const emptyRound: PickerRound = {
+      mode: 'All', revision: 0,
+      filters: { platformIds: [], genreIds: [], gameStatuses: [], playerCount: null,
+        availableDuration: null, interactionTypes: [], ratingMin: null, familyFriendlyOnly: false },
+      state: null, result: null, history: [], shownLibraryEntryIds: [], proposalUnavailable: false,
+    };
+    expect(page.componentInstance['ready']()).toBe(false);
+    http.expectOne((request) => request.method === 'GET' && request.url.endsWith('/random-picker/rounds/All')).flush(emptyRound);
+    page.detectChanges();
+    expect(page.componentInstance['ready']()).toBe(true);
     page.componentInstance['pick']();
-    http.expectOne((request) => request.url.endsWith('/random-picker/pick')).flush({ state: 'SUCCESS', result: first });
+    const initialPick = http.expectOne((request) => request.method === 'POST' && request.url.endsWith('/random-picker/pick'));
+    expect(initialPick.request.body.roundRevision).toBe(0);
+    initialPick.flush({ state: 'SUCCESS', result: first,
+      round: { ...emptyRound, revision: 1, state: 'SUCCESS', result: first,
+        history: [first], shownLibraryEntryIds: ['entry-1'] } satisfies PickerRound });
     page.detectChanges();
     observers[0].show();
     page.detectChanges();
@@ -112,7 +129,11 @@ describe('Managed cover page integration', () => {
     expect(sources('.random-picker-card--current img')).toEqual(['blob:display-1']);
 
     page.componentInstance['another']();
-    http.expectOne((request) => request.url.endsWith('/random-picker/pick')).flush({ state: 'SUCCESS', result: second });
+    const anotherPick = http.expectOne((request) => request.method === 'POST' && request.url.endsWith('/random-picker/pick'));
+    expect(anotherPick.request.body.roundRevision).toBe(1);
+    const acknowledgedRound: PickerRound = { ...emptyRound, revision: 2, state: 'SUCCESS', result: second,
+      history: [second, first], shownLibraryEntryIds: ['entry-1', 'entry-2'] };
+    anotherPick.flush({ state: 'SUCCESS', result: second, round: acknowledgedRound });
     page.detectChanges();
     observers.at(-1)!.show();
     page.detectChanges();
@@ -120,6 +141,8 @@ describe('Managed cover page integration', () => {
     const result = page.componentInstance['currentResult']();
     const history = page.componentInstance['visibleHistory']();
     const shown = page.componentInstance['shownLibraryEntryIds']();
+    expect(history).toEqual([second, first]);
+    expect(shown).toEqual(['entry-1', 'entry-2']);
     contentRequest().flush(new Blob(), { status: 404, statusText: 'Retired' });
     page.detectChanges();
     expect(page.componentInstance['currentState']()).toBe(state);
@@ -131,8 +154,10 @@ describe('Managed cover page integration', () => {
 
     page.componentInstance['another']();
     const next = http.expectOne((request) => request.url.endsWith('/random-picker/pick'));
-    expect(next.request.body.shownLibraryEntryIds).toEqual(['entry-1', 'entry-2']);
-    next.flush({ state: 'ALL_ALREADY_SHOWN', result: null });
+    expect(next.request.body).toMatchObject({ mode: 'All', roundRevision: 2 });
+    expect(next.request.body).not.toHaveProperty('shownLibraryEntryIds');
+    next.flush({ state: 'ALL_ALREADY_SHOWN', result: null,
+      round: { ...acknowledgedRound, revision: 3, state: 'ALL_ALREADY_SHOWN', result: null } satisfies PickerRound });
     page.detectChanges();
     expect(page.componentInstance['visibleHistory']()).toEqual([second, first]);
     expect(page.componentInstance['currentState']()).toBe('ALL_ALREADY_SHOWN');
