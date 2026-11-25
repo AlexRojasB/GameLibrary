@@ -161,6 +161,9 @@
               <span class="game-type-chip family-friendly-chip">Family friendly</span>
             }
             <p>{{ item.acquisitionStatus }}</p>
+            @if (item.isExcludedFromPicker) {
+              <p>Excluded from Picker</p>
+            }
             @if (item.rating !== null) {
               <p>Rating: {{ item.rating }}</p>
             }
@@ -190,6 +193,10 @@
               }
             }
             <div class="library-card__actions">
+              <button type="button" class="button button--secondary" (click)="setPickerExclusion(item)"
+                [disabled]="exclusionPendingIds().includes(item.id)">
+                {{ exclusionPendingIds().includes(item.id) ? 'Saving...' : item.isExcludedFromPicker ? 'Include in Picker' : 'Exclude from Picker' }}
+              </button>
               @if (item.acquisitionStatus === 'Owned') {
                 <button type="button" class="button button--secondary" (click)="logPlay(item)" [disabled]="isLogging(item.id)">
                   {{ isLogging(item.id) ? 'Logging...' : 'Log play' }}
@@ -202,6 +209,9 @@
             }
             @if (logErrorByGameId()[item.id]) {
               <p class="library-card__error" role="alert">{{ logErrorByGameId()[item.id] }}</p>
+            }
+            @if (exclusionErrors()[item.id]) {
+              <p class="library-card__error" role="alert">{{ exclusionErrors()[item.id] }}</p>
             }
           </div>
         </li>

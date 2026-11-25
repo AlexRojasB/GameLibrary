@@ -3,6 +3,16 @@ Architecture Specification v0.4 --- Game Library
 Status: Approved
 Version: 0.4
 
+GL-09 — manual Picker exclusion:
+Add only a non-null boolean library_entries.is_excluded_from_picker DEFAULT false
+through EF, preserving old data. Expose an owner-scoped desired-value PUT from Library
+cards; the Core operation changes only that column under the existing Library-first
+lock order shared with draws/selection. Apply the flag in common Picker candidates
+(including saved-round revalidation), and check it fresh after the selection lock.
+Keep history storage and Current Playing rows unchanged. Existing Api/Core and
+Angular services/signals suffice; no new dependency or architecture component.
+See specs/017-manual-picker-exclusion/spec.md. No remote migration authorized.
+
 GL-16 approved exception — current Picker round recovery only:
 Use one EF-owned picker_rounds row per (Library, All/VideoGames/BoardGames mode),
 storing validated filter context, ordered entry IDs, current proposal/outcome and

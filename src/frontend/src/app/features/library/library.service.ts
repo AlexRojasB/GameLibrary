@@ -10,6 +10,11 @@ import { LibraryFilterState, LibraryItem, LibrarySort } from './library';
 export class LibraryService {
   private readonly http = inject(HttpClient);
 
+  setPickerExclusion(gameId: string, isExcludedFromPicker: boolean): Observable<{ gameId: string; isExcludedFromPicker: boolean }> {
+    return this.http.put<{ gameId: string; isExcludedFromPicker: boolean }>(
+      `${environment.apiBaseUrl}/library/${gameId}/picker-exclusion`, { isExcludedFromPicker });
+  }
+
   browse(filters: LibraryFilterState, sort: LibrarySort): Observable<LibraryItem[]> {
     return this.http.get<LibraryItem[]>(`${environment.apiBaseUrl}/library`, {
       params: toParams(filters, sort),

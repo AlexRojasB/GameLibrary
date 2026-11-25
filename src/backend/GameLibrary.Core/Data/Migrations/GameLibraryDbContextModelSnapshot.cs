@@ -368,6 +368,12 @@ namespace GameLibrary.Core.Data.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("game_status");
 
+                    b.Property<bool>("IsExcludedFromPicker")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_excluded_from_picker");
+
                     b.Property<Guid>("LibraryId")
                         .HasColumnType("uuid")
                         .HasColumnName("library_id");

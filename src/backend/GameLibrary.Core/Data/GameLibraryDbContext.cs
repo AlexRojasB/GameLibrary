@@ -309,6 +309,10 @@ public class GameLibraryDbContext : DbContext
             entity.Property(le => le.Rating)
                 .HasColumnName("rating");
 
+            entity.Property(le => le.IsExcludedFromPicker)
+                .HasColumnName("is_excluded_from_picker")
+                .HasDefaultValue(false);
+
             entity.Property(le => le.Notes)
                 .HasColumnName("notes");
 

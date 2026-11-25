@@ -63,6 +63,23 @@ public class LibraryController : ControllerBase
         }
     }
 
+    [HttpPut("{gameId:guid}/picker-exclusion")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> SetPickerExclusion(Guid gameId, PickerExclusionRequest request, CancellationToken ct)
+    {
+        var userId = User.GetSupabaseUserId();
+        if (userId is null) return Unauthorized();
+        if (request.IsExcludedFromPicker is not { } excluded)
+            return Problem(title: "Picker exclusion is required", statusCode: StatusCodes.Status400BadRequest);
+        try
+        {
+            await _libraries.SetPickerExclusionAsync(userId, gameId, excluded, ct);
+            return Ok(new PickerExclusionResponse(gameId, excluded));
+        }
+        catch (LibraryItemNotFoundException)
+        { return Problem(title: "Game not found", statusCode: StatusCodes.Status404NotFound); }
+    }
+
     private static LibraryItemResponse ToResponse(LibraryItemView item) => new(
         item.Id,
         item.GameType.ToString(),
@@ -81,5 +98,6 @@ public class LibraryController : ControllerBase
         item.ApproximateDuration,
         item.InteractionType?.ToString(),
         item.IsFamilyFriendly,
-        item.CoverUploadId);
+        item.CoverUploadId,
+        item.IsExcludedFromPicker);
 }

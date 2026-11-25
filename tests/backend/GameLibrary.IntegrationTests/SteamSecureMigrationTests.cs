@@ -38,8 +38,23 @@ public sealed class SteamSecureMigrationTests
                 MinimumPlayers = 1, MaximumPlayers = 4, CreatedAt = now, CoverImageUrl = "https://example.test/manual.jpg" };
             var entry = new LibraryEntry { Id = Guid.NewGuid(), LibraryId = library.Id, GameId = game.Id,
                 AcquisitionStatus = AcquisitionStatus.Owned, Notes = "preserved synthetic notes", Rating = 4 };
-            db.Libraries.Add(library); db.SteamAccounts.Add(link); db.Games.Add(game); db.LibraryEntries.Add(entry);
-            await db.SaveChangesAsync(); db.ChangeTracker.Clear();
+            // Seed only columns present at the pinned historical boundary. The
+            // current EF model may include later, unrelated additive columns.
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO libraries(id,user_id) VALUES ({library.Id},{library.UserId})
+                """);
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO steam_accounts(id,library_id,steam_id64,linked_at)
+                VALUES ({link.Id},{library.Id},{link.SteamId64},{link.LinkedAt})
+                """);
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO games(id,game_type,name,minimum_players,maximum_players,created_at,cover_image_url)
+                VALUES ({game.Id},'BoardGame',{game.Name},1,4,{game.CreatedAt},{game.CoverImageUrl})
+                """);
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO library_entries(id,library_id,game_id,acquisition_status,notes,rating)
+                VALUES ({entry.Id},{library.Id},{game.Id},'Owned',{entry.Notes},{entry.Rating})
+                """);
             var pending = Guid.NewGuid(); var consumed = Guid.NewGuid();
             var hash1 = new string('a', 64); var hash2 = new string('b', 64);
             await db.Database.ExecuteSqlInterpolatedAsync($"""

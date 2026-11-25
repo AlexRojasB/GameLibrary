@@ -32,6 +32,8 @@ public sealed class CurrentlyPlayingController(CurrentlyPlayingService selection
         { return Problem(title: "Game not found", statusCode: StatusCodes.Status404NotFound); }
         catch (SelectionNotOwnedException)
         { return Problem(title: "Only Owned games can be selected", statusCode: StatusCodes.Status409Conflict); }
+        catch (SelectionExcludedException)
+        { return Problem(title: "This game is excluded from Picker", statusCode: StatusCodes.Status409Conflict); }
     }
 
     private static CurrentlyPlayingResponse ToResponse(CurrentlyPlayingView view) =>

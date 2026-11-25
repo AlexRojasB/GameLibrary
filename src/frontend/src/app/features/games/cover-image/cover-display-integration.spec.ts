@@ -18,6 +18,7 @@ import { mockCoverVisibility } from './cover-image.testing';
 
 const ID = '00000000-0000-0000-0000-000000000001';
 const video: LibraryItem = {
+  isExcludedFromPicker: false,
   id: 'game-1', gameType: 'VideoGame', name: 'Hades', coverImageUrl: null, coverUploadId: ID,
   isFamilyFriendly: false, createdAt: '2026-08-17T00:00:00Z', acquisitionStatus: 'Owned', rating: 5,
   notes: 'Fast runs', platformIds: [], genreIds: [], gameStatus: 'Playing', progressPercentage: 50,

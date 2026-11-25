@@ -18,4 +18,8 @@ public sealed record LibraryItemResponse(
     int? ApproximateDuration,
     string? InteractionType,
     bool IsFamilyFriendly,
-    Guid? CoverUploadId);
+    Guid? CoverUploadId,
+    bool IsExcludedFromPicker);
+
+public sealed record PickerExclusionRequest(bool? IsExcludedFromPicker);
+public sealed record PickerExclusionResponse(Guid GameId, bool IsExcludedFromPicker);

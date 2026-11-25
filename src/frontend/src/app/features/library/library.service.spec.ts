@@ -27,6 +27,7 @@ const item: LibraryItem = {
   coverImageUrl: null,
   coverUploadId: null,
   isFamilyFriendly: true,
+  isExcludedFromPicker: false,
   createdAt: '2026-08-17T00:00:00Z',
   acquisitionStatus: 'Owned',
   rating: 5,
@@ -68,6 +69,17 @@ describe('LibraryService', () => {
     req.flush([item]);
 
     expect(result).toEqual([item]);
+  });
+
+  it.each([true, false])('sets only the desired Picker exclusion value %s', excluded => {
+    const expected = { gameId: item.id, isExcludedFromPicker: excluded };
+    let result: unknown;
+    service.setPickerExclusion(item.id, excluded).subscribe(value => result = value);
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/library/${item.id}/picker-exclusion`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ isExcludedFromPicker: excluded });
+    req.flush(expected);
+    expect(result).toEqual(expected);
   });
 
   it('serializes repeated multi-select params without CSV', () => {

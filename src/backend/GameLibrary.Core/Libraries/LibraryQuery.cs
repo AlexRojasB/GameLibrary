@@ -55,4 +55,5 @@ public sealed record LibraryItemView(
     int? ApproximateDuration,
     InteractionType? InteractionType,
     bool IsFamilyFriendly,
-    Guid? CoverUploadId);
+    Guid? CoverUploadId,
+    bool IsExcludedFromPicker);

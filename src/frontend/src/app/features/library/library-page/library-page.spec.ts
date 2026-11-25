@@ -21,6 +21,7 @@ const videoGame: LibraryItem = {
   coverImageUrl: null,
   coverUploadId: null,
   isFamilyFriendly: false,
+  isExcludedFromPicker: false,
   createdAt: '2026-08-17T00:00:00Z',
   acquisitionStatus: 'Owned',
   rating: 5,
@@ -42,6 +43,7 @@ const boardGame: LibraryItem = {
   coverImageUrl: 'https://example.com/pandemic.jpg',
   coverUploadId: null,
   isFamilyFriendly: true,
+  isExcludedFromPicker: false,
   createdAt: '2026-08-18T00:00:00Z',
   acquisitionStatus: 'Wishlist',
   rating: 4,
@@ -62,7 +64,7 @@ class LoginStub {}
 @Component({ selector: 'app-library-destination-stub', template: '' })
 class DestinationStub {}
 
-function configure(): { fixture: ComponentFixture<LibraryPage>; httpMock: HttpTestingController } {
+function configure() {
   const mock = createMockSupabase(createTestSession());
   TestBed.configureTestingModule({
     imports: [LibraryPage],
@@ -80,7 +82,7 @@ function configure(): { fixture: ComponentFixture<LibraryPage>; httpMock: HttpTe
   const fixture = TestBed.createComponent(LibraryPage);
   fixture.detectChanges();
   const httpMock = TestBed.inject(HttpTestingController);
-  return { fixture, httpMock };
+  return { fixture, httpMock, mock };
 }
 
 function flushLookups(httpMock: HttpTestingController): void {
@@ -128,11 +130,13 @@ function submitLogDialog(fixture: ComponentFixture<LibraryPage>, playedAt = '202
 describe('LibraryPage', () => {
   let fixture: ComponentFixture<LibraryPage>;
   let httpMock: HttpTestingController;
+  let authMock: ReturnType<typeof createMockSupabase>;
 
   beforeEach(() => {
     const setup = configure();
     fixture = setup.fixture;
     httpMock = setup.httpMock;
+    authMock = setup.mock;
   });
 
   afterEach(() => {
@@ -452,5 +456,94 @@ describe('LibraryPage', () => {
     fixture.detectChanges();
     expect(auth.isAuthenticated()).toBe(false);
     expect(router.url).toBe('/login');
+  });
+
+  it.each([videoGame, boardGame])('excludes and re-includes $gameType without changing its other data', item => {
+    flushLookups(httpMock);
+    libraryRequest(httpMock).flush([item]);
+    fixture.detectChanges();
+    buttonByText(fixture, 'Exclude from Picker').click();
+    fixture.detectChanges();
+    const pending = httpMock.expectOne(r => r.url.endsWith(`/library/${item.id}/picker-exclusion`));
+    expect(pending.request.body).toEqual({ isExcludedFromPicker: true });
+    buttonByText(fixture, 'Saving...').click();
+    fixture.componentInstance['setPickerExclusion'](item);
+    httpMock.expectNone(r => r.method === 'PUT');
+    expect(fixture.componentInstance['items']()).toEqual([item]);
+    pending.flush({ gameId: item.id, isExcludedFromPicker: true });
+    libraryRequest(httpMock).flush([{ ...item, isExcludedFromPicker: true }]);
+    fixture.detectChanges();
+    expect(text(fixture)).toContain('Excluded from Picker');
+    buttonByText(fixture, 'Include in Picker').click();
+    const restored = httpMock.expectOne(r => r.url.endsWith('/picker-exclusion'));
+    expect(restored.request.body).toEqual({ isExcludedFromPicker: false });
+    restored.flush({ gameId: item.id, isExcludedFromPicker: false });
+    libraryRequest(httpMock).flush([item]);
+    fixture.detectChanges();
+    expect(fixture.componentInstance['items']()).toEqual([item]);
+    expect(text(fixture)).not.toContain('Excluded from Picker');
+    httpMock.expectNone(r => r.url.includes('/random-picker') || r.url.endsWith('/currently-playing') || r.url.endsWith('/play-log'));
+  });
+
+  it('keeps other cards usable, preserves the confirmed flag on failure and reloads current criteria on success', () => {
+    flushLookups(httpMock);
+    libraryRequest(httpMock).flush([videoGame, { ...boardGame, isExcludedFromPicker: true }]);
+    fixture.detectChanges();
+    buttonByText(fixture, 'Exclude from Picker').click();
+    fixture.detectChanges();
+    expect(buttonByText(fixture, 'Include in Picker').disabled).toBe(false);
+    httpMock.expectOne(r => r.url.endsWith('/picker-exclusion')).flush(null, { status: 503, statusText: 'Unavailable' });
+    fixture.detectChanges();
+    expect(text(fixture)).toContain('Unable to save Picker exclusion.');
+    expect(fixture.componentInstance['items']()[0].isExcludedFromPicker).toBe(false);
+    buttonByText(fixture, 'Include in Picker').click();
+    fixture.componentInstance['onSort']('RatingDesc');
+    libraryRequest(httpMock).flush([boardGame]);
+    httpMock.expectOne(r => r.url.endsWith('/picker-exclusion')).flush({ gameId: boardGame.id, isExcludedFromPicker: false });
+    const fresh = libraryRequest(httpMock);
+    expect(fresh.request.params.get('sort')).toBe('RatingDesc');
+    fresh.flush([boardGame]);
+    httpMock.expectNone(r => r.method === 'PUT');
+  });
+
+  it('handles an exclusion 401 through normal session-expiry handling', async () => {
+    flushLookups(httpMock);
+    libraryRequest(httpMock).flush([videoGame]);
+    fixture.detectChanges();
+    buttonByText(fixture, 'Exclude from Picker').click();
+    httpMock.expectOne(r => r.url.endsWith('/picker-exclusion')).flush(null, { status: 401, statusText: 'Unauthorized' });
+    await fixture.whenStable();
+    expect(TestBed.inject(AuthService).isAuthenticated()).toBe(false);
+    expect(TestBed.inject(Router).url).toBe('/login');
+    httpMock.expectNone(r => r.url.endsWith('/library'));
+  });
+
+  it.each(['logout', 'account switch', 'navigation'])('cancels exclusion feedback/refetch after %s', async change => {
+    const auth = TestBed.inject(AuthService);
+    await auth.initialize();
+    flushLookups(httpMock);
+    libraryRequest(httpMock).flush([videoGame]);
+    fixture.detectChanges();
+    buttonByText(fixture, 'Exclude from Picker').click();
+    const pending = httpMock.expectOne(r => r.url.endsWith('/picker-exclusion'));
+    if (change === 'navigation') fixture.destroy();
+    else if (change === 'logout') auth.clearLocalSession();
+    else authMock.emit('SIGNED_IN', createTestSession({ user: { ...createTestSession().user, id: 'other' } }));
+    expect(pending.cancelled).toBe(true);
+    expect(fixture.componentInstance['exclusionErrors']()).toEqual({});
+    if (change !== 'navigation') expect(fixture.componentInstance['exclusionPendingIds']()).toEqual([]);
+    httpMock.expectNone(r => r.url.endsWith('/library'));
+  });
+
+  it('also cancels the post-save Library read on account change', async () => {
+    await TestBed.inject(AuthService).initialize();
+    flushLookups(httpMock);
+    libraryRequest(httpMock).flush([videoGame]);
+    fixture.detectChanges();
+    buttonByText(fixture, 'Exclude from Picker').click();
+    httpMock.expectOne(r => r.url.endsWith('/picker-exclusion')).flush({ gameId: videoGame.id, isExcludedFromPicker: true });
+    const refresh = libraryRequest(httpMock);
+    authMock.emit('SIGNED_IN', createTestSession({ user: { ...createTestSession().user, id: 'other' } }));
+    expect(refresh.cancelled).toBe(true);
   });
 });
