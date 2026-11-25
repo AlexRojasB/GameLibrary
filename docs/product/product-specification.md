@@ -3,6 +3,18 @@ Product Specification v0.7 --- Game Library
 Status: Approved
 Version: 0.7
 
+GL-16 approved exception — current Picker round recovery only:
+Persist three independent current rounds per authenticated Library: All (default),
+VideoGames and BoardGames. Recover the proposal, newest-first history, shown IDs,
+last outcome and filter context across reload/navigation/sign-in. Switching modes
+loads that mode's own round. Start over clears only the active round, keeping its
+filters; filter edits keep its history/shown IDs and clear its displayed proposal
+as before. Another and Select Game retain their meaning; eligibility and ownership
+remain backend-authoritative, including stale recovery. This supersedes the volatile
+session/no-persistence rules below ONLY for recovering current rounds. Completed-
+round archives, statistics, completion and Log Play Time changes remain prohibited
+in this delivery. See specs/015-persistent-picker-round/spec.md.
+
 GL-17 / GL-27 first-delivery amendment — owner-requested local implementation:
 The Picker's proposed game has an explicit Select Game action. Persist one
 Currently Playing VideoGame and one Currently Playing BoardGame independently for

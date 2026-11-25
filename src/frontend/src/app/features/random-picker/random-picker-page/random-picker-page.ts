@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, DestroyRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { takeUntil } from 'rxjs';
+import { Observable, takeUntil } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { CurrentlyPlayingService } from '../../currently-playing/currently-playing.service';
@@ -21,10 +21,10 @@ import {
   RandomPickerFilters,
   RandomPickerItem,
   RandomPickerMode,
-  RandomPickerPickRequest,
+  PickerRound,
   RandomPickerState,
 } from '../random-picker';
-import { RandomPickerService } from '../random-picker.service';
+import { PickerRoundService } from '../picker-round.service';
 
 const GAME_STATUSES: GameStatus[] = ['Backlog', 'Playing', 'Completed', 'Abandoned', 'WantToPlay'];
 const INTERACTION_TYPES: InteractionType[] = ['Cooperative', 'Competitive'];
@@ -42,7 +42,7 @@ const MODES: { value: RandomPickerMode; label: string }[] = [
 })
 export class RandomPickerPage {
   private readonly logPlayDialog = viewChild<LogPlayDialog>('logPlayDialog');
-  private readonly randomPicker = inject(RandomPickerService);
+  private readonly rounds = inject(PickerRoundService);
   private readonly currentlyPlaying = inject(CurrentlyPlayingService);
   private readonly platformsService = inject(PlatformsService);
   private readonly genresService = inject(GenresService);
@@ -58,6 +58,8 @@ export class RandomPickerPage {
   protected readonly currentState = signal<RandomPickerState | null>(null);
   protected readonly visibleHistory = signal<RandomPickerItem[]>([]);
   protected readonly loading = signal(false);
+  protected readonly ready = signal(false);
+  protected readonly proposalUnavailable = signal(false);
   protected readonly error = signal('');
   protected readonly shownLibraryEntryIds = signal<string[]>([]);
   protected readonly platforms = signal<Platform[]>([]);
@@ -84,12 +86,17 @@ export class RandomPickerPage {
 
   constructor() {
     this.auth.subjectChanges.pipe(takeUntilDestroyed()).subscribe(() => {
-      this.resetShownHistory();
+      this.clearLocalRound();
       this.selectionPending.set(false);
       this.selectedGameId.set(null);
       this.selectionError.set('');
+      if (this.auth.isAuthenticated()) {
+        this.mode.set('All');
+        this.reloadRound();
+      }
     });
     this.loadLookups();
+    this.reloadRound();
   }
 
   protected selectGame(item: RandomPickerItem): void {
@@ -128,9 +135,9 @@ export class RandomPickerPage {
 
   protected onMode(value: string): void {
     const nextMode = value as RandomPickerMode;
+    if (nextMode === this.mode()) return;
     this.mode.set(nextMode);
-    this.filters.update((current) => filtersForMode(nextMode, current));
-    this.clearDisplayedResult();
+    this.reloadRound();
   }
 
   protected onRatingMin(value: string): void {
@@ -166,8 +173,10 @@ export class RandomPickerPage {
   }
 
   protected clearFilters(): void {
+    if (!this.ready()) return;
     this.filters.set(filtersForMode(this.mode(), emptyFilters()));
     this.clearDisplayedResult();
+    this.saveFilters();
   }
 
   protected toggleFilters(): void {
@@ -175,6 +184,20 @@ export class RandomPickerPage {
   }
 
   protected resetShownHistory(): void {
+    if (!this.ready() || this.loading()) return;
+    this.loading.set(true);
+    this.observeRound(this.rounds.reset(this.mode()), ++this.pickGeneration);
+  }
+
+  protected reloadRound(): void {
+    this.clearLocalRound();
+    this.loading.set(true);
+    this.observeRound(this.rounds.load(this.mode()), ++this.pickGeneration);
+  }
+
+  private clearLocalRound(): void {
+    this.ready.set(false);
+    this.filters.set(emptyFilters());
     this.shownLibraryEntryIds.set([]);
     this.visibleHistory.set([]);
     this.clearDisplayedResult();
@@ -284,55 +307,60 @@ export class RandomPickerPage {
   }
 
   private sendPick(): void {
+    if (!this.ready() || this.loading()) return;
     const generation = ++this.pickGeneration;
     this.loading.set(true);
     this.error.set('');
 
-    this.randomPicker.pick(this.request()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (response) => {
+    this.observeRound(this.rounds.pick(this.mode(), filtersForMode(this.mode(), this.filters())), generation);
+  }
+
+  private observeRound(request: Observable<PickerRound>, generation: number): void {
+    request.pipe(takeUntilDestroyed(this.destroyRef), takeUntil(this.auth.subjectChanges)).subscribe({
+      next: (round) => {
         if (generation !== this.pickGeneration) {
           return;
         }
         this.loading.set(false);
-        this.currentState.set(response.state);
-        this.currentResult.set(response.result);
+        this.ready.set(true);
+        this.filters.set(round.filters);
+        this.currentState.set(round.state);
+        this.currentResult.set(round.result);
+        this.visibleHistory.set(round.history);
+        this.shownLibraryEntryIds.set(round.shownLibraryEntryIds);
+        this.proposalUnavailable.set(round.proposalUnavailable);
         this.selectionError.set('');
         this.logPendingGameId.set(null);
         this.logSuccess.set('');
         this.logError.set('');
-        if (response.result !== null) {
-          this.visibleHistory.update((history) => [response.result!, ...history.filter((item) => item.libraryEntryId !== response.result!.libraryEntryId)]);
-          this.shownLibraryEntryIds.update((ids) =>
-            ids.includes(response.result!.libraryEntryId) ? ids : [...ids, response.result!.libraryEntryId],
-          );
-        }
       },
       error: (error: HttpErrorResponse) => {
         if (generation !== this.pickGeneration) {
           return;
         }
         this.loading.set(false);
+        this.ready.set(false);
+        this.currentResult.set(null);
         if (error.status === 401) {
           this.handleSessionExpired();
           return;
         }
-        this.error.set(this.errorMessage(error));
+        this.error.set(error.status === 409
+          ? 'This round changed elsewhere. Reload round before continuing.'
+          : `${this.errorMessage(error)} Reload round before continuing.`);
       },
     });
   }
 
-  private request(): RandomPickerPickRequest {
-    const filters = filtersForMode(this.mode(), this.filters());
-    return {
-      mode: this.mode(),
-      shownLibraryEntryIds: this.shownLibraryEntryIds(),
-      ...filters,
-    };
+  private saveFilters(): void {
+    this.observeRound(this.rounds.saveFilters(this.mode(), filtersForMode(this.mode(), this.filters())), this.pickGeneration);
   }
 
   private patchFilters(patch: Partial<RandomPickerFilters>): void {
+    if (!this.ready()) return;
     this.filters.update((current) => ({ ...current, ...patch }));
     this.clearDisplayedResult();
+    this.saveFilters();
   }
 
   private clearDisplayedResult(): void {
@@ -341,6 +369,7 @@ export class RandomPickerPage {
     this.loading.set(false);
     this.currentResult.set(null);
     this.currentState.set(null);
+    this.proposalUnavailable.set(false);
     this.selectionError.set('');
     this.error.set('');
     this.logPendingGameId.set(null);

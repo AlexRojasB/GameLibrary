@@ -23,8 +23,20 @@ export interface RandomPickerPickRequest extends RandomPickerFilters {
 }
 
 export interface RandomPickerPickResponse {
-  state: RandomPickerState;
+  state: RandomPickerState | null;
   result: RandomPickerItem | null;
+  round?: PickerRound;
+}
+
+export interface PickerRound {
+  mode: RandomPickerMode;
+  revision: number;
+  filters: RandomPickerFilters;
+  state: RandomPickerState | null;
+  result: RandomPickerItem | null;
+  history: RandomPickerItem[];
+  shownLibraryEntryIds: string[];
+  proposalUnavailable: boolean;
 }
 
 export interface RandomPickerItem extends CoverReference {
