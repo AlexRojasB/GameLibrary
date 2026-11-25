@@ -46,13 +46,13 @@ public sealed class PickerExclusionEndpointTests(RandomPickerTestFactory factory
         Assert.Equal(game, (await Draw(client, mode, 1)).Result!.GameId);
         Assert.Equal("ALL_ALREADY_SHOWN", (await Draw(client, mode, 2)).State);
         Assert.Equal("ALL_ALREADY_SHOWN", (await Pick(client, new { mode, shownLibraryEntryIds = new[] { original.Result.LibraryEntryId } })).State);
-        // Completed VideoGames remain eligible; exclusion is never inferred from status.
+        // GL-10 separately covers Completed exclusion; this suite isolates GL-09.
         await using var db = Db();
         var entry = await db.LibraryEntries.SingleAsync(e => e.GameId == game);
         if (type == "VideoGame")
         {
-            Assert.Equal(GameStatus.Completed, entry.GameStatus);
-            Assert.Equal(100, entry.ProgressPercentage);
+            Assert.Equal(GameStatus.Backlog, entry.GameStatus);
+            Assert.Null(entry.ProgressPercentage);
         }
     }
 
@@ -276,7 +276,7 @@ public sealed class PickerExclusionEndpointTests(RandomPickerTestFactory factory
         {
             name = type + Guid.NewGuid(), acquisitionStatus = status, platformIds = platforms,
             minimumPlayers = 1, maximumPlayers = 4, rating = 4, notes = "Keep notes", isFamilyFriendly = true,
-            gameStatus = type == "VideoGame" && status == "Owned" ? "Completed" : null,
+            gameStatus = type == "VideoGame" && status == "Owned" ? "Backlog" : null,
             approximateDuration = type == "BoardGame" ? (int?)45 : null,
         });
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);

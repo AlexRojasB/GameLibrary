@@ -3,6 +3,16 @@ Domain Specification v0.9 --- Game Library
 Status: Approved
 Version: 0.9
 
+GL-10 — Completed VideoGame Picker exclusion:
+An entry for a VideoGame with GameStatus=Completed is ineligible for draws,
+saved-current-proposal recovery and new selection, independently of the manual
+IsExcludedFromPicker flag. Neither status nor the flag writes the other. Null and
+other statuses do not imply Completed, including when ProgressPercentage is 100.
+BoardGames receive no new eligibility restriction. Preserve history/shown IDs,
+existing slots and logs; status changes use unchanged VideoGame normalization and
+no completion workflow. Recovered proposals and stale selections use fresh owner-
+scoped state. See specs/018-completed-picker-exclusion/spec.md.
+
 GL-09 — manual Picker exclusion:
 LibraryEntry.IsExcludedFromPicker is a required boolean defaulting to false for both
 game types and every acquisition status. Only the authenticated Library owner may

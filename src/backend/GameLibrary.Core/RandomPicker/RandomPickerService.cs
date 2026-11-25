@@ -32,6 +32,7 @@ public class RandomPickerService
             .Where(g => g.LibraryEntry.Library.UserId == userId
                 && g.LibraryEntry.AcquisitionStatus == AcquisitionStatus.Owned
                 && !g.LibraryEntry.IsExcludedFromPicker
+                && (g.GameType != GameType.VideoGame || g.LibraryEntry.GameStatus != GameStatus.Completed)
                 && !_db.CurrentlyPlayingSlots.Any(s => s.LibraryId == g.LibraryEntry.LibraryId
                     && s.GameType == g.GameType && s.LibraryEntryId == g.LibraryEntry.Id)), parsed);
 
