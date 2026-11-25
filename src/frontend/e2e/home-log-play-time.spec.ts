@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Request } from '@playwright/test';
 
 test('selects both game types then explicitly logs from Home without clearing selections or Picker rounds', async ({ page, request }) => {
   expect((await request.post('http://127.0.0.1:5218/e2e/reset')).ok()).toBeTruthy();
@@ -19,13 +19,22 @@ test('selects both game types then explicitly logs from Home without clearing se
   }
 
   // Capture authenticated recovery via the real UI transport, not browser DB access.
-  // Consume each body as soon as its response arrives, before changing mode/page.
+  // Read the real API body before delivering it to Chromium, whose mobile CDP
+  // response resource may be unavailable even before leaving the Picker.
+  const roundBodies = new WeakMap<Request, unknown>();
+  await page.route('http://127.0.0.1:5218/random-picker/rounds/*', async route => {
+    const response = await route.fetch();
+    expect(response.status()).toBe(200);
+    roundBodies.set(route.request(), await response.json());
+    await route.fulfill({ response });
+  });
   async function recoverRound(mode: string, action: () => Promise<unknown>) {
+    const url = `http://127.0.0.1:5218/random-picker/rounds/${mode}`;
     const recovered = page.waitForResponse(r => r.request().method() === 'GET'
-      && r.url() === `http://127.0.0.1:5218/random-picker/rounds/${mode}`)
-      .then(response => response.json());
-    const [round] = await Promise.all([recovered, action()]);
-    return round;
+      && r.url() === url);
+    const [response] = await Promise.all([recovered, action()]);
+    expect(roundBodies.has(response.request())).toBeTruthy();
+    return roundBodies.get(response.request());
   }
   const before = new Map<string, unknown>();
   for (const mode of ['All', 'VideoGames', 'BoardGames']) {
