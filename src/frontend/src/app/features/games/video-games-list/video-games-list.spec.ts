@@ -83,6 +83,23 @@ function setName(fixture: ComponentFixture<VideoGamesList>, value: string): void
   fixture.detectChanges();
 }
 
+function searchInput(fixture: ComponentFixture<VideoGamesList>): HTMLInputElement {
+  return (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>('#video-games-search')!;
+}
+
+function search(fixture: ComponentFixture<VideoGamesList>, value: string): void {
+  const input = searchInput(fixture);
+  input.value = value;
+  input.dispatchEvent(new Event('input'));
+  fixture.detectChanges();
+}
+
+function searchRequest(httpMock: HttpTestingController, query: string) {
+  return httpMock.expectOne(request => request.method === 'GET' && request.url.endsWith('/library')
+    && request.params.get('search') === query && request.params.get('gameType') === 'VideoGame'
+    && request.params.get('sort') === 'NameAsc');
+}
+
 describe('VideoGamesList', () => {
   let fixture: ComponentFixture<VideoGamesList>;
   let httpMock: HttpTestingController;
@@ -119,6 +136,164 @@ describe('VideoGamesList', () => {
 
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('No video games yet');
+  });
+
+  it('searches the full collection on the server and renders all returned matches in API order', () => {
+    flushSupporting(httpMock);
+    // This initial response deliberately lacks the eventual match; the UI must
+    // query the whole collection rather than filtering the already loaded list.
+    listRequest(httpMock).flush([{ ...ownedGame, name: 'Other title' }]);
+    fixture.detectChanges();
+    expect(searchInput(fixture).labels?.[0].textContent).toBe('Search video games');
+    search(fixture, '  aDe  ');
+    const matches = Array.from({ length: 51 }, (_, index) => ({ ...ownedGame, id: String(index), name: `Hades ${index}` }));
+    searchRequest(httpMock, 'aDe').flush(matches);
+    fixture.detectChanges();
+    const cards = [...(fixture.nativeElement as HTMLElement).querySelectorAll('.video-games__item strong')];
+    expect(cards.map(card => card.textContent)).toEqual(matches.map(game => game.name));
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('51 video games found');
+    httpMock.expectNone(request => request.params.has('page') || request.params.has('pageSize'));
+  });
+
+  it('distinguishes no matches, keeps Add available, and clears search with keyboard focus restored', () => {
+    flushSupporting(httpMock);
+    listRequest(httpMock).flush([ownedGame]);
+    search(fixture, 'missing');
+    searchRequest(httpMock, 'missing').flush([]);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('No video games match your search');
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('No video games yet');
+    expect(buttonByText(fixture, 'Add video game')).toBeTruthy();
+    buttonByText(fixture, 'Clear search').click();
+    expect(document.activeElement).toBe(searchInput(fixture));
+    listRequest(httpMock).flush([ownedGame]);
+    fixture.detectChanges();
+    expect(searchInput(fixture).value).toBe('');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Hades');
+  });
+
+  it('treats whitespace as no search, without refetching for equivalent surrounding whitespace', () => {
+    flushSupporting(httpMock);
+    listRequest(httpMock).flush([ownedGame]);
+    search(fixture, '  ');
+    httpMock.expectNone(request => request.url.endsWith('/library') || request.url.endsWith('/video-games'));
+    search(fixture, 'had');
+    searchRequest(httpMock, 'had').flush([ownedGame]);
+    search(fixture, ' had ');
+    httpMock.expectNone(request => request.url.endsWith('/library'));
+    search(fixture, ' \t ');
+    listRequest(httpMock).flush([ownedGame]);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('1 video game');
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('found');
+  });
+
+  it.each(['success', '503', '401'])('ignores an older search %s after a newer search completes', outcome => {
+    flushSupporting(httpMock);
+    listRequest(httpMock).flush([]);
+    search(fixture, 'old');
+    const old = searchRequest(httpMock, 'old');
+    search(fixture, 'new');
+    searchRequest(httpMock, 'new').flush([{ ...ownedGame, name: 'New title' }]);
+    if (outcome === 'success') old.flush([{ ...ownedGame, name: 'Old title' }]);
+    else old.flush({}, { status: Number(outcome), statusText: 'Old error' });
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('New title');
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Old title');
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Unable to load');
+    expect(TestBed.inject(AuthService).isAuthenticated()).toBe(true);
+  });
+
+  it('ignores initial/search responses after clearing, including a late empty result', () => {
+    flushSupporting(httpMock);
+    const initial = listRequest(httpMock);
+    search(fixture, 'missing');
+    const pending = searchRequest(httpMock, 'missing');
+    buttonByText(fixture, 'Clear search').click();
+    listRequest(httpMock).flush([ownedGame]);
+    initial.flush([{ ...ownedGame, name: 'Obsolete' }]);
+    pending.flush([]);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Hades');
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Obsolete');
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('No video games match');
+  });
+
+  it('keeps search usable on failure and retries the same query', () => {
+    flushSupporting(httpMock);
+    listRequest(httpMock).flush([ownedGame]);
+    search(fixture, 'had');
+    searchRequest(httpMock, 'had').flush({}, { status: 503, statusText: 'Unavailable' });
+    fixture.detectChanges();
+    expect(searchInput(fixture).disabled).toBe(false);
+    buttonByText(fixture, 'Try again').click();
+    searchRequest(httpMock, 'had').flush([ownedGame]);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Hades');
+  });
+
+  it('edits a searched result and refreshes with the same search', () => {
+    flushSupporting(httpMock);
+    listRequest(httpMock).flush([]);
+    search(fixture, 'had');
+    searchRequest(httpMock, 'had').flush([ownedGame]);
+    fixture.detectChanges();
+    buttonByText(fixture, 'Edit').click();
+    fixture.detectChanges();
+    flushSupporting(httpMock);
+    setName(fixture, 'New name');
+    buttonByText(fixture, 'Save').click();
+    httpMock.expectOne(request => request.method === 'PUT' && request.url.endsWith('/video-games/1'))
+      .flush({ ...ownedGame, name: 'New name' });
+    searchRequest(httpMock, 'had').flush([]);
+    fixture.detectChanges();
+    expect(searchInput(fixture).value).toBe('had');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('No video games match');
+  });
+
+  it('keeps cover-conflict reconciliation unfiltered when a searched game has been renamed', () => {
+    flushSupporting(httpMock);
+    listRequest(httpMock).flush([]);
+    search(fixture, 'had');
+    searchRequest(httpMock, 'had').flush([ownedGame]);
+    fixture.componentInstance.openEdit(ownedGame);
+    fixture.detectChanges();
+    flushSupporting(httpMock);
+    const save = fixture.debugElement.injector.get(CoverSave);
+    save.setDraft({ intent: 'remove' });
+    fixture.componentInstance.onSubmit(ownedGame);
+    httpMock.expectOne(request => request.method === 'PUT' && request.url.endsWith('/games/1/cover'))
+      .flush({}, { status: 409, statusText: 'Cover changed' });
+    listRequest(httpMock).flush([{ ...ownedGame, name: 'Renamed elsewhere', coverUploadId: 'new-cover' }]);
+    expect(save.phase()).toBe('conflict');
+    expect(save.currentCover()?.coverUploadId).toBe('new-cover');
+    expect(searchInput(fixture).value).toBe('had');
+    httpMock.expectNone(request => request.url.endsWith('/library'));
+  });
+
+  it('resets page-local search and ignores a pending result across an account generation change', () => {
+    flushSupporting(httpMock);
+    listRequest(httpMock).flush([]);
+    search(fixture, 'had');
+    const old = searchRequest(httpMock, 'had');
+    emitAuth('SIGNED_OUT', null);
+    emitAuth('SIGNED_IN', createTestSession());
+    old.flush([ownedGame]);
+    fixture.detectChanges();
+    flushSupporting(httpMock);
+    listRequest(httpMock).flush([]);
+    fixture.detectChanges();
+    expect(searchInput(fixture).value).toBe('');
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Hades');
+  });
+
+  it('cancels a pending search read when leaving the page', () => {
+    flushSupporting(httpMock);
+    listRequest(httpMock).flush([]);
+    search(fixture, 'had');
+    const pending = searchRequest(httpMock, 'had');
+    fixture.destroy();
+    expect(pending.cancelled).toBe(true);
   });
 
   it('renders the returned video games with platform and genre names', async () => {

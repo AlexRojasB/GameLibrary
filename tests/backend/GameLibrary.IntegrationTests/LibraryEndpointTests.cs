@@ -100,6 +100,30 @@ public class LibraryEndpointTests : IClassFixture<LibraryTestFactory>, IAsyncLif
     }
 
     [Fact]
+    public async Task ManageVideoGameSearch_UsesFullCollection_TypeFilter_NameOrder_AndOwnerScope()
+    {
+        var owner = NewSub();
+        var client = ClientFor(owner);
+        for (var index = 0; index < 31; index++)
+            await AddVideoGame(owner, $"A filler {index:D2}", AcquisitionStatus.Wishlist);
+        await AddVideoGame(owner, "Z Hades II", AcquisitionStatus.Wishlist);
+        await AddVideoGame(owner, "Y hADES", AcquisitionStatus.Interested);
+        await AddBoardGame(owner, "Hades board edition");
+        await AddVideoGame(NewSub(), "Foreign Hades", AcquisitionStatus.Wishlist);
+
+        const string criteria = "/library?gameType=VideoGame&sort=NameAsc";
+        var all = await Browse(client, criteria);
+        Assert.Equal(33, all.Length); // No loaded-page window or implicit result cap.
+        var matches = await Browse(client, criteria + "&search=%20aDeS%20");
+        Assert.Equal(["Y hADES", "Z Hades II"], matches.Select(item => item.Name));
+        Assert.All(matches, item => Assert.Equal("VideoGame", item.GameType));
+        Assert.Equal(["Z Hades II"], (await Browse(client, criteria + "&search=ADES&acquisitionStatuses=Wishlist")).Select(item => item.Name));
+        Assert.Empty(await Browse(client, criteria + "&search=not-found"));
+        Assert.Equal(all.Select(item => item.Id), (await Browse(client, criteria + "&search=%20%20")).Select(item => item.Id));
+        Assert.Equal(all.Select(item => item.Id), (await Browse(client, criteria)).Select(item => item.Id));
+    }
+
+    [Fact]
     public async Task Filters_UseOrWithinAndAcrossAndMissingMetadataRules()
     {
         var sub = NewSub();
