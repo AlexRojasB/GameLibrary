@@ -191,11 +191,21 @@
           <p>Notes: {{ result.notes }}</p>
         }
         <div class="random-picker-card__actions">
+          <button type="button" class="button button--primary" (click)="selectGame(result)"
+            [disabled]="selectionPending() || selectedGameId() === result.gameId">
+            {{ selectionPending() ? 'Selecting...' : selectedGameId() === result.gameId ? 'Selected' : 'Select Game' }}
+          </button>
           <button type="button" class="button button--secondary" (click)="logPlay(result)" [disabled]="isLogging(result)">
             {{ isLogging(result) ? 'Logging...' : 'Log play' }}
           </button>
           <button type="button" class="button button--secondary" (click)="edit(result)">Edit</button>
         </div>
+        @if (selectedGameId() === result.gameId) {
+          <p class="random-picker-card__notice" role="status">Selected for Currently Playing. Find it on Home.</p>
+        }
+        @if (selectionError()) {
+          <p class="random-picker-card__error" role="alert">{{ selectionError() }}</p>
+        }
         @if (logSuccess()) {
           <p class="random-picker-card__notice" role="status">{{ logSuccess() }}</p>
         }

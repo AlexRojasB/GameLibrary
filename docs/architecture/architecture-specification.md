@@ -3,6 +3,16 @@ Architecture Specification v0.4 --- Game Library
 Status: Approved
 Version: 0.4
 
+GL-17 / GL-27 first-delivery amendment — owner-requested local implementation:
+Use the existing Api/Core projects and Angular services/signals for durable Library
+Currently Playing selections, separate from volatile Picker state. One additive EF
+table has a (Library, GameType) primary key and a composite same-Library entry FK;
+selection uses the existing Library-first PostgreSQL lock order and atomic upsert.
+Expose authenticated GET/PUT /currently-playing, never browser database access.
+Home reads fresh backend state; no persistent client cache or new dependency,
+framework, project or infrastructure is introduced. Local EF migration only; no
+remote migration/deployment. See specs/014-currently-playing/spec.md.
+
 Feature 011 PR 5 amendment, 2026-11-24 -- Authorized local final validation:
 Add metadata-only process observation and locally fault-tested, bounded operator
 invalidation/rollback procedures within the existing architecture. No worker,

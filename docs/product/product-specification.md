@@ -3,6 +3,17 @@ Product Specification v0.7 --- Game Library
 Status: Approved
 Version: 0.7
 
+GL-17 / GL-27 first-delivery amendment — owner-requested local implementation:
+The Picker's proposed game has an explicit Select Game action. Persist one
+Currently Playing VideoGame and one Currently Playing BoardGame independently for
+the authenticated Library, replacing only the same-type selection. Home shows both
+slots and empty states across reloads/sessions. Active games are excluded from the
+Picker; replaced games are again subject to the existing eligibility/filter/shown-ID
+rules. This is separate Library state, not persisted Picker history, GameStatus,
+automatic Play Log or a completion workflow. Skip/history redesign, Log Play Time
+relocation and completion remain deferred. See specs/014-currently-playing/spec.md.
+Implementation/tests/migration are local only; no hosted changes or release approval.
+
 Feature 011 PR 5 amendment, 2026-11-24 -- Authorized local final validation:
 Review the approved v2 threat matrix, add only necessary verification/operational
 safety corrections and prepare privacy, retirement, migration, QA and rollback

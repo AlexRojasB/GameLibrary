@@ -191,6 +191,87 @@ describe('RandomPickerPage', () => {
     httpMock.verify();
   });
 
+  async function propose(item: RandomPickerItem): Promise<void> {
+    flushLookups(httpMock);
+    buttonByText(fixture, 'Pick a game').click();
+    pickRequest(httpMock).flush({ state: 'SUCCESS', result: item });
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  it.each([videoResult, boardResult])('selects the proposed $gameType without logging play or resetting history', async (item) => {
+    await propose(item);
+    buttonByText(fixture, 'Select Game').click();
+    fixture.detectChanges();
+    const selection = httpMock.expectOne((r) => r.method === 'PUT' && r.url.endsWith('/currently-playing'));
+    expect(selection.request.body).toEqual({ gameId: item.gameId });
+    buttonByText(fixture, 'Selecting...').click();
+    httpMock.expectNone((r) => r.url.endsWith('/currently-playing'));
+    selection.flush({ videoGame: item.gameType === 'VideoGame' ? item : null, boardGame: item.gameType === 'BoardGame' ? item : null });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(buttonByText(fixture, 'Selected').disabled).toBe(true);
+    expect(text(fixture)).toContain('Selected for Currently Playing');
+    expect(pickerState(fixture).shownIds).toEqual([item.libraryEntryId]);
+    expect(playLogRequests(httpMock)).toEqual([]);
+    buttonByText(fixture, 'Another').click();
+    const next = pickRequest(httpMock);
+    expect(next.request.body.shownLibraryEntryIds).toEqual([item.libraryEntryId]);
+    next.flush({ state: 'NO_CANDIDATES', result: null });
+    await fixture.whenStable();
+    expect(historyCards(fixture)).toHaveLength(1);
+  });
+
+  it.each([404, 409, 503])('handles a failed selection (%s) without claiming success or losing the proposal', async (status) => {
+    await propose(videoResult);
+    buttonByText(fixture, 'Select Game').click();
+    httpMock.expectOne((r) => r.url.endsWith('/currently-playing')).flush(null, { status, statusText: 'Selection failed' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(buttonByText(fixture, 'Select Game').disabled).toBe(false);
+    expect(text(fixture)).not.toContain('Selected for Currently Playing');
+    expect(pickerState(fixture).result).toEqual(videoResult);
+    expect(pickerState(fixture).shownIds).toEqual(['entry-1']);
+    expect(text(fixture)).toContain(status === 503 ? 'Check Currently Playing on Home' : 'no longer available');
+  });
+
+  it('does not apply an old selection error to a newer proposal', async () => {
+    await propose(videoResult);
+    buttonByText(fixture, 'Select Game').click();
+    const selection = httpMock.expectOne((r) => r.url.endsWith('/currently-playing'));
+    buttonByText(fixture, 'Another').click();
+    pickRequest(httpMock).flush({ state: 'SUCCESS', result: boardResult });
+    selection.flush(null, { status: 409, statusText: 'Not Owned' });
+    await fixture.whenStable();
+    expect(currentCard(fixture)?.textContent).toContain('Pandemic');
+    expect(text(fixture)).not.toContain('no longer available');
+  });
+
+  it('cancels an in-flight selection and clears owned proposal data on logout', async () => {
+    const auth = TestBed.inject(AuthService);
+    await auth.initialize();
+    await propose(videoResult);
+    buttonByText(fixture, 'Select Game').click();
+    const selection = httpMock.expectOne((r) => r.url.endsWith('/currently-playing'));
+    auth.clearLocalSession();
+    await fixture.whenStable();
+    expect(selection.cancelled).toBe(true);
+    expect(pickerState(fixture).result).toBeNull();
+    expect(pickerState(fixture).shownIds).toEqual([]);
+    expect(text(fixture)).not.toContain('Hades');
+  });
+
+  it('uses the existing session-expired handling when selection returns 401', async () => {
+    await propose(videoResult);
+    const auth = TestBed.inject(AuthService);
+    await auth.initialize();
+    buttonByText(fixture, 'Select Game').click();
+    httpMock.expectOne((r) => r.url.endsWith('/currently-playing')).flush(null, { status: 401, statusText: 'Unauthorized' });
+    await fixture.whenStable();
+    expect(auth.isAuthenticated()).toBe(false);
+    expect(TestBed.inject(Router).url).toBe('/login');
+  });
+
   it('is protected by authGuard in app routes', () => {
     expect(routes.find((route) => route.path === 'random-picker')?.canActivate).toEqual([authGuard]);
 

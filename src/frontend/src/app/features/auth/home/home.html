@@ -8,6 +8,31 @@
   @switch (meState()) {
     @case ('ok') {
       <p class="home__identity">Signed in as {{ email() }}</p>
+      <section class="home__playing surface-card" aria-labelledby="currently-playing-heading">
+        <h2 id="currently-playing-heading">Currently Playing</h2>
+        @if (playingState() === 'loading') {
+          <p role="status">Loading Currently Playing…</p>
+        } @else if (playingState() === 'error') {
+          <p role="alert">Unable to load Currently Playing.</p>
+          <button type="button" class="button button--secondary" (click)="loadCurrentlyPlaying()">Retry</button>
+        } @else {
+          <div class="home__slots">
+            @for (slot of activeSlots(); track slot.label) {
+              <article class="home__slot" [attr.aria-label]="'Currently Playing ' + slot.label">
+                <h3>{{ slot.label }}</h3>
+                @if (slot.item; as item) {
+                  <app-cover-image [coverImageUrl]="item.coverImageUrl" [coverUploadId]="item.coverUploadId"
+                    [alt]="item.name + ' cover'" />
+                  <p class="home__selected-name">{{ item.name }}</p>
+                } @else {
+                  <p>No {{ slot.label.toLowerCase() }} selected.</p>
+                  <a routerLink="/random-picker">Select a game from the Picker</a>
+                }
+              </article>
+            }
+          </div>
+        }
+      </section>
       <div class="home__actions" aria-label="Primary actions">
         <a class="home-card home-card--pick" routerLink="/random-picker">
           <span>Pick</span>

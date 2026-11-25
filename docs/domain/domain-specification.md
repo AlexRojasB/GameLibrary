@@ -3,6 +3,19 @@ Domain Specification v0.9 --- Game Library
 Status: Approved
 Version: 0.9
 
+GL-17 / GL-27 first-delivery amendment — owner-requested local implementation:
+Each Library may hold at most one Currently Playing selection per GameType. A
+selection references an existing same-Library LibraryEntry; the backend derives
+ownership and type and requires Owned when selecting. Repeated selection is safe;
+concurrent replacements cannot produce multiple slots of the same type. Selecting
+one type leaves the other untouched. Active selections are excluded before Picker
+shown-history classification in all applicable modes. Replacing a selection does
+not clear volatile shown IDs or relax filters. Selection changes no GameStatus,
+progress, acquisition, metadata or Play Log. Existing Game/LibraryEntry deletion
+also removes its slot, without changing the MVP 1:1 lifecycle. No completion,
+automatic status transition or persistent Picker history is introduced. See
+specs/014-currently-playing/spec.md; existing invariants otherwise remain unchanged.
+
 Feature 011 PR 5 amendment, 2026-11-24 -- Authorized local final validation:
 Preserve all v2 invariants. Controlled pause invalidation may only cancel
 unconsumed/uncancelled v2 rows under Library→row locks after admission/drain is

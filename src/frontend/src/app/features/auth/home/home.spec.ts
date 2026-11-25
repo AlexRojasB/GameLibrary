@@ -38,6 +38,7 @@ describe('Home', () => {
 
     const req = httpMock.expectOne((request) => request.method === 'GET' && request.url.endsWith('/auth/me'));
     req.flush({ userId: 'user-1' });
+    httpMock.expectOne((request) => request.url.endsWith('/currently-playing')).flush({ videoGame: null, boardGame: null });
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -71,5 +72,83 @@ describe('Home', () => {
 
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('Unable to load your profile');
+  });
+
+  function flushProfile(): void {
+    httpMock.expectOne((r) => r.url.endsWith('/auth/me')).flush({ userId: 'user-1' });
+  }
+
+  const video = { gameId: 'video-1', libraryEntryId: 'entry-1', gameType: 'VideoGame', name: 'Hades', coverImageUrl: null, coverUploadId: null };
+  const board = { gameId: 'board-1', libraryEntryId: 'entry-2', gameType: 'BoardGame', name: 'Cascadia', coverImageUrl: null, coverUploadId: null };
+
+  it('shows an independent sensible empty state for both types', async () => {
+    configure();
+    flushProfile();
+    httpMock.expectOne((r) => r.url.endsWith('/currently-playing')).flush({ videoGame: null, boardGame: null });
+    await fixture.whenStable();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Currently Playing');
+    expect(text).toContain('No video game selected.');
+    expect(text).toContain('No board game selected.');
+  });
+
+  it('renders both selections and refetches persisted state when Home is recreated', async () => {
+    configure();
+    flushProfile();
+    httpMock.expectOne((r) => r.url.endsWith('/currently-playing')).flush({ videoGame: video, boardGame: board });
+    await fixture.whenStable();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Hades');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Cascadia');
+
+    fixture.destroy();
+    fixture = TestBed.createComponent(Home);
+    fixture.detectChanges();
+    flushProfile();
+    httpMock.expectOne((r) => r.url.endsWith('/currently-playing')).flush({
+      videoGame: { ...video, gameId: 'video-2', name: 'Zelda' }, boardGame: board,
+    });
+    await fixture.whenStable();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Zelda');
+    expect(text).toContain('Cascadia');
+    expect(text).not.toContain('Hades');
+  });
+
+  it('does not mistake a failed slots read for an empty state and supports retry', async () => {
+    configure();
+    flushProfile();
+    httpMock.expectOne((r) => r.url.endsWith('/currently-playing')).flush(null, { status: 503, statusText: 'Unavailable' });
+    await fixture.whenStable();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Unable to load Currently Playing');
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('No video game selected');
+    ((fixture.nativeElement as HTMLElement).querySelector('button') as HTMLButtonElement).click();
+    httpMock.expectOne((r) => r.url.endsWith('/currently-playing')).flush({ videoGame: video, boardGame: null });
+    await fixture.whenStable();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Hades');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('No board game selected');
+  });
+
+  it('clears the displayed selections when authentication ends', async () => {
+    const auth = configure();
+    await auth.initialize();
+    flushProfile();
+    httpMock.expectOne((r) => r.url.endsWith('/currently-playing')).flush({ videoGame: video, boardGame: board });
+    await fixture.whenStable();
+    auth.clearLocalSession();
+    await fixture.whenStable();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).not.toContain('Hades');
+    expect(text).not.toContain('Cascadia');
+    expect(text).toContain('Session expired');
+  });
+
+  it('handles 401 while fetching the selections without displaying private data', async () => {
+    const auth = configure();
+    await auth.initialize();
+    flushProfile();
+    httpMock.expectOne((r) => r.url.endsWith('/currently-playing')).flush(null, { status: 401, statusText: 'Unauthorized' });
+    await fixture.whenStable();
+    expect(auth.isAuthenticated()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Session expired');
   });
 });
