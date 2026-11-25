@@ -134,6 +134,7 @@ public class DatabaseMigrationTests
                 "steam_accounts",
                 "steam_link_requests",
                 "cover_uploads",
+                "currently_playing",
             }.OrderBy(x => x),
             tables.OrderBy(x => x));
     }

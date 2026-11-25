@@ -1,3 +1,4 @@
+using System.Data;
 using GameLibrary.Core.Data;
 using GameLibrary.Core.Games;
 using Microsoft.EntityFrameworkCore;
@@ -17,9 +18,18 @@ public class RandomPickerService
     {
         var parsed = RandomPickerRules.Parse(request);
 
+        // Eligibility now includes durable selections that another request can
+        // replace. Keep classification, sampled IDs and item projection on one
+        // read snapshot instead of letting a concurrent selection remove the
+        // sampled row between queries. This persists no Picker/session state.
+        await using var snapshot = await _db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
+        await _db.Database.ExecuteSqlRawAsync("SET TRANSACTION READ ONLY", ct);
+
         var candidates = ApplyFilters(_db.Games
             .Where(g => g.LibraryEntry.Library.UserId == userId
-                && g.LibraryEntry.AcquisitionStatus == AcquisitionStatus.Owned), parsed);
+                && g.LibraryEntry.AcquisitionStatus == AcquisitionStatus.Owned
+                && !_db.CurrentlyPlayingSlots.Any(s => s.LibraryId == g.LibraryEntry.LibraryId
+                    && s.GameType == g.GameType && s.LibraryEntryId == g.LibraryEntry.Id)), parsed);
 
         if (!await candidates.AnyAsync(ct))
         {

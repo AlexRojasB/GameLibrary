@@ -27,7 +27,9 @@ public sealed class SteamSecureMigrationTests
         {
             configured.Database = name;
             await using var db = new GameLibraryDbContext(new DbContextOptionsBuilder<GameLibraryDbContext>().UseNpgsql(configured.ConnectionString).Options);
-            var previous = db.Database.GetMigrations().Reverse().Skip(1).First();
+            // Pin the security boundary: later additive migrations must not move this test's range.
+            const string previous = "20261029134813_AddCoverUploads";
+            const string secureLinkMigration = "20261124041656_AddSteamSecureLinkTransactions";
             await db.GetService<IMigrator>().MigrateAsync(previous);
             var library = new Library { Id = Guid.NewGuid(), UserId = "synthetic-upgrade-owner" };
             var now = DateTimeOffset.UtcNow.AddMinutes(-1);
@@ -66,7 +68,7 @@ public sealed class SteamSecureMigrationTests
             Assert.Equal(entry.Notes, (await db.LibraryEntries.SingleAsync()).Notes);
             Assert.False(db.Database.HasPendingModelChanges());
             Assert.Throws<NotSupportedException>(() => db.GetService<IMigrator>().GenerateScript(
-                db.Database.GetMigrations().Last(), previous));
+                secureLinkMigration, previous));
             // Partial uniqueness includes expired v2 rows, unlike legacy pending/consumed rows.
             var first = SteamSecureLinkTests.Seed(library.Id, library.UserId, out _);
             first.CreatedAt = now.AddDays(-2); first.ExpiresAt = now.AddDays(-1);

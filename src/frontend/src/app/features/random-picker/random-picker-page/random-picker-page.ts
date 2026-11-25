@@ -2,8 +2,10 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, DestroyRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
+import { takeUntil } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import { CurrentlyPlayingService } from '../../currently-playing/currently-playing.service';
 import { CoverImage } from '../../games/cover-image/cover-image';
 import type { InteractionType } from '../../games/board-game';
 import { Genre } from '../../games/genres';
@@ -41,6 +43,7 @@ const MODES: { value: RandomPickerMode; label: string }[] = [
 export class RandomPickerPage {
   private readonly logPlayDialog = viewChild<LogPlayDialog>('logPlayDialog');
   private readonly randomPicker = inject(RandomPickerService);
+  private readonly currentlyPlaying = inject(CurrentlyPlayingService);
   private readonly platformsService = inject(PlatformsService);
   private readonly genresService = inject(GenresService);
   private readonly playLogService = inject(PlayLogService);
@@ -63,6 +66,9 @@ export class RandomPickerPage {
   protected readonly logPendingGameId = signal<string | null>(null);
   protected readonly logSuccess = signal('');
   protected readonly logError = signal('');
+  protected readonly selectionPending = signal(false);
+  protected readonly selectedGameId = signal<string | null>(null);
+  protected readonly selectionError = signal('');
   protected readonly filterSummary = computed(() => filterSummary(this.mode(), this.filters()));
   protected readonly historyItems = computed(() => {
     const current = this.currentResult();
@@ -77,7 +83,39 @@ export class RandomPickerPage {
   protected readonly interactionTypes = INTERACTION_TYPES;
 
   constructor() {
+    this.auth.subjectChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.resetShownHistory();
+      this.selectionPending.set(false);
+      this.selectedGameId.set(null);
+      this.selectionError.set('');
+    });
     this.loadLookups();
+  }
+
+  protected selectGame(item: RandomPickerItem): void {
+    if (this.selectionPending() || this.selectedGameId() === item.gameId) return;
+    this.selectionPending.set(true);
+    this.selectionError.set('');
+    this.currentlyPlaying.select(item.gameId)
+      .pipe(takeUntilDestroyed(this.destroyRef), takeUntil(this.auth.subjectChanges))
+      .subscribe({
+        next: () => {
+          this.selectionPending.set(false);
+          this.selectedGameId.set(item.gameId);
+        },
+        error: (error: HttpErrorResponse) => {
+          this.selectionPending.set(false);
+          if (error.status === 401) {
+            this.handleSessionExpired();
+            return;
+          }
+          if (this.currentResult()?.gameId === item.gameId) {
+            this.selectionError.set(error.status === 404 || error.status === 409
+              ? 'This game is no longer available to select. Pick another game.'
+              : 'Unable to confirm selection. Check Currently Playing on Home before selecting again.');
+          }
+        },
+      });
   }
 
   protected pick(): void {
@@ -258,6 +296,7 @@ export class RandomPickerPage {
         this.loading.set(false);
         this.currentState.set(response.state);
         this.currentResult.set(response.result);
+        this.selectionError.set('');
         this.logPendingGameId.set(null);
         this.logSuccess.set('');
         this.logError.set('');
@@ -302,6 +341,7 @@ export class RandomPickerPage {
     this.loading.set(false);
     this.currentResult.set(null);
     this.currentState.set(null);
+    this.selectionError.set('');
     this.error.set('');
     this.logPendingGameId.set(null);
     this.logSuccess.set('');

@@ -1,5 +1,6 @@
 using GameLibrary.Core.Games;
 using GameLibrary.Core.CoverUploads;
+using GameLibrary.Core.CurrentlyPlaying;
 using GameLibrary.Core.Libraries;
 using GameLibrary.Core.PlayLog;
 using GameLibrary.Core.Platforms;
@@ -86,6 +87,8 @@ public class GameLibraryDbContext : DbContext
     public DbSet<Game> Games => Set<Game>();
 
     public DbSet<LibraryEntry> LibraryEntries => Set<LibraryEntry>();
+
+    public DbSet<CurrentlyPlayingSlot> CurrentlyPlayingSlots => Set<CurrentlyPlayingSlot>();
 
     public DbSet<Genre> Genres => Set<Genre>();
 
@@ -292,6 +295,9 @@ public class GameLibraryDbContext : DbContext
             entity.Property(le => le.GameId)
                 .HasColumnName("game_id");
 
+            entity.HasAlternateKey(le => new { le.Id, le.LibraryId })
+                .HasName("ak_library_entries_id_library_id");
+
             entity.Property(le => le.AcquisitionStatus)
                 .HasColumnName("acquisition_status")
                 .HasConversion<string>()
@@ -365,6 +371,25 @@ public class GameLibraryDbContext : DbContext
             entity.HasMany(le => le.PlayLogEntries)
                 .WithOne(entry => entry.LibraryEntry)
                 .HasForeignKey(entry => entry.LibraryEntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CurrentlyPlayingSlot>(entity =>
+        {
+            entity.ToTable("currently_playing", t =>
+                t.HasCheckConstraint("ck_currently_playing_game_type", "game_type IN ('VideoGame', 'BoardGame')"));
+            entity.HasKey(s => new { s.LibraryId, s.GameType }).HasName("pk_currently_playing");
+            entity.Property(s => s.LibraryId).HasColumnName("library_id");
+            entity.Property(s => s.GameType).HasColumnName("game_type").HasConversion<string>().HasMaxLength(20);
+            entity.Property(s => s.LibraryEntryId).HasColumnName("library_entry_id");
+            entity.HasIndex(s => new { s.LibraryEntryId, s.LibraryId })
+                .HasDatabaseName("ix_currently_playing_library_entry_id_library_id");
+            entity.HasOne(s => s.Library).WithMany().HasForeignKey(s => s.LibraryId)
+                .OnDelete(DeleteBehavior.Cascade);
+            // Composite FK prevents even a persisted slot from referencing another Library.
+            entity.HasOne(s => s.LibraryEntry).WithMany()
+                .HasForeignKey(s => new { s.LibraryEntryId, s.LibraryId })
+                .HasPrincipalKey(e => new { e.Id, e.LibraryId })
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

@@ -98,6 +98,33 @@ namespace GameLibrary.Core.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("GameLibrary.Core.CurrentlyPlaying.CurrentlyPlayingSlot", b =>
+                {
+                    b.Property<Guid>("LibraryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("library_id");
+
+                    b.Property<string>("GameType")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("game_type");
+
+                    b.Property<Guid>("LibraryEntryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("library_entry_id");
+
+                    b.HasKey("LibraryId", "GameType")
+                        .HasName("pk_currently_playing");
+
+                    b.HasIndex("LibraryEntryId", "LibraryId")
+                        .HasDatabaseName("ix_currently_playing_library_entry_id_library_id");
+
+                    b.ToTable("currently_playing", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_currently_playing_game_type", "game_type IN ('VideoGame', 'BoardGame')");
+                        });
+                });
+
             modelBuilder.Entity("GameLibrary.Core.Games.Game", b =>
                 {
                     b.Property<Guid>("Id")
@@ -367,6 +394,9 @@ namespace GameLibrary.Core.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasAlternateKey("Id", "LibraryId")
+                        .HasName("ak_library_entries_id_library_id");
+
                     b.HasIndex("GameId")
                         .IsUnique()
                         .HasDatabaseName("ix_library_entries_game_id");
@@ -617,6 +647,26 @@ namespace GameLibrary.Core.Data.Migrations
                         .HasForeignKey("LibraryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("GameLibrary.Core.CurrentlyPlaying.CurrentlyPlayingSlot", b =>
+                {
+                    b.HasOne("GameLibrary.Core.Libraries.Library", "Library")
+                        .WithMany()
+                        .HasForeignKey("LibraryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GameLibrary.Core.Games.LibraryEntry", "LibraryEntry")
+                        .WithMany()
+                        .HasForeignKey("LibraryEntryId", "LibraryId")
+                        .HasPrincipalKey("Id", "LibraryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Library");
+
+                    b.Navigation("LibraryEntry");
                 });
 
             modelBuilder.Entity("GameLibrary.Core.Games.Game", b =>

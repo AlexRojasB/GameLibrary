@@ -270,7 +270,7 @@ public class RandomPickerEndpointTests : IClassFixture<RandomPickerTestFactory>,
     }
 
     [Fact]
-    public async Task SchemaTablesRemainUnchanged()
+    public async Task SchemaContainsOnlyApprovedApplicationTables()
     {
         await using var db = CreateDbContext();
         var tables = await db.Database
@@ -296,6 +296,7 @@ public class RandomPickerEndpointTests : IClassFixture<RandomPickerTestFactory>,
                 "steam_accounts",
                 "steam_link_requests",
                 "cover_uploads",
+                "currently_playing",
             }.OrderBy(x => x),
             tables.OrderBy(x => x));
     }
