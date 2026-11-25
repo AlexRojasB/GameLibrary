@@ -20,6 +20,7 @@ export class Login {
   });
 
   protected readonly submitting = signal(false);
+  protected readonly passwordVisible = signal(false);
   protected readonly error = signal('');
 
   async onSubmit(): Promise<void> {
