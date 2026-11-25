@@ -19,11 +19,17 @@ test('selects both game types then explicitly logs from Home without clearing se
   }
 
   // Capture authenticated recovery via the real UI transport, not browser DB access.
+  // Consume each body as soon as its response arrives, before changing mode/page.
+  async function recoverRound(mode: string, action: () => Promise<unknown>) {
+    const recovered = page.waitForResponse(r => r.request().method() === 'GET'
+      && r.url() === `http://127.0.0.1:5218/random-picker/rounds/${mode}`)
+      .then(response => response.json());
+    const [round] = await Promise.all([recovered, action()]);
+    return round;
+  }
   const before = new Map<string, unknown>();
   for (const mode of ['All', 'VideoGames', 'BoardGames']) {
-    const recovered = page.waitForResponse(r => r.request().method() === 'GET' && r.url().endsWith(`/random-picker/rounds/${mode}`));
-    await page.getByLabel('Mode').selectOption(mode);
-    before.set(mode, await (await recovered).json());
+    before.set(mode, await recoverRound(mode, () => page.getByLabel('Mode').selectOption(mode)));
   }
   await page.getByRole('link', { name: 'Home', exact: true }).first().click();
   const video = page.getByRole('article', { name: 'Currently Playing Video game', exact: true });
@@ -63,12 +69,10 @@ test('selects both game types then explicitly logs from Home without clearing se
   const entries = await (await logs).json();
   expect(entries).toHaveLength(2);
   for (const entry of entries) expect(new Date(entry.playedAt).toISOString()).toBe(playedIso);
-  const all = page.waitForResponse(r => r.request().method() === 'GET' && r.url().endsWith('/random-picker/rounds/All'));
-  await page.getByRole('link', { name: 'Pick', exact: true }).first().click();
-  expect(await (await all).json()).toEqual(before.get('All'));
+  const all = await recoverRound('All', () => page.getByRole('link', { name: 'Pick', exact: true }).first().click());
+  expect(all).toEqual(before.get('All'));
   for (const mode of ['VideoGames', 'BoardGames']) {
-    const recovered = page.waitForResponse(r => r.request().method() === 'GET' && r.url().endsWith(`/random-picker/rounds/${mode}`));
-    await page.getByLabel('Mode').selectOption(mode);
-    expect(await (await recovered).json()).toEqual(before.get(mode));
+    const recovered = await recoverRound(mode, () => page.getByLabel('Mode').selectOption(mode));
+    expect(recovered).toEqual(before.get(mode));
   }
 });
