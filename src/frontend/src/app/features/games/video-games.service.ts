@@ -5,12 +5,23 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 import { VideoGame, VideoGameInput } from './video-game';
+import { LibraryService } from '../library/library.service';
 
 @Injectable({ providedIn: 'root' })
 export class VideoGamesService {
   private readonly http = inject(HttpClient);
+  private readonly library = inject(LibraryService);
 
-  list(): Observable<VideoGame[]> {
+  list(search = ''): Observable<VideoGame[]> {
+    if (search.trim().length > 0) {
+      // Library's read model includes every edit field and uses the same name
+      // ordering. Reuse its owner-scoped server search, never filter loaded cards.
+      return this.library.browse({
+        search, gameType: 'VideoGame', acquisitionStatuses: [], platformIds: [],
+        genreIds: [], ratingMin: null, playerCount: null, interactionTypes: [],
+        gameStatuses: [], familyFriendlyOnly: false,
+      }, 'NameAsc');
+    }
     return this.http.get<VideoGame[]>(`${environment.apiBaseUrl}/video-games`);
   }
 

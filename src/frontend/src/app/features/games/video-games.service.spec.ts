@@ -50,6 +50,26 @@ describe('VideoGamesService', () => {
     expect(result).toEqual([game]);
   });
 
+  it('reuses Library server search with a trimmed literal query, VideoGame filter and existing name sort', () => {
+    let result: VideoGame[] | undefined;
+    service.list('  aD%_\\  ').subscribe(value => result = value);
+    const req = httpMock.expectOne(request => request.url === `${environment.apiBaseUrl}/library`);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.keys().sort()).toEqual(['gameType', 'search', 'sort']);
+    expect(req.request.params.get('search')).toBe('aD%_\\');
+    expect(req.request.params.get('gameType')).toBe('VideoGame');
+    expect(req.request.params.get('sort')).toBe('NameAsc');
+    req.flush([game]);
+    expect(result).toEqual([game]);
+  });
+
+  it.each(['', '   \t '])('keeps the original full-list endpoint for empty search %j', search => {
+    service.list(search).subscribe();
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/video-games`);
+    expect(req.request.params.keys()).toEqual([]);
+    req.flush([]);
+  });
+
   it('creates a video game via POST /video-games', () => {
     let result: VideoGame | undefined;
     service.create(input).subscribe((value) => (result = value));

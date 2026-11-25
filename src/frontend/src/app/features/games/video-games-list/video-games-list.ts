@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, effect, ElementRef, inject, signal, untracked, viewChild } from '@angular/core';
+import { Component, DestroyRef, effect, ElementRef, inject, signal, untracked, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 
@@ -31,11 +32,13 @@ export class VideoGamesList {
   private readonly genresService = inject(GenresService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly coverSave = inject(CoverSave);
   private readonly coverUploads = inject(CoverUploadsService);
   private loadGeneration = 0;
 
   protected readonly loading = signal(true);
+  protected readonly search = signal('');
   protected readonly videoGames = signal<VideoGame[]>([]);
   protected readonly platforms = signal<Platform[]>([]);
   protected readonly genres = signal<Genre[]>([]);
@@ -55,6 +58,7 @@ export class VideoGamesList {
           ++this.loadGeneration;
           this.closeForm();
           this.videoGames.set([]);
+          this.search.set('');
           this.platforms.set([]);
           this.editingGame.set(null);
           this.notice.set('');
@@ -75,7 +79,7 @@ export class VideoGamesList {
     const account = this.coverSave.account();
     this.loading.set(true);
     this.loadError.set(false);
-    this.videoGamesService.list().subscribe({
+    this.videoGamesService.list(this.search()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (games) => {
         if (generation !== this.loadGeneration || account !== this.coverSave.account()) return;
         this.videoGames.set(games);
@@ -91,6 +95,17 @@ export class VideoGamesList {
         this.loadError.set(true);
       },
     });
+  }
+
+  protected onSearch(value: string): void {
+    const previous = this.search().trim();
+    this.search.set(value);
+    if (value.trim() !== previous) this.load();
+  }
+
+  protected clearSearch(input: HTMLInputElement): void {
+    this.onSearch('');
+    input.focus();
   }
 
   openCreate(): void {

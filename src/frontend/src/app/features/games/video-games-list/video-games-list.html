@@ -6,19 +6,34 @@
     <a routerLink="/manage">Back to Manage</a>
   </header>
 
+  <div class="video-games__search surface-card">
+    <label for="video-games-search">Search video games</label>
+    <div class="video-games__search-controls">
+      <input #searchInput id="video-games-search" type="search" placeholder="Search by game name"
+        [value]="search()" (input)="onSearch($any($event.target).value)" />
+      <button type="button" class="button button--secondary" [disabled]="search().length === 0"
+        (click)="clearSearch(searchInput)">Clear search</button>
+    </div>
+  </div>
+
   @if (loading()) {
-    <p class="video-games__status">Loading…</p>
+    <p class="video-games__status" role="status">Loading…</p>
   } @else if (loadError()) {
     <p class="video-games__error" role="alert">Unable to load your video games.</p>
     <button type="button" class="button button--secondary" (click)="load()">Try again</button>
   } @else if (videoGames().length === 0) {
     <div class="video-games__empty surface-card">
-      <p class="video-games__status">No video games yet.</p>
-      <button type="button" class="button button--primary" (click)="openCreate()">Add your first video game</button>
+      @if (search().trim()) {
+        <p class="video-games__status" role="status">No video games match your search. Try another title or clear the search.</p>
+        <button type="button" class="button button--primary" (click)="openCreate()">Add video game</button>
+      } @else {
+        <p class="video-games__status">No video games yet.</p>
+        <button type="button" class="button button--primary" (click)="openCreate()">Add your first video game</button>
+      }
     </div>
   } @else {
     <div class="video-games__toolbar">
-      <p>{{ videoGames().length }} video game{{ videoGames().length === 1 ? '' : 's' }}</p>
+      <p role="status">{{ videoGames().length }} video game{{ videoGames().length === 1 ? '' : 's' }}{{ search().trim() ? ' found' : '' }}</p>
       <button type="button" class="button button--primary" (click)="openCreate()">Add video game</button>
     </div>
     <ul class="video-games__list">
