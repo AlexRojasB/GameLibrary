@@ -13,6 +13,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 export class Login {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  protected readonly passwordResetComplete = this.router.currentNavigation()?.extras.state?.['passwordResetComplete'] === true;
 
   protected readonly form = new FormGroup({
     email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),

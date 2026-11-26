@@ -4,6 +4,8 @@ import { HealthCheck } from './core/health/health-check/health-check';
 import { authGuard, guestGuard } from './core/auth/auth.guard';
 import { Login } from './features/auth/login/login';
 import { Register } from './features/auth/register/register';
+import { ForgotPassword } from './features/auth/forgot-password/forgot-password';
+import { ResetPassword } from './features/auth/reset-password/reset-password';
 import { Home } from './features/auth/home/home';
 import { PlatformsList } from './features/platforms/platforms-list/platforms-list';
 import { LibraryPage } from './features/library/library-page/library-page';
@@ -15,6 +17,8 @@ export const routes: Routes = [
   { path: '', component: Home, canActivate: [authGuard] },
   { path: 'login', component: Login, canActivate: [guestGuard] },
   { path: 'register', component: Register, canActivate: [guestGuard] },
+  { path: 'forgot-password', component: ForgotPassword },
+  { path: 'reset-password', component: ResetPassword },
   { path: 'health', component: HealthCheck },
   { path: 'library', component: LibraryPage, canActivate: [authGuard] },
   { path: 'random-picker', loadComponent: () => import('./features/random-picker/random-picker-page/random-picker-page').then((module) => module.RandomPickerPage), canActivate: [authGuard] },
