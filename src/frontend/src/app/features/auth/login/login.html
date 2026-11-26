@@ -1,6 +1,9 @@
 <section class="auth-form surface-card">
   <p class="eyebrow">Game Library</p>
   <h1>Sign in</h1>
+  @if (passwordResetComplete) {
+    <p class="auth-form__notice" role="status">Password updated. Sign in with your new password.</p>
+  }
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <label for="login-email">Email</label>
@@ -22,4 +25,5 @@
   </form>
 
   <p>No account? <a routerLink="/register">Create one</a></p>
+  <p><a routerLink="/forgot-password">Forgot password?</a></p>
 </section>

@@ -15,11 +15,16 @@ export const authGuard: CanActivateFn = async () => {
   return router.createUrlTree(['/login']);
 };
 
-export const guestGuard: CanActivateFn = async () => {
+export const guestGuard: CanActivateFn = async (route) => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
   await auth.initialize();
+
+  // Presentation only: recovery completion can show Sign in without signing out
+  // an unrelated normal account. This flag grants no password-update authority.
+  if (route.routeConfig?.path === 'login'
+    && router.currentNavigation()?.extras.state?.['passwordResetComplete'] === true) return true;
 
   if (auth.isAuthenticated()) {
     return router.createUrlTree(['/']);

@@ -18,7 +18,7 @@ export class App {
 
   protected get showShell(): boolean {
     const path = this.router.url.split('?')[0];
-    return path !== '/login' && path !== '/register' && path !== '/health';
+    return !['/login', '/register', '/health', '/forgot-password', '/reset-password'].includes(path);
   }
 
   protected isManageActive(): boolean {

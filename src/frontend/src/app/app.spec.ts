@@ -22,6 +22,27 @@ describe('App', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
+  it('keeps one stable outlet while entering public recovery routes', async () => {
+    const router = TestBed.inject(Router);
+    router.resetConfig([
+      { path: 'forgot-password', component: RouteStub },
+      { path: 'reset-password', component: RouteStub },
+    ]);
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    const outlet = element.querySelector('router-outlet');
+    for (const path of ['/forgot-password', '/reset-password']) {
+      await router.navigateByUrl(path);
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(element.querySelector('router-outlet')).toBe(outlet);
+      expect(element.querySelector('.app-auth')).toBeTruthy();
+      expect(element.querySelector('.app-shell__desktop-nav')).toBeNull();
+      expect(element.querySelectorAll('router-outlet')).toHaveLength(1);
+    }
+  });
+
   it('adds Play Log to desktop nav without adding it to mobile nav', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();

@@ -27,6 +27,9 @@ export interface MockSupabaseAuth {
   signInWithPassword: ReturnType<typeof vi.fn>;
   signUp: ReturnType<typeof vi.fn>;
   signOut: ReturnType<typeof vi.fn>;
+  resetPasswordForEmail: ReturnType<typeof vi.fn>;
+  exchangeCodeForSession: ReturnType<typeof vi.fn>;
+  updateUser: ReturnType<typeof vi.fn>;
 }
 
 export function createMockSupabase(initialSession: Session | null = null): {
@@ -40,11 +43,17 @@ export function createMockSupabase(initialSession: Session | null = null): {
     getSession: vi.fn(async () => ({ data: { session: initialSession }, error: null })),
     onAuthStateChange: vi.fn((callback: (event: string, session: Session | null) => void) => {
       authListeners.push(callback);
-      return { data: { subscription: { unsubscribe: vi.fn() } } };
+      return { data: { subscription: { unsubscribe: vi.fn(() => {
+        const index = authListeners.indexOf(callback);
+        if (index >= 0) authListeners.splice(index, 1);
+      }) } } };
     }),
     signInWithPassword: vi.fn(),
     signUp: vi.fn(),
     signOut: vi.fn(),
+    resetPasswordForEmail: vi.fn(),
+    exchangeCodeForSession: vi.fn(),
+    updateUser: vi.fn(),
   };
 
   return {
