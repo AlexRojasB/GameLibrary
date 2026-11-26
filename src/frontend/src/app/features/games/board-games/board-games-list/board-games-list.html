@@ -3,7 +3,7 @@
     <p class="eyebrow">Manage</p>
     <h1>Board games</h1>
     <p>Keep tabletop options ready with player ranges and table style.</p>
-    <a routerLink="/manage">Back to Manage</a>
+    <app-back-button fallback="/manage" />
   </header>
 
   @if (loading()) {

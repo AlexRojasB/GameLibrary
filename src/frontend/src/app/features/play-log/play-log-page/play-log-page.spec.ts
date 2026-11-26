@@ -157,7 +157,10 @@ describe('PlayLogPage', () => {
     fixture.detectChanges();
 
     expect(text(fixture)).toContain('Unable to load your Play Log');
-    ((fixture.nativeElement as HTMLElement).querySelector('button') as HTMLButtonElement).click();
+    const retry = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')]
+      .find(button => button.textContent?.trim() === 'Try again');
+    expect(retry).toBeDefined();
+    retry!.click();
     fixture.detectChanges();
 
     playLogRequest(httpMock).flush([olderEntry]);

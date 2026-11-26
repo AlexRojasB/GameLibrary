@@ -1,6 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
+import { SUPABASE_CLIENT } from '../../auth/supabase-client';
+import { createMockSupabase } from '../../auth/testing/supabase-client.mock';
 
 import { HealthCheck } from './health-check';
 
@@ -11,7 +14,8 @@ describe('HealthCheck', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [HealthCheck],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]),
+        { provide: SUPABASE_CLIENT, useValue: createMockSupabase().client }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(HealthCheck);

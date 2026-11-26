@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
+import { BackButton } from '../../../shared/back-button/back-button';
 
 import { AuthService } from '../../../core/auth/auth.service';
 
@@ -10,7 +11,7 @@ import { PlatformsService } from '../platforms.service';
 
 @Component({
   selector: 'app-platforms-list',
-  imports: [RouterLink, PlatformForm],
+  imports: [BackButton, PlatformForm],
   templateUrl: './platforms-list.html',
   styleUrl: './platforms-list.scss',
 })

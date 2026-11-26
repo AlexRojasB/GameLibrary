@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, effect, ElementRef, inject, signal, untracked, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
+import { BackButton } from '../../../shared/back-button/back-button';
 import { map } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
@@ -20,7 +21,7 @@ import { CoverImage } from '../cover-image/cover-image';
 
 @Component({
   selector: 'app-video-games-list',
-  imports: [RouterLink, VideoGameForm, CoverImage],
+  imports: [RouterLink, VideoGameForm, CoverImage, BackButton],
   providers: [CoverSave],
   templateUrl: './video-games-list.html',
   styleUrl: './video-games-list.scss',
