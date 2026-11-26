@@ -6,7 +6,7 @@ test('Select Game persists both Currently Playing slots on Home after reload', a
   expect(reset.ok()).toBeTruthy();
   await page.goto('/login');
   await page.getByLabel('Email').fill('player@example.com');
-  await page.getByLabel('Password').fill('password123');
+  await page.getByLabel('Password', { exact: true }).fill('password123');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('heading', { name: /your game night starts here/i })).toBeVisible();
   await expect(page.getByText('No video game selected.', { exact: true })).toBeVisible();

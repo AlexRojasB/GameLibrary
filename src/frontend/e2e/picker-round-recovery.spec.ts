@@ -5,7 +5,7 @@ test('Another survives leaving Picker, reload and sign-in with proposal, history
   async function signIn() {
     await page.goto('/login');
     await page.getByLabel('Email').fill('player@example.com');
-    await page.getByLabel('Password').fill('password123');
+    await page.getByLabel('Password', { exact: true }).fill('password123');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     await expect(page.getByRole('heading', { name: /your game night starts here/i })).toBeVisible();
   }
