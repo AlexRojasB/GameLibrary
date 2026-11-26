@@ -68,7 +68,7 @@ async function signIn(page: Page, email: string) {
     // form. Native reload also prevents typing into a departing login instance.
     await page.reload();
   }
-  await page.getByLabel('Email').fill(email); await page.getByLabel('Password').fill('password123');
+  await page.getByLabel('Email').fill(email); await page.getByLabel('Password', { exact: true }).fill('password123');
   await expect(page.getByLabel('Email')).toHaveValue(email);
   const authenticated = page.waitForResponse(response => response.url() === api + '/e2e/auth/session' && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();

@@ -1,5 +1,7 @@
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { FormGroupDirective } from '@angular/forms';
+import { By } from '@angular/platform-browser';
 import { provideRouter, Router } from '@angular/router';
 
 import { AuthService } from '../../core/auth/auth.service';
@@ -8,6 +10,8 @@ import { PASSWORD_RECOVERY_CLIENT, RECOVERY_CODE } from '../../core/auth/passwor
 import { createMockSupabase, createTestSession } from '../../core/auth/testing/supabase-client.mock';
 import { ForgotPassword } from './forgot-password/forgot-password';
 import { ResetPassword } from './reset-password/reset-password';
+import { Login } from './login/login';
+import { Register } from './register/register';
 
 @Component({ template: '' })
 class LoginStub {}
@@ -115,12 +119,20 @@ describe('recovery-only password update', () => {
     expect(mock.auth.updateUser).not.toHaveBeenCalled();
     const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('button[aria-controls]');
     expect(toggle.type).toBe('button');
+    expect(toggle.getAttribute('aria-label')).toBe('Show password');
+    expect(toggle.getAttribute('aria-controls')).toBe(password.id);
+    expect(toggle.textContent.trim()).toBe('');
+    expect(toggle.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
+    expect(toggle.querySelector('svg')?.getAttribute('focusable')).toBe('false');
+    expect(toggle.querySelector('svg line')).toBeNull();
     for (const [type, name] of [['text', 'Hide password'], ['password', 'Show password']]) {
       toggle.click(); fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('#reset-password')).toBe(password);
       expect(password.type).toBe(type);
       expect(password.value).toBe('short');
-      expect(toggle.textContent.trim()).toBe(name);
+      expect(toggle.getAttribute('aria-label')).toBe(name);
+      expect(toggle.textContent.trim()).toBe('');
+      expect(toggle.querySelectorAll('svg line')).toHaveLength(type === 'text' ? 1 : 0);
     }
     expect(mock.auth.updateUser).not.toHaveBeenCalled();
     fill(fixture, 'reset-password', 'synthetic-new-password');
@@ -132,6 +144,54 @@ describe('recovery-only password update', () => {
     expect(TestBed.inject(Router).url).toBe('/login');
     expect(TestBed.inject(Router).lastSuccessfulNavigation()?.extras.info).toBe('passwordResetComplete');
     expect(TestBed.inject(Router).lastSuccessfulNavigation()?.extras.state).toBeUndefined();
+  });
+
+  it('toggles the valid recovery field through its icon without submitting or changing validation/focus', async () => {
+    await setup();
+    fill(fixture, 'reset-password', 'synthetic-new-password');
+    const password: HTMLInputElement = fixture.nativeElement.querySelector('#reset-password');
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('button[aria-controls]');
+    const control = fixture.debugElement.query(By.directive(FormGroupDirective)).injector.get(FormGroupDirective).control.get('password')!;
+    const before = { value: control.value, errors: control.errors, status: control.status, dirty: control.dirty, touched: control.touched };
+    const submit = vi.spyOn(fixture.componentInstance, 'onSubmit');
+    button.focus();
+    for (const shown of [true, false]) {
+      button.querySelector('svg')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      fixture.detectChanges();
+      expect(document.activeElement).toBe(button);
+      expect(fixture.nativeElement.querySelector('#reset-password')).toBe(password);
+      expect(password.type).toBe(shown ? 'text' : 'password');
+      expect(password.autocomplete).toBe('new-password');
+      expect(password.required).toBe(true);
+      expect(button.getAttribute('aria-label')).toBe(shown ? 'Hide password' : 'Show password');
+      expect(button.querySelectorAll('svg line')).toHaveLength(shown ? 1 : 0);
+      expect({ value: control.value, errors: control.errors, status: control.status, dirty: control.dirty, touched: control.touched }).toEqual(before);
+    }
+    expect(submit).not.toHaveBeenCalled();
+    expect(mock.auth.updateUser).not.toHaveBeenCalled();
+    expect(normalMock.auth.signInWithPassword).not.toHaveBeenCalled();
+    (fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    expect(submit).toHaveBeenCalledTimes(1);
+    expect(mock.auth.updateUser).toHaveBeenCalledExactlyOnceWith({ password: 'synthetic-new-password' });
+  });
+
+  it('keeps recovery visibility independent from both ordinary password fields', async () => {
+    await setup();
+    const login = TestBed.createComponent(Login);
+    const register = TestBed.createComponent(Register);
+    login.detectChanges(); register.detectChanges();
+    const recoveryToggle: HTMLButtonElement = fixture.nativeElement.querySelector('button[aria-controls]');
+    recoveryToggle.click(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#reset-password').type).toBe('text');
+    expect(login.nativeElement.querySelector('#login-password').type).toBe('password');
+    expect(register.nativeElement.querySelector('#register-password').type).toBe('password');
+    (login.nativeElement.querySelector('button[aria-controls]') as HTMLButtonElement).click();
+    recoveryToggle.click(); login.detectChanges(); fixture.detectChanges();
+    expect(login.nativeElement.querySelector('#login-password').type).toBe('text');
+    expect(fixture.nativeElement.querySelector('#reset-password').type).toBe('password');
+    expect(register.nativeElement.querySelector('#register-password').type).toBe('password');
+    expect(mock.auth.updateUser).not.toHaveBeenCalled();
   });
 
   it.each(['SIGNED_IN', 'INITIAL_SESSION', 'TOKEN_REFRESHED'])('rejects ordinary/restored %s context even with a valid session', async ordinary => {

@@ -4,7 +4,7 @@ test('Completed status blocks video recovery/draws without changing manual exclu
   expect((await request.post('http://127.0.0.1:5218/e2e/reset')).ok()).toBeTruthy();
   await page.goto('/login');
   await page.getByLabel('Email').fill('player@example.com');
-  await page.getByLabel('Password').fill('password123');
+  await page.getByLabel('Password', { exact: true }).fill('password123');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('heading', { name: /your game night starts here/i })).toBeVisible();
   const videoName = 'Zelda: Tears of the Kingdom';

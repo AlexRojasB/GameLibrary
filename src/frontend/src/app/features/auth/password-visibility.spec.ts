@@ -42,7 +42,14 @@ describe.each(screens)('$name password visibility', screen => {
     expect(password.autocomplete).toBe(screen.autocomplete);
     expect(password.required).toBe(true);
     expect(toggle(fixture).type).toBe('button');
-    expect(toggle(fixture).textContent?.trim()).toBe('Show password');
+    expect(toggle(fixture).getAttribute('aria-label')).toBe('Show password');
+    expect(toggle(fixture).textContent?.trim()).toBe('');
+    const icon = toggle(fixture).querySelector('svg')!;
+    expect(toggle(fixture).querySelectorAll('svg')).toHaveLength(1);
+    expect(icon.getAttribute('aria-hidden')).toBe('true');
+    expect(icon.getAttribute('focusable')).toBe('false');
+    expect(icon.querySelector('circle')).not.toBeNull();
+    expect(icon.querySelector('line')).toBeNull();
     expect(toggle(fixture).getAttribute('aria-controls')).toBe(password.id);
     expect(toggle(fixture).disabled).toBe(false);
   });
@@ -69,7 +76,9 @@ describe.each(screens)('$name password visibility', screen => {
       expect(password.value).toBe(value);
       expect(password.autocomplete).toBe(screen.autocomplete);
       expect(password.required).toBe(true);
-      expect(toggle(fixture).textContent?.trim()).toBe(action);
+      expect(toggle(fixture).getAttribute('aria-label')).toBe(action);
+      expect(toggle(fixture).textContent?.trim()).toBe('');
+      expect(toggle(fixture).querySelectorAll('svg line')).toHaveLength(type === 'text' ? 1 : 0);
       expect({ value: control.value, errors: control.errors, status: control.status, dirty: control.dirty, touched: control.touched }).toEqual(before);
     }
     expect(values).not.toHaveBeenCalled();
@@ -85,7 +94,7 @@ describe.each(screens)('$name password visibility', screen => {
     input(fixture).value = 'synthetic-password';
     input(fixture).dispatchEvent(new Event('input'));
     const submit = vi.spyOn(fixture.componentInstance, 'onSubmit');
-    toggle(fixture).click();
+    toggle(fixture).querySelector('svg')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     fixture.detectChanges();
     expect(submit).not.toHaveBeenCalled();
     expect(auth.signIn).not.toHaveBeenCalled();
@@ -105,7 +114,8 @@ describe.each(screens)('$name password visibility', screen => {
     fixture = TestBed.createComponent<Login | Register>(screen.component);
     fixture.detectChanges();
     expect(input(fixture).type).toBe('password');
-    expect(toggle(fixture).textContent?.trim()).toBe('Show password');
+    expect(toggle(fixture).getAttribute('aria-label')).toBe('Show password');
+    expect(toggle(fixture).querySelector('svg line')).toBeNull();
   });
 });
 

@@ -3,10 +3,11 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 
 import { PASSWORD_RECOVERY_CLIENT, RECOVERY_CODE } from '../../../core/auth/password-recovery-client';
+import { PasswordVisibilityIcon } from '../password-visibility-icon';
 
 @Component({
   selector: 'app-reset-password',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, PasswordVisibilityIcon],
   templateUrl: './reset-password.html',
   styleUrl: '../login/login.scss',
 })

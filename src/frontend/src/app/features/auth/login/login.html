@@ -12,7 +12,10 @@
     <div class="auth-form__password-field">
       <input id="login-password" [type]="passwordVisible() ? 'text' : 'password'" formControlName="password" autocomplete="current-password" required />
       <button type="button" class="button button--secondary" aria-controls="login-password"
-        (click)="passwordVisible.set(!passwordVisible())">{{ passwordVisible() ? 'Hide password' : 'Show password' }}</button>
+        [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'"
+        (click)="passwordVisible.set(!passwordVisible())">
+        <app-password-visibility-icon [visible]="passwordVisible()" />
+      </button>
     </div>
 
     @if (error()) {
