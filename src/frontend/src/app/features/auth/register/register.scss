@@ -31,7 +31,10 @@
     }
 
     button {
+      min-width: 2.75rem;
       min-height: 2.75rem;
+      padding: 0.5rem;
+      flex: 0 0 auto;
     }
   }
 
