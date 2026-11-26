@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
 import { expect, test, type BrowserContext } from '@playwright/test';
 
+import { expectValidSession, mockAuthenticatedNavigation, primary, signIn, watchLoginActivations, expectNoLoginActivation } from './fixtures/authenticated-navigation';
+
 // Provider-boundary fixture: the application uses its real Supabase SDK, PKCE
 // storage, exchange event, update and sign-out. No email or hosted call is made.
 async function mockSupabase(context: BrowserContext) {
@@ -129,4 +131,50 @@ test('exchanges a recovery PKCE code, updates once, retries cleanup only, and re
   await expect(page.getByRole('alert')).toContainText('invalid, expired or already used');
   expect(fixture.updates).toBe(1);
   expect(fixture.exchanges).toBe(2); // Replay failed locally without another exchange.
+});
+
+test('recovery then sign-in, Home and Back preserves the valid session without reopening Sign in', async ({ page, context }) => {
+  const normal = await mockAuthenticatedNavigation(context);
+  const recovery = await mockSupabase(context);
+  await page.goto('/forgot-password');
+  await page.getByLabel('Email', { exact: true }).fill('synthetic@example.test');
+  await page.getByRole('button', { name: 'Send reset email', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('If an account exists');
+  await page.goto('/reset-password?code=synthetic-recovery-code');
+  await page.getByLabel('New password', { exact: true }).fill('synthetic-new-password');
+  await page.getByRole('button', { name: 'Update password', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Password updated. Sign in with your new password.');
+  const length = await page.evaluate(() => history.length);
+  await signIn(page);
+  await expectValidSession(page);
+  const session = await page.evaluate(() => localStorage.getItem('game-library-e2e-session'));
+  const operations = { exchanges: recovery.exchanges, updates: recovery.updates, logouts: recovery.logouts };
+  await watchLoginActivations(page);
+  await page.goBack();
+  // Capture screen and session separately: a login screen is not proof of logout.
+  const evidence = await page.evaluate(() => ({ pathname: location.pathname,
+    authenticated: !!JSON.parse(localStorage.getItem('game-library-e2e-session') ?? 'null'),
+    completionFlagInHistory: history.state?.passwordResetComplete === true }));
+  await test.info().attach('back-evidence', { body: JSON.stringify(evidence), contentType: 'application/json' });
+  expect(await page.evaluate(() => localStorage.getItem('game-library-e2e-session'))).toBe(session);
+  await expectValidSession(page);
+  await expect(page.getByRole('heading', { name: 'Sign in', exact: true })).toHaveCount(0);
+  // The preceding email-request screen is public by GL-08; do not erase it or
+  // invent a global history skip. The submitted Sign in entry was replaced.
+  await expect(page.getByRole('heading', { name: 'Forgot password?', exact: true })).toBeVisible();
+  await expectNoLoginActivation(page);
+  expect(await page.evaluate(() => history.length)).toBe(length);
+  await page.goForward();
+  await expect(page).toHaveURL('/');
+  await expectValidSession(page);
+  await primary(page, 'Library'); // Real interceptor must also send the same token.
+  await expect(page.getByRole('heading', { name: 'Browse the shelf.', exact: true })).toBeVisible();
+  await expectNoLoginActivation(page);
+  expect(normal.signIns).toBe(1);
+  expect(normal.authenticatedReads).toBeGreaterThan(0);
+  expect({ exchanges: recovery.exchanges, updates: recovery.updates, logouts: recovery.logouts }).toEqual(operations);
+  expect(recovery.exchanges).toBe(1);
+  expect(recovery.updates).toBe(1);
+  expect(await page.evaluate(() => localStorage.getItem('game-library-password-recovery'))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('game-library-password-recovery-code-verifier'))).toBeNull();
 });

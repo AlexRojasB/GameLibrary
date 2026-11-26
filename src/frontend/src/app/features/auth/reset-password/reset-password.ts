@@ -114,7 +114,7 @@ export class ResetPassword {
       // or may have changed while recovery was in flight.
       await this.closeRecoverySession();
       if (this.destroyed) return;
-      await this.router.navigateByUrl('/login', { replaceUrl: true, state: { passwordResetComplete: true } });
+      await this.router.navigateByUrl('/login', { replaceUrl: true, info: 'passwordResetComplete' });
     } catch {
       if (!this.destroyed) this.error.set('Password updated, but recovery sign-out reported an error. Retry to confirm the recovery session has ended.');
     }

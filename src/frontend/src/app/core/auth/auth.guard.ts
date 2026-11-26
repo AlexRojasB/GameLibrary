@@ -21,10 +21,11 @@ export const guestGuard: CanActivateFn = async (route) => {
 
   await auth.initialize();
 
-  // Presentation only: recovery completion can show Sign in without signing out
-  // an unrelated normal account. This flag grants no password-update authority.
+  // Presentation only, for this navigation: unlike history state, info is not
+  // restored by Back/Forward or reload. Never replay the completion exception.
+  // This changes neither the normal session nor password-update authority.
   if (route.routeConfig?.path === 'login'
-    && router.currentNavigation()?.extras.state?.['passwordResetComplete'] === true) return true;
+    && router.currentNavigation()?.extras.info === 'passwordResetComplete') return true;
 
   if (auth.isAuthenticated()) {
     return router.createUrlTree(['/']);

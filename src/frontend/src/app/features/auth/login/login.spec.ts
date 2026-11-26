@@ -54,6 +54,7 @@ describe('Login', () => {
     await submit('user@example.com', 'password');
 
     expect(router.url).toBe('/');
+    expect(router.lastSuccessfulNavigation()?.extras.replaceUrl).toBe(true);
   });
 
   it('shows a normalized error and stays on the form on failure', async () => {

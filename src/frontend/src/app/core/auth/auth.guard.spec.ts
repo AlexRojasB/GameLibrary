@@ -20,12 +20,26 @@ describe('route guards', () => {
       { path: 'register', component: DummyComponent, canActivate: [guestGuard] },
     ]), { provide: SUPABASE_CLIENT, useValue: mock.client }] });
     const router = TestBed.inject(Router);
-    await router.navigateByUrl('/login', { state: { passwordResetComplete: true } });
+    await router.navigateByUrl('/login', { info: 'passwordResetComplete' });
     expect(router.url).toBe('/login');
     expect(TestBed.inject(AuthService).session()).toBe(session);
     expect(mock.auth.signOut).not.toHaveBeenCalled();
-    await router.navigateByUrl('/register', { state: { passwordResetComplete: true } });
+    await router.navigateByUrl('/register', { info: 'passwordResetComplete' });
     expect(router.url).toBe('/'); // The presentation exception is not a general guard bypass.
+  });
+
+  it('ignores a legacy persisted completion flag for an authenticated user', async () => {
+    const session = createTestSession();
+    const mock = createMockSupabase(session);
+    TestBed.configureTestingModule({ providers: [provideRouter([
+      { path: '', component: DummyComponent, canActivate: [authGuard] },
+      { path: 'login', component: DummyComponent, canActivate: [guestGuard] },
+    ]), { provide: SUPABASE_CLIENT, useValue: mock.client }] });
+    const router = TestBed.inject(Router);
+    await router.navigateByUrl('/login', { state: { passwordResetComplete: true } });
+    expect(router.url).toBe('/');
+    expect(TestBed.inject(AuthService).session()).toBe(session);
+    expect(mock.auth.signOut).not.toHaveBeenCalled();
   });
 
   it('authGuard redirects an unauthenticated user to /login', async () => {

@@ -130,7 +130,8 @@ describe('recovery-only password update', () => {
     expect(normalMock.auth.signOut).not.toHaveBeenCalled();
     expect(normalAuth.session()).toBe(normalSession);
     expect(TestBed.inject(Router).url).toBe('/login');
-    expect(TestBed.inject(Router).lastSuccessfulNavigation()?.extras.state).toEqual({ passwordResetComplete: true });
+    expect(TestBed.inject(Router).lastSuccessfulNavigation()?.extras.info).toBe('passwordResetComplete');
+    expect(TestBed.inject(Router).lastSuccessfulNavigation()?.extras.state).toBeUndefined();
   });
 
   it.each(['SIGNED_IN', 'INITIAL_SESSION', 'TOKEN_REFRESHED'])('rejects ordinary/restored %s context even with a valid session', async ordinary => {
