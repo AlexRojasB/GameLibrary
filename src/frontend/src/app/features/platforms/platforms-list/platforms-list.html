@@ -1,7 +1,7 @@
 <section class="platforms">
   <header class="platforms__header">
     <h1>Platforms</h1>
-    <a routerLink="/">Home</a>
+    <app-back-button fallback="/manage" />
   </header>
 
   @if (loading()) {

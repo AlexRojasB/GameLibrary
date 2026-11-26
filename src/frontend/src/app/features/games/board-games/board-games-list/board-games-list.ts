@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, effect, ElementRef, inject, signal, untracked, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { BackButton } from '../../../../shared/back-button/back-button';
 import { map } from 'rxjs';
 
 import { AuthService } from '../../../../core/auth/auth.service';
@@ -14,7 +15,7 @@ import { CoverImage } from '../../cover-image/cover-image';
 
 @Component({
   selector: 'app-board-games-list',
-  imports: [RouterLink, BoardGameForm, CoverImage],
+  imports: [RouterLink, BoardGameForm, CoverImage, BackButton],
   providers: [CoverSave],
   templateUrl: './board-games-list.html',
   styleUrl: './board-games-list.scss',

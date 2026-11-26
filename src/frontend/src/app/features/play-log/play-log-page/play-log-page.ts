@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { BackButton } from '../../../shared/back-button/back-button';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { CoverImage } from '../../games/cover-image/cover-image';
@@ -12,7 +13,7 @@ import { PlayLogService } from '../play-log.service';
 
 @Component({
   selector: 'app-play-log-page',
-  imports: [DatePipe, RouterLink, LogPlayDialog, CoverImage],
+  imports: [DatePipe, RouterLink, LogPlayDialog, CoverImage, BackButton],
   templateUrl: './play-log-page.html',
   styleUrl: './play-log-page.scss',
 })

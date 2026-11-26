@@ -2,6 +2,12 @@
   max-width: 58rem;
 }
 
+@media (min-width: 760px) {
+  .play-log__back {
+    display: none;
+  }
+}
+
 .play-log__entries {
   display: grid;
   gap: 0.85rem;
