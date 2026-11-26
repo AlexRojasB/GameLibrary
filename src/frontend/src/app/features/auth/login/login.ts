@@ -13,7 +13,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 export class Login {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
-  protected readonly passwordResetComplete = this.router.currentNavigation()?.extras.state?.['passwordResetComplete'] === true;
+  protected readonly passwordResetComplete = this.router.currentNavigation()?.extras.info === 'passwordResetComplete';
 
   protected readonly form = new FormGroup({
     email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
@@ -32,7 +32,7 @@ export class Login {
     this.error.set('');
     try {
       await this.auth.signIn(this.form.controls.email.value, this.form.controls.password.value);
-      await this.router.navigateByUrl('/');
+      await this.router.navigateByUrl('/', { replaceUrl: true });
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Unable to log in. Please try again.');
     } finally {
